@@ -1,7 +1,7 @@
 # Supabase CLI configuration for Persat Finance.
 # Replace YOUR_PROJECT_REF with the project reference from the Supabase URL
 # before running `supabase link` or deploying the Edge Function.
-project_id = "YOUR_PROJECT_REF"
+project_id = "mipalifltoqppvamtemg"
 
 [functions.waitlist]
 # This is an intentionally public waitlist endpoint. The function performs
