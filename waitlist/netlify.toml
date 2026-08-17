@@ -6,6 +6,6 @@
 
 [[redirects]]
   from = "/api/waitlist"
-  to = "https://YOUR_PROJECT_REF.supabase.co/functions/v1/waitlist"
+  to = "https://mipalifltoqppvamtemg.supabase.co/functions/v1/waitlist"
   status = 200
   force = true
