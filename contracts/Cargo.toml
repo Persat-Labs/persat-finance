@@ -1,3 +1,7 @@
 [workspace]
 members = ["programs/asset_whitelist"]
 resolver = "2"
+
+# Financial programs must never wrap integer arithmetic in release builds.
+[profile.release]
+overflow-checks = true
