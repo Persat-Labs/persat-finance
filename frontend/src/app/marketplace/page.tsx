@@ -1,0 +1,5 @@
+import Link from "next/link";
+import { AppFrame } from "@/components/AppFrame";
+import { Button, Card } from "@/lib/design-system";
+import { MarketplaceFilters } from "@/components/marketplace/MarketplaceFilters";
+export default function Marketplace() { return <AppFrame eyebrow="Marketplace // Screen B1" title="Open listings"><div className="mt-8 flex flex-wrap gap-3"><Link href="/marketplace/new"><Button>Post a listing</Button></Link><Link href="/marketplace/my-listings"><Button variant="secondary">My listings</Button></Link></div><MarketplaceFilters /><Card className="mt-8"><p className="eyebrow">Indexer status</p><h2 className="mt-3 font-display text-xl uppercase">No verified listings available yet</h2><p className="mt-3 max-w-2xl text-orange-50">Listings will appear only after the Deal Registry is deployed and the marketplace indexer has verified public, unconfirmed on-chain deals. Filtering will remain limited to side, duration, amount range, rate, and verified repayment history.</p></Card></AppFrame>; }

@@ -1,0 +1,10 @@
+{
+  "name": "@persat/contracts",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Anchor workspace dependencies and local protocol test tooling",
+  "scripts": {
+    "build": "anchor build",
+    "test": "anchor test"
+  }
+}

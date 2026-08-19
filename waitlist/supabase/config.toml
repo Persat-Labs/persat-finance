@@ -1,0 +1,9 @@
+# Supabase CLI configuration for Persat Finance.
+# Replace YOUR_PROJECT_REF with the project reference from the Supabase URL
+# before running `supabase link` or deploying the Edge Function.
+project_id = "mipalifltoqppvamtemg"
+
+[functions.waitlist]
+# This is an intentionally public waitlist endpoint. The function performs
+# its own server-side validation and the table still has RLS enabled.
+verify_jwt = false
