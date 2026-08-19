@@ -9,7 +9,7 @@ This record follows the authoritative 10-week roadmap. Status reflects verified 
 - [x] Next.js 14 + TypeScript + Tailwind frontend workspace initialized.
 - [x] Initial product home screen implements equal-weight private-deal and marketplace entry paths.
 - [ ] Anchor/Solana environment initialized — blocked in this build environment because Rust toolchain download failed at the TLS/network layer; no deployment or program source has been claimed as tested.
-- [x] Node.js API foundation added with health checks, fail-closed bridge health, and unregistered secure route source for future authenticated deal-link and proposal handling.
+- [x] Node.js API foundation added with health checks, fail-closed bridge health, Solana wallet-signature challenge/verification source, and unregistered secure route source for future deal-link and proposal handling.
 - [ ] CI pipeline configured.
 - [ ] Secure deployment configuration received and verified.
 

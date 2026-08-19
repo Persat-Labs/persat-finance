@@ -26,3 +26,24 @@ create table if not exists marketplace_proposals (
 );
 create index if not exists marketplace_proposals_listing_status on marketplace_proposals(listing_id, status);
 -- Deliberately no message, description, URL, social handle, or contact column exists.
+
+create table if not exists wallet_auth_challenges (
+  id uuid primary key default gen_random_uuid(),
+  wallet text not null,
+  nonce_hash text not null unique,
+  message text not null,
+  expires_at timestamptz not null,
+  used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists wallet_auth_challenges_lookup on wallet_auth_challenges(wallet, expires_at) where used_at is null;
+
+create table if not exists wallet_sessions (
+  id uuid primary key default gen_random_uuid(),
+  wallet text not null,
+  token_hash text not null unique,
+  expires_at timestamptz not null,
+  revoked_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists wallet_sessions_lookup on wallet_sessions(token_hash) where revoked_at is null;

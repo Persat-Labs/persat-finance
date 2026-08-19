@@ -1,6 +1,7 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { config } from "./config.js";
+import { walletAuthRoutes } from "./routes/walletAuth.js";
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: config.appUrl ?? false });
@@ -21,6 +22,8 @@ app.get("/v1/bridges/health", async () => ({
     { id: "zbtc", available: false, reason: "Bridge provider configuration is required before routing deposits." },
   ],
 }));
+
+await app.register(walletAuthRoutes);
 
 // Security boundary: deal-link and marketplace write routes remain unregistered until
 // wallet-signature authentication is implemented and tested against deployed programs.
