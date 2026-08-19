@@ -1,0 +1,3 @@
+[workspace]
+members = ["programs/asset_whitelist"]
+resolver = "2"
