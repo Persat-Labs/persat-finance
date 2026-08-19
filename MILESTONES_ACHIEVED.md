@@ -10,7 +10,8 @@ This record follows the authoritative 10-week roadmap. Status reflects verified 
 - [x] Initial product home screen implements equal-weight private-deal and marketplace entry paths.
 - [ ] Anchor/Solana environment initialized — blocked in this build environment because Rust toolchain download failed at the TLS/network layer; no deployment or program source has been claimed as tested.
 - [x] Node.js API foundation added with health checks, fail-closed bridge health, Solana wallet-signature challenge/verification source, and unregistered secure route source for future deal-link and proposal handling.
-- [ ] CI pipeline configured.
+- [x] CI pipeline configured for frontend lint/build and backend typecheck/test.
+- [ ] Anchor/Solana CI job configured after the Rust toolchain is available.
 - [ ] Secure deployment configuration received and verified.
 
 ## Weeks 2–10
