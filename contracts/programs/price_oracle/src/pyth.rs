@@ -225,17 +225,9 @@ fn hex_value(character: u8) -> Result<u8> {
     }
 }
 
-#[error_code]
-pub enum PythError {
-    #[msg("The price account is not owned by the Pyth receiver program.")]
-    WrongPriceAccountOwner,
-    #[msg("The account is not a Pyth PriceUpdateV2 account.")]
-    NotAPriceUpdateAccount,
-    #[msg("The Pyth price account data is malformed or truncated.")]
-    MalformedPriceAccount,
-    #[msg("The feed id is not valid 32-byte hex.")]
-    InvalidFeedId,
-}
+// Errors live in the parent module's single `#[error_code]` enum: Anchor
+// permits only one error enum per program.
+use crate::OracleError as PythError;
 
 #[cfg(test)]
 mod tests {

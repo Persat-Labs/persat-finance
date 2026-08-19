@@ -325,6 +325,14 @@ pub enum OracleError {
     ConfidenceTooWide,
     #[msg("An oracle arithmetic operation overflowed.")]
     ArithmeticOverflow,
+    #[msg("The price account is not owned by the Pyth receiver program.")]
+    WrongPriceAccountOwner,
+    #[msg("The account is not a Pyth PriceUpdateV2 account.")]
+    NotAPriceUpdateAccount,
+    #[msg("The Pyth price account data is malformed or truncated.")]
+    MalformedPriceAccount,
+    #[msg("The feed id is not valid 32-byte hex.")]
+    InvalidFeedId,
 }
 
 #[cfg(test)]
