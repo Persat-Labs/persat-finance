@@ -92,6 +92,7 @@ pub struct InitializeRegistry<'info> {
 pub struct AddAssetType<'info> {
     #[account(has_one = governance @ RegistryError::UnauthorizedGovernance)]
     pub registry: Account<'info, AssetRegistry>,
+    #[account(mut)]
     pub governance: Signer<'info>,
     pub mint: Account<'info, Mint>,
     #[account(init, payer = governance, space = 8 + AssetRecord::INIT_SPACE, seeds = [b"asset", registry.key().as_ref(), mint.key().as_ref()], bump)]

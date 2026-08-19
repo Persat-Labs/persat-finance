@@ -14,8 +14,11 @@ cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
+custom-heap = []
+custom-panic = []
+anchor-debug = []
 idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 
 [dependencies]
-anchor-lang = "1.0.0"
-anchor-spl = "1.0.0"
+anchor-lang = "=1.0.0"
+anchor-spl = "=1.0.0"
