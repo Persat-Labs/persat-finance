@@ -6,6 +6,8 @@ skip-lint = false
 governance = "jr35R8hZWtV7Yc2ekzbsebypD2ooenHg8QgxhpmVgkj"
 price_oracle = "BajL3G7sLiH1oKUFs54okF3hv1FzkezNYma2MKGoYJDx"
 asset_whitelist = "7K66UwFGxZP5TJRRiQQXMV63yUz4v5K45sMiy6qwunZ5"
+deal_registry = "FvjjNfQLUKKE66aRoi5xMmmWbJhgyyY96YDF7j2uSc3D"
+escrow_vault = "7scqu8nHiNWCo98N1WfUpnYqLFXFqBC4PCgw8oDy7QtR"
 
 [provider]
 cluster = "Localnet"
@@ -19,6 +21,8 @@ members = [
   "programs/governance",
   "programs/price_oracle",
   "programs/asset_whitelist",
+  "programs/deal_registry",
+  "programs/escrow_vault",
 ]
 
 # solana-test-validator 3.1.10 panics when bound to 0.0.0.0 on hosted runners.

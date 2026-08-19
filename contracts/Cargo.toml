@@ -4,6 +4,8 @@ members = [
   "programs/governance",
   "programs/price_oracle",
   "programs/asset_whitelist",
+  "programs/deal_registry",
+  "programs/escrow_vault",
 ]
 resolver = "2"
 
