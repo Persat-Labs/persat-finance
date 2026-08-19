@@ -8,14 +8,34 @@ This record follows the authoritative 10-week roadmap. Status reflects verified 
 - [x] Existing waitlist visual language extracted into the main frontend foundation: dark surface system, amber/orange palette, Plus Jakarta Sans/Geist/JetBrains Mono fallbacks, panel and glow treatment, mono labels, minimum 48px controls, and inline-state-ready inputs.
 - [x] Next.js 14 + TypeScript + Tailwind frontend workspace initialized.
 - [x] Initial product home screen implements equal-weight private-deal and marketplace entry paths.
-- [ ] Anchor/Solana environment initialized — blocked in this build environment because Rust toolchain download failed at the TLS/network layer; no deployment or program source has been claimed as tested.
+- [x] Anchor/Solana environment initialized. The development sandbox has no route to crates.io or the Anza release host, so GitHub Actions is used as the compiler and test runner. `contracts/scripts/ci-log.sh` resolves Actions log output for environments that cannot reach Azure blob storage.
 - [x] Node.js API foundation added with health checks, fail-closed bridge health, Solana wallet-signature challenge/verification source, and unregistered secure route source for future deal-link and proposal handling.
 - [x] CI pipeline configured for frontend lint/build and backend typecheck/test.
 - [x] Contributor onboarding, handoff map, and four-pass testing strategy documented.
 - [x] Marketplace structured-input source policy check added to local verification.
-- [ ] Anchor/Solana CI job configured after the Rust toolchain is available.
+- [x] Anchor/Solana CI job green. The `Verify Solana protocol` job previously failed at `anchor test` with `Unable to read keypair file (~/.config/solana/id.json)`; the runner has no provider wallet. Fixed by pointing the provider at the keypair `anchor build` generates in `target/deploy` and running host-target `cargo test`, which needs no validator.
 - [ ] Secure deployment configuration received and verified.
 
-## Weeks 2–10
+## Week 2 — Core programs: Registry & Whitelist
+
+- [x] Asset Whitelist Registry: `add_asset_type`, `update_asset_type`, `deactivate`/`reactivate`, `is_accepted`, covering both collateral and loan-currency categories. Unit tested and CI-verified.
+- [x] Deal Registry: `propose_deal` (Public and Private), `confirm_deal` (binding-only, terms-hash checked), `cancel_deal`, state advancement. Unit tested and CI-verified.
+- [ ] tBTC, zBTC, USDC, USDT mint addresses integrated into the whitelist on a live cluster — blocked on founder-side cluster choice and mint confirmation.
+
+## Weeks 3–5 — Remaining programs (source ahead of schedule, not yet integration tested)
+
+- [x] Escrow Vault, Price Oracle, Loan Lifecycle, Liquidation Engine, Fee & Treasury, and Governance program source complete; SBF build verified in CI.
+- [x] Shared financial math extracted to `contracts/crates/persat-core` with checked arithmetic throughout.
+- [ ] Cross-program invocation testing between Deal Registry, Whitelist, and Escrow Vault — requires the LiteSVM harness.
+- [ ] First full manual lifecycle dry run on a live cluster — blocked on deployment approval.
+
+## Security audit passes
+
+- [~] Pass 1 — unit and access-control coverage: partial. See `security-audits/pass-1/`.
+- [~] Pass 2 — fuzzing: financial calculation families complete at 10,000 iterations each, 29 properties passing. PDA and state-transition fuzzing outstanding. See `security-audits/pass-2/`.
+- [ ] Pass 3 — live testnet integration: not started, requires deployment.
+- [ ] Pass 4 — adversarial audit: not started.
+
+## Weeks 6–10
 
 Not started. No later-week task is marked complete before source, tests, and the required audit pass evidence exist.
