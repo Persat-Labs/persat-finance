@@ -21,4 +21,6 @@ The authoritative architecture is [`Persat_Finance_Technical_Architecture.docx`]
 
 - Frontend application and wallet-adapter foundation: implemented and build-verified.
 - Backend health, fail-closed bridge response, structured schemas, database migration, and wallet-signature challenge foundation: implemented and type/test verified.
-- Persistent backend deployment, wallet-auth route integration, indexer, keepers, bridge SDK integration, Anchor programs, and testnet deployment: pending.
+- All eight Anchor programs: source complete, SBF build and host unit tests verified in CI. Not deployed to any cluster; program IDs are placeholders.
+- Shared financial math (`contracts/crates/persat-core`): implemented with checked arithmetic and unit-tested on the host target.
+- Persistent backend deployment, wallet-auth route integration, indexer, keepers, bridge SDK integration, on-chain client wiring, and testnet deployment: pending.
