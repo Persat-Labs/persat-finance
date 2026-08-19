@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { AppFrame } from "@/components/AppFrame";
 import { Button, Card } from "@/lib/design-system";
+import { LoanDashboard } from "@/components/loan/LoanDashboard";
+import { BridgeDepositPanel } from "@/components/bridge/BridgeDepositPanel";
 
 const content = {
   confirm: { eyebrow: "Direct path // Screen A3", title: "Confirm these terms", text: "Connect the intended counterparty wallet to review immutable on-chain terms. Confirmation permanently binds this wallet; it never edits the terms.", action: "Confirm these terms" },
@@ -10,5 +12,5 @@ const content = {
 } as const;
 export function DealWorkspace({ id, screen }: { id: string; screen: keyof typeof content }) {
  const view = content[screen];
- return <AppFrame eyebrow={view.eyebrow} title={view.title}><p className="mt-4 font-mono text-xs text-orange-50/70">Deal reference: {id}</p><Card className="mt-8 max-w-3xl"><p className="eyebrow">Fail-closed testnet workflow</p><p className="mt-4 leading-7 text-orange-50">{view.text}</p><Button className="mt-8" disabled>{view.action}</Button><Link className="ml-4 font-mono text-xs uppercase tracking-widest text-amber hover:text-white" href="/deal/new">Create another deal</Link></Card></AppFrame>;
+ return <AppFrame eyebrow={view.eyebrow} title={view.title}><p className="mt-4 font-mono text-xs text-orange-50/70">Deal reference: {id}</p>{screen === "fund" ? <BridgeDepositPanel /> : <Card className="mt-8 max-w-3xl"><p className="eyebrow">Fail-closed testnet workflow</p><p className="mt-4 leading-7 text-orange-50">{view.text}</p><Button className="mt-8" disabled>{view.action}</Button><Link className="ml-4 font-mono text-xs uppercase tracking-widest text-amber hover:text-white" href="/deal/new">Create another deal</Link></Card>}{screen === "manage" && <LoanDashboard />}</AppFrame>;
 }
