@@ -146,7 +146,7 @@ fn within_deviation_bound(previous: u64, next: u64) -> bool {
         (next, previous)
     };
     let delta = high.saturating_sub(low) as u128;
-    let bound = (previous as u128).saturating_mul(MAX_DEVIATION_BPS)
+    let bound = (previous as u128).saturating_mul(MAX_DEVIATION_BPS as u128)
         / persat_core::BPS_DENOMINATOR as u128;
     delta <= bound
 }
