@@ -23,6 +23,8 @@ Implemented route foundations:
 - `/marketplace`
 - `/marketplace/new`
 - `/marketplace/my-listings`
+- `/marketplace/[id]`
+- `/faucet`
 - `/admin`
 
 The interface currently presents safe disabled states for actions that require deployed programs, fresh oracle data, or secure service configuration.
