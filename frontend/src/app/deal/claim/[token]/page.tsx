@@ -1,3 +1,0 @@
-import { AppFrame } from "@/components/AppFrame";
-import { Button, Card } from "@/lib/design-system";
-export default function ClaimDeal({ params }: { params: { token: string } }) { return <AppFrame eyebrow="Direct path // Screen A3" title="Claim a private deal"><Card className="mt-8 max-w-3xl"><p className="eyebrow">Single-use claim</p><p className="mt-4 text-orange-50">This link is validated server-side before a wallet can view or claim a deal. Once the wallet confirms the exact terms on-chain, the token is invalidated immediately.</p><p className="mt-5 font-mono text-xs text-orange-50/60">Claim token: {params.token}</p><Button className="mt-8" disabled>Connect wallet to verify</Button></Card></AppFrame>; }
