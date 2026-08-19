@@ -1,3 +1,5 @@
+create extension if not exists pgcrypto;
+
 -- Persat Finance backend state. This stores no funds and never stores raw deal-link tokens.
 create table if not exists deal_links (
   id uuid primary key default gen_random_uuid(),
