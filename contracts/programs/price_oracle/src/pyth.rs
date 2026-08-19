@@ -34,7 +34,7 @@ pub const PRICE_UPDATE_V2_DISCRIMINATOR: [u8; 8] = [34, 241, 35, 99, 157, 126, 2
 ///
 /// Same address on mainnet, devnet, and testnet.
 pub const PYTH_RECEIVER_PROGRAM_ID: Pubkey =
-    anchor_lang::solana_program::pubkey!("rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ");
+    anchor_lang::pubkey!("rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ");
 
 /// How thoroughly Wormhole guardian signatures were checked for an update.
 ///
