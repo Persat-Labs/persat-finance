@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "verify:marketplace": "node scripts/verify-marketplace-no-free-text.mjs"
   },
   "dependencies": {
     "@solana/wallet-adapter-phantom": "^0.9.29",

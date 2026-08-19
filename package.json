@@ -3,12 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "verify": "npm run frontend:lint && npm run frontend:build && npm run backend:typecheck && npm run backend:test",
+    "verify": "npm run frontend:lint && npm run frontend:marketplace-policy && npm run frontend:build && npm run backend:typecheck && npm run backend:test",
     "frontend:dev": "npm --prefix frontend run dev",
     "frontend:lint": "npm --prefix frontend run lint",
     "frontend:build": "npm --prefix frontend run build",
     "backend:dev": "npm --prefix backend run dev",
     "backend:typecheck": "npm --prefix backend run typecheck",
-    "backend:test": "npm --prefix backend run test"
+    "backend:test": "npm --prefix backend run test",
+    "frontend:marketplace-policy": "npm --prefix frontend run verify:marketplace"
   }
 }
