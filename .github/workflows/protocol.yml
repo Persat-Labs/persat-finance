@@ -71,7 +71,7 @@ jobs:
       - name: Run Anchor tests
         run: |
           if [ -f Anchor.toml ]; then
-            anchor test --skip-build
+            anchor test --skip-build --validator legacy
           else
             echo "Anchor workspace has not been created yet."
           fi
