@@ -26,7 +26,7 @@ use persat_core::{
     },
     ltv::collateral_value_atoms,
 };
-use price_oracle::{program::PriceOracle, OracleConfig};
+use price_oracle::OracleConfig;
 
 declare_id!("ddkJSDR6ke8zhPNNu2UQtESWas2HUopn2PwWKsuUXuj");
 
@@ -314,7 +314,6 @@ pub struct Evaluate<'info> {
     /// CHECK: validated by the oracle program's `read_price`, which enforces
     /// Pyth receiver ownership, discriminator, feed identity, and freshness.
     pub price_update: UncheckedAccount<'info>,
-    pub price_oracle_program: Program<'info, PriceOracle>,
 }
 
 #[derive(Accounts)]
@@ -329,7 +328,6 @@ pub struct ExecuteLiquidation<'info> {
     pub oracle: Account<'info, OracleConfig>,
     /// CHECK: validated by the oracle program's `read_price`.
     pub price_update: UncheckedAccount<'info>,
-    pub price_oracle_program: Program<'info, PriceOracle>,
 }
 
 #[account]
