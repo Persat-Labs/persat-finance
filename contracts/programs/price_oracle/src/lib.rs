@@ -1,36 +1,70 @@
 //! Persat Finance price oracle adapter.
 //!
-//! A single BTC/USD feed values all collateral. USDC and USDT are treated as
-//! exactly one dollar — the documented MVP simplification — so no second feed
-//! exists.
+//! A single BTC/USD feed, sourced from **Pyth**, values all collateral. USDC and
+//! USDT are treated as exactly one dollar — the documented MVP simplification —
+//! so no second feed exists.
 //!
-//! The defining behaviour of this program is that it **fails closed**. If the
-//! price has not been refreshed within the configured staleness window, every
-//! price-dependent action is blocked. When the protocol cannot trust the price,
-//! it does nothing rather than acting on data it cannot verify. Being unable to
-//! liquidate for a few minutes is recoverable; liquidating against a wrong
-//! price is not.
+//! # Why a pull oracle changes the shape of this program
 //!
-//! The pusher is an off-chain service that reads the upstream Pyth or
-//! Switchboard feed and writes it here. It is *only* trusted to relay a price
-//! it observed. It cannot exceed the configured deviation bound in a single
-//! update, so a compromised pusher cannot instantly reprice the whole protocol.
+//! Pyth on Solana is a *pull* oracle. Nobody pushes prices into this program.
+//! Instead a client posts a signed Hermes update into a `PriceUpdateV2` account
+//! owned by the Pyth receiver, then passes that account into whichever
+//! instruction needs a price. Consequently this program stores **configuration
+//! and policy**, not price data. There is no price field to go stale in
+//! storage, and no pusher key that could be compromised to inject a false price.
+//! That removes an entire trust assumption compared with a push design.
+//!
+//! # Fail-closed behaviour
+//!
+//! Every price read goes through [`OracleConfig::read_price`], which enforces,
+//! in order:
+//!
+//! 1. **Ownership** — the account is owned by the Pyth receiver. Anchor's
+//!    `Account<'info, PriceUpdateV2>` checks this, which is what stops an
+//!    attacker passing a look-alike account they control.
+//! 2. **Feed identity** — the update is for BTC/USD and not some other asset.
+//! 3. **Staleness** — the update is within the configured window.
+//! 4. **Verification level** — the update carries a full Wormhole quorum
+//!    signature, not a partial one.
+//! 5. **Sign** — the price is strictly positive.
+//! 6. **Confidence** — Pyth's own uncertainty band is narrow relative to the
+//!    price. A wide band means the publishers disagree, which is exactly when a
+//!    lending protocol should decline to act.
+//!
+//! Any failure blocks the action. When the protocol cannot trust the price it
+//! does nothing, rather than valuing collateral against data it cannot verify.
 
 use anchor_lang::prelude::*;
 use persat_core::ltv::{Price, MAX_PRICE_EXPO};
+use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
 
 declare_id!("BajL3G7sLiH1oKUFs54okF3hv1FzkezNYma2MKGoYJDx");
 
-/// Lower bound on the staleness window. A window this tight would block the
+/// Pyth BTC/USD price feed id.
+///
+/// The same id on every cluster: it identifies the *feed*, not an account.
+/// <https://pyth.network/developers/price-feed-ids>
+pub const BTC_USD_FEED_ID: &str =
+    "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43";
+
+/// Lower bound on the staleness window. Tighter than this would block the
 /// protocol constantly on ordinary network jitter.
 pub const MIN_STALENESS_SECONDS: u32 = 30;
-/// Upper bound on the staleness window. Beyond this the price is not meaningful
-/// for a volatile asset, so governance may not weaken the check indefinitely.
+/// Upper bound on the staleness window. Beyond this a price is not meaningful
+/// for a volatile asset, so governance cannot weaken the check indefinitely.
 pub const MAX_STALENESS_SECONDS: u32 = 3_600;
-/// Largest single-update price move, in basis points, before the update is
-/// rejected as implausible. 25% in one tick is treated as a broken or hostile
-/// feed rather than a real market move.
-pub const MAX_DEVIATION_BPS: u64 = 2_500;
+/// Default staleness window.
+pub const DEFAULT_STALENESS_SECONDS: u32 = 60;
+
+/// Widest acceptable Pyth confidence interval, in basis points of the price.
+///
+/// Pyth publishes `price ± conf`. A wide band means its publishers disagree,
+/// typically during severe volatility or a feed problem. Acting on a price the
+/// oracle itself is unsure about is how lending protocols mis-liquidate, so 2%
+/// is treated as the limit beyond which the protocol declines to act.
+pub const MAX_CONFIDENCE_BPS: u64 = 200;
+/// Ceiling governance may set for the confidence bound: 10%.
+pub const MAX_CONFIGURABLE_CONFIDENCE_BPS: u64 = 1_000;
 
 #[program]
 pub mod price_oracle {
@@ -40,68 +74,50 @@ pub mod price_oracle {
     pub fn initialize_oracle(
         ctx: Context<InitializeOracle>,
         governance: Pubkey,
-        pusher: Pubkey,
-        feed: Pubkey,
         staleness_threshold_seconds: u32,
-        price_decimals: u32,
+        max_confidence_bps: u64,
     ) -> Result<()> {
-        require!(governance != Pubkey::default(), OracleError::InvalidAuthority);
-        require!(pusher != Pubkey::default(), OracleError::InvalidAuthority);
-        require!(feed != Pubkey::default(), OracleError::InvalidFeed);
         require!(
-            (MIN_STALENESS_SECONDS..=MAX_STALENESS_SECONDS)
-                .contains(&staleness_threshold_seconds),
+            governance != Pubkey::default(),
+            OracleError::InvalidAuthority
+        );
+        require!(
+            (MIN_STALENESS_SECONDS..=MAX_STALENESS_SECONDS).contains(&staleness_threshold_seconds),
             OracleError::InvalidStalenessThreshold
         );
-        require!(price_decimals <= MAX_PRICE_EXPO, OracleError::InvalidPrice);
+        require!(
+            max_confidence_bps > 0 && max_confidence_bps <= MAX_CONFIGURABLE_CONFIDENCE_BPS,
+            OracleError::InvalidConfidenceBound
+        );
 
         let oracle = &mut ctx.accounts.oracle;
         oracle.governance = governance;
-        oracle.pusher = pusher;
-        oracle.feed = feed;
+        oracle.feed_id = get_feed_id_from_hex(BTC_USD_FEED_ID)
+            .map_err(|_| error!(OracleError::InvalidFeed))?;
         oracle.staleness_threshold_seconds = staleness_threshold_seconds;
-        oracle.price_decimals = price_decimals;
-        // No price is published at initialization. Until the first push lands,
-        // every consumer sees a stale oracle and correctly refuses to act.
-        oracle.price_mantissa = 0;
-        oracle.last_updated_at = 0;
+        oracle.max_confidence_bps = max_confidence_bps;
+        oracle.paused = false;
         oracle.bump = ctx.bumps.oracle;
         Ok(())
     }
 
-    /// Publish a fresh BTC/USD observation.
-    pub fn push_price(ctx: Context<PushPrice>, mantissa: u64, observed_at: i64) -> Result<()> {
-        require!(mantissa > 0, OracleError::InvalidPrice);
-        let now = Clock::get()?.unix_timestamp;
-        // A future-dated observation would extend the freshness window past
-        // what was really observed, so it is rejected outright.
-        require!(observed_at <= now, OracleError::FutureObservation);
-        let age = now
-            .checked_sub(observed_at)
-            .ok_or(OracleError::ArithmeticOverflow)?;
-        require!(
-            age <= ctx.accounts.oracle.staleness_threshold_seconds as i64,
-            OracleError::ObservationAlreadyStale
-        );
-
-        let oracle = &mut ctx.accounts.oracle;
-        // Never accept an out-of-order update; it would rewind the price.
-        require!(
-            observed_at >= oracle.last_updated_at,
-            OracleError::StaleObservationOrder
-        );
-        if oracle.price_mantissa > 0 {
-            require!(
-                within_deviation_bound(oracle.price_mantissa, mantissa),
-                OracleError::PriceDeviationTooLarge
-            );
-        }
-        oracle.price_mantissa = mantissa;
-        oracle.last_updated_at = observed_at;
-        emit!(PricePublished {
-            mantissa,
-            decimals: oracle.price_decimals,
-            observed_at,
+    /// Read and validate the current BTC/USD price, emitting the result.
+    ///
+    /// Exists so the keeper and the frontend can confirm the protocol's own
+    /// view of the price, and so integration tests can assert fail-closed
+    /// behaviour directly. Other programs perform the same validation through
+    /// [`OracleConfig::read_price`] rather than calling across programs.
+    pub fn read_btc_usd(ctx: Context<ReadPrice>) -> Result<()> {
+        let clock = Clock::get()?;
+        let observation = ctx
+            .accounts
+            .oracle
+            .read_price(&ctx.accounts.price_update, &clock)?;
+        emit!(PriceObserved {
+            mantissa: observation.mantissa,
+            decimals: observation.decimals,
+            confidence: observation.confidence,
+            publish_time: observation.publish_time,
         });
         Ok(())
     }
@@ -116,39 +132,44 @@ pub mod price_oracle {
         Ok(())
     }
 
-    /// Governance-only: point the adapter at a different upstream feed.
-    ///
-    /// Changing the feed invalidates the published price. The protocol returns
-    /// to a stale, fail-closed state until the new feed publishes, rather than
-    /// carrying a price from the old source across the switch.
-    pub fn set_feed_address(ctx: Context<UpdateOracle>, feed: Pubkey) -> Result<()> {
-        require!(feed != Pubkey::default(), OracleError::InvalidFeed);
-        let oracle = &mut ctx.accounts.oracle;
-        oracle.feed = feed;
-        oracle.price_mantissa = 0;
-        oracle.last_updated_at = 0;
+    /// Governance-only: change the confidence bound.
+    pub fn set_confidence_bound(ctx: Context<UpdateOracle>, max_confidence_bps: u64) -> Result<()> {
+        require!(
+            max_confidence_bps > 0 && max_confidence_bps <= MAX_CONFIGURABLE_CONFIDENCE_BPS,
+            OracleError::InvalidConfidenceBound
+        );
+        ctx.accounts.oracle.max_confidence_bps = max_confidence_bps;
         Ok(())
     }
 
-    /// Governance-only: rotate the pusher key.
-    pub fn set_pusher(ctx: Context<UpdateOracle>, pusher: Pubkey) -> Result<()> {
-        require!(pusher != Pubkey::default(), OracleError::InvalidAuthority);
-        ctx.accounts.oracle.pusher = pusher;
+    /// Governance-only: halt every price-dependent action.
+    ///
+    /// A deliberate kill switch for a suspected feed problem. Because all price
+    /// reads route through one validation path, setting this stops new funding,
+    /// liquidation, and valuation together rather than piecemeal.
+    pub fn set_paused(ctx: Context<UpdateOracle>, paused: bool) -> Result<()> {
+        ctx.accounts.oracle.paused = paused;
         Ok(())
     }
 }
 
-/// True when `next` is within the permitted deviation of `previous`.
-fn within_deviation_bound(previous: u64, next: u64) -> bool {
-    let (low, high) = if next >= previous {
-        (previous, next)
-    } else {
-        (next, previous)
-    };
-    let delta = high.saturating_sub(low) as u128;
-    let bound = (previous as u128).saturating_mul(MAX_DEVIATION_BPS as u128)
-        / persat_core::BPS_DENOMINATOR as u128;
-    delta <= bound
+/// A validated price observation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Observation {
+    /// Positive price mantissa.
+    pub mantissa: u64,
+    /// Decimal places in `mantissa`.
+    pub decimals: u32,
+    /// Pyth confidence interval, in the same scale as `mantissa`.
+    pub confidence: u64,
+    pub publish_time: i64,
+}
+
+impl Observation {
+    /// Convert into the valuation type used by the shared math crate.
+    pub fn price(&self) -> Result<Price> {
+        Price::new(self.mantissa, self.decimals).map_err(|_| error!(OracleError::InvalidPrice))
+    }
 }
 
 #[derive(Accounts)]
@@ -167,15 +188,13 @@ pub struct InitializeOracle<'info> {
 }
 
 #[derive(Accounts)]
-pub struct PushPrice<'info> {
-    #[account(
-        mut,
-        has_one = pusher @ OracleError::UnauthorizedPusher,
-        seeds = [b"oracle"],
-        bump = oracle.bump
-    )]
+pub struct ReadPrice<'info> {
+    #[account(seeds = [b"oracle"], bump = oracle.bump)]
     pub oracle: Account<'info, OracleConfig>,
-    pub pusher: Signer<'info>,
+    /// Pyth price update. `Account<PriceUpdateV2>` enforces that the Pyth
+    /// receiver owns this account, which is what prevents a caller from
+    /// supplying a look-alike account holding a price of their choosing.
+    pub price_update: Account<'info, PriceUpdateV2>,
 }
 
 #[derive(Accounts)]
@@ -195,78 +214,110 @@ pub struct UpdateOracle<'info> {
 pub struct OracleConfig {
     /// Authority permitted to change configuration.
     pub governance: Pubkey,
-    /// Off-chain service permitted to publish observations.
-    pub pusher: Pubkey,
-    /// Upstream Pyth or Switchboard feed this adapter mirrors.
-    pub feed: Pubkey,
-    /// Age beyond which the published price must not be used.
+    /// Pyth BTC/USD feed id this adapter accepts, and only this one.
+    pub feed_id: [u8; 32],
+    /// Age beyond which an update must not be used.
     pub staleness_threshold_seconds: u32,
-    /// Decimal places in `price_mantissa`.
-    pub price_decimals: u32,
-    /// Most recent published price. Zero means "no usable price".
-    pub price_mantissa: u64,
-    /// Observation timestamp of the published price.
-    pub last_updated_at: i64,
+    /// Widest acceptable confidence interval, in basis points of the price.
+    pub max_confidence_bps: u64,
+    /// Governance kill switch for all price-dependent actions.
+    pub paused: bool,
     pub bump: u8,
 }
 
 impl OracleConfig {
-    /// True when the published price is too old to act on.
-    pub fn is_stale(&self, now: i64) -> bool {
-        if self.price_mantissa == 0 {
-            return true;
-        }
-        match now.checked_sub(self.last_updated_at) {
-            // A clock that runs backwards past the observation is treated as
-            // untrustworthy rather than as an extremely fresh price.
-            Some(age) => age < 0 || age > self.staleness_threshold_seconds as i64,
-            None => true,
-        }
-    }
-
-    /// The current price, or an error if it cannot be trusted.
+    /// Validate a Pyth update and return a usable price, or fail closed.
     ///
-    /// This is the single entry point every price-dependent action must use.
-    /// There is deliberately no way to read the mantissa without the freshness
-    /// check attached.
-    pub fn require_fresh_price(&self, now: i64) -> Result<Price> {
-        require!(!self.is_stale(now), OracleError::StalePrice);
-        Price::new(self.price_mantissa, self.price_decimals)
-            .map_err(|_| error!(OracleError::InvalidPrice))
+    /// This is the single entry point for price data. There is deliberately no
+    /// way to obtain a mantissa without every check below attached to it.
+    pub fn read_price(
+        &self,
+        price_update: &Account<'_, PriceUpdateV2>,
+        clock: &Clock,
+    ) -> Result<Observation> {
+        require!(!self.paused, OracleError::OraclePaused);
+
+        // Feed identity and staleness. `get_price_no_older_than` rejects both a
+        // mismatched feed and an update older than the window.
+        let price = price_update
+            .get_price_no_older_than(
+                clock,
+                self.staleness_threshold_seconds as u64,
+                &self.feed_id,
+            )
+            .map_err(|_| error!(OracleError::StalePrice))?;
+
+        // Require a full Wormhole quorum, not a partially verified update.
+        require!(
+            price_update.verification_level.gte(
+                pyth_solana_receiver_sdk::price_update::VerificationLevel::Full
+            ),
+            OracleError::InsufficientVerification
+        );
+
+        // A zero or negative price is a broken feed, never cheap collateral.
+        require!(price.price > 0, OracleError::InvalidPrice);
+        let mantissa = u64::try_from(price.price).map_err(|_| error!(OracleError::InvalidPrice))?;
+
+        // Pyth exponents are negative for fractional prices. A positive
+        // exponent would mean a price scaled *up*, which this adapter does not
+        // model, so it is rejected rather than silently mis-scaled.
+        require!(price.exponent <= 0, OracleError::UnsupportedExponent);
+        let decimals = price.exponent.unsigned_abs();
+        require!(decimals <= MAX_PRICE_EXPO, OracleError::UnsupportedExponent);
+
+        // Confidence bound: refuse to act when Pyth itself is uncertain.
+        let confidence_bps = (price.conf as u128)
+            .checked_mul(persat_core::BPS_DENOMINATOR as u128)
+            .ok_or(OracleError::ArithmeticOverflow)?
+            .checked_div(mantissa as u128)
+            .ok_or(OracleError::ArithmeticOverflow)?;
+        require!(
+            confidence_bps <= self.max_confidence_bps as u128,
+            OracleError::ConfidenceTooWide
+        );
+
+        Ok(Observation {
+            mantissa,
+            decimals,
+            confidence: price.conf,
+            publish_time: price.publish_time,
+        })
     }
 }
 
 #[event]
-pub struct PricePublished {
+pub struct PriceObserved {
     pub mantissa: u64,
     pub decimals: u32,
-    pub observed_at: i64,
+    pub confidence: u64,
+    pub publish_time: i64,
 }
 
 #[error_code]
 pub enum OracleError {
     #[msg("Authority must not be the default public key.")]
     InvalidAuthority,
-    #[msg("The upstream feed address is invalid.")]
+    #[msg("The BTC/USD feed id could not be parsed.")]
     InvalidFeed,
     #[msg("Only the configured governance authority may change oracle configuration.")]
     UnauthorizedGovernance,
-    #[msg("Only the configured pusher may publish a price.")]
-    UnauthorizedPusher,
     #[msg("The staleness threshold is outside the permitted range.")]
     InvalidStalenessThreshold,
-    #[msg("The published price is zero or otherwise unusable.")]
-    InvalidPrice,
-    #[msg("BTC/USD price is stale. Price-dependent actions are blocked until fresh data arrives.")]
+    #[msg("The confidence bound is outside the permitted range.")]
+    InvalidConfidenceBound,
+    #[msg("The oracle is paused. Price-dependent actions are blocked.")]
+    OraclePaused,
+    #[msg("BTC/USD price is stale or is for the wrong feed. Price-dependent actions are blocked.")]
     StalePrice,
-    #[msg("The observation is dated in the future.")]
-    FutureObservation,
-    #[msg("The observation was already stale when submitted.")]
-    ObservationAlreadyStale,
-    #[msg("The observation is older than the currently published price.")]
-    StaleObservationOrder,
-    #[msg("The price moved further in one update than the protocol permits.")]
-    PriceDeviationTooLarge,
+    #[msg("The price update is not fully verified by a Wormhole quorum.")]
+    InsufficientVerification,
+    #[msg("The published price is zero, negative, or otherwise unusable.")]
+    InvalidPrice,
+    #[msg("The price exponent is outside the supported range.")]
+    UnsupportedExponent,
+    #[msg("The oracle confidence interval is too wide to act on safely.")]
+    ConfidenceTooWide,
     #[msg("An oracle arithmetic operation overflowed.")]
     ArithmeticOverflow,
 }
@@ -275,82 +326,75 @@ pub enum OracleError {
 mod tests {
     use super::*;
 
-    fn config() -> OracleConfig {
-        OracleConfig {
-            governance: Pubkey::new_unique(),
-            pusher: Pubkey::new_unique(),
-            feed: Pubkey::new_unique(),
-            staleness_threshold_seconds: 60,
-            price_decimals: 8,
-            price_mantissa: 100_000_00000000,
-            last_updated_at: 1_000,
-            bump: 255,
-        }
+    /// Confidence check in isolation, mirroring `read_price`.
+    fn confidence_bps(price: u64, conf: u64) -> u128 {
+        (conf as u128) * (persat_core::BPS_DENOMINATOR as u128) / (price as u128)
     }
 
     #[test]
-    fn a_fresh_price_is_usable() {
-        let oracle = config();
-        assert!(!oracle.is_stale(1_030));
-        assert!(oracle.require_fresh_price(1_030).is_ok());
+    fn the_btc_usd_feed_id_parses() {
+        let feed_id = get_feed_id_from_hex(BTC_USD_FEED_ID).unwrap();
+        assert_eq!(feed_id.len(), 32);
+        // A parsed id must not be all zeroes, which would match a blank account.
+        assert_ne!(feed_id, [0u8; 32]);
     }
 
     #[test]
-    fn a_price_exactly_at_the_threshold_is_still_fresh() {
-        let oracle = config();
-        assert!(!oracle.is_stale(1_060));
+    fn a_different_feed_id_produces_a_different_value() {
+        // Guards against the adapter accepting any feed. This is the ETH/USD id.
+        let btc = get_feed_id_from_hex(BTC_USD_FEED_ID).unwrap();
+        let eth = get_feed_id_from_hex(
+            "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+        )
+        .unwrap();
+        assert_ne!(btc, eth);
     }
 
     #[test]
-    fn one_second_past_the_threshold_fails_closed() {
-        let oracle = config();
-        assert!(oracle.is_stale(1_061));
-        assert!(oracle.require_fresh_price(1_061).is_err());
+    fn a_tight_confidence_band_is_accepted() {
+        // BTC at 100k with ±$50 is 5bps, far inside the 200bps bound.
+        assert!(confidence_bps(100_000_00000000, 50_00000000) <= MAX_CONFIDENCE_BPS as u128);
     }
 
     #[test]
-    fn an_oracle_that_never_published_is_stale() {
-        let mut oracle = config();
-        oracle.price_mantissa = 0;
-        oracle.last_updated_at = 0;
-        assert!(oracle.is_stale(0));
-        assert!(oracle.require_fresh_price(0).is_err());
+    fn a_wide_confidence_band_is_rejected() {
+        // ±$5,000 on 100k is 500bps, well beyond the bound.
+        assert!(confidence_bps(100_000_00000000, 5_000_00000000) > MAX_CONFIDENCE_BPS as u128);
     }
 
     #[test]
-    fn a_backwards_clock_is_treated_as_untrustworthy() {
-        let oracle = config();
-        assert!(oracle.is_stale(999));
-    }
-
-    #[test]
-    fn a_normal_market_move_is_accepted() {
-        // 100k -> 110k is 10%, well inside the bound.
-        assert!(within_deviation_bound(100_000_00000000, 110_000_00000000));
-        // and the same move downward.
-        assert!(within_deviation_bound(100_000_00000000, 90_000_00000000));
-    }
-
-    #[test]
-    fn an_implausible_jump_is_rejected() {
-        // 100k -> 200k in a single update is not a market move.
-        assert!(!within_deviation_bound(100_000_00000000, 200_000_00000000));
-        // A collapse to near zero is equally implausible.
-        assert!(!within_deviation_bound(100_000_00000000, 1));
-    }
-
-    #[test]
-    fn the_deviation_boundary_is_inclusive() {
-        // Exactly 25% up must be permitted.
-        assert!(within_deviation_bound(100_000, 125_000));
-        assert!(!within_deviation_bound(100_000, 125_001));
+    fn the_confidence_boundary_is_inclusive() {
+        // Exactly 2% must pass; a hair over must not.
+        assert_eq!(confidence_bps(10_000, 200), MAX_CONFIDENCE_BPS as u128);
+        assert!(confidence_bps(10_000, 200) <= MAX_CONFIDENCE_BPS as u128);
+        assert!(confidence_bps(10_000, 201) > MAX_CONFIDENCE_BPS as u128);
     }
 
     #[test]
     fn the_staleness_window_range_is_enforced_at_both_ends() {
         assert!(MIN_STALENESS_SECONDS < MAX_STALENESS_SECONDS);
+        assert!((MIN_STALENESS_SECONDS..=MAX_STALENESS_SECONDS).contains(&DEFAULT_STALENESS_SECONDS));
         assert!(!(MIN_STALENESS_SECONDS..=MAX_STALENESS_SECONDS).contains(&0));
         assert!(!(MIN_STALENESS_SECONDS..=MAX_STALENESS_SECONDS)
             .contains(&(MAX_STALENESS_SECONDS + 1)));
+    }
+
+    #[test]
+    fn the_configurable_confidence_bound_is_capped() {
+        // Governance may loosen the bound, but not without limit.
+        assert!(MAX_CONFIDENCE_BPS <= MAX_CONFIGURABLE_CONFIDENCE_BPS);
+        assert!(MAX_CONFIGURABLE_CONFIDENCE_BPS < persat_core::BPS_DENOMINATOR);
+    }
+
+    #[test]
+    fn a_pyth_exponent_converts_to_our_decimal_convention() {
+        // Pyth publishes BTC/USD at exponent -8.
+        let exponent: i32 = -8;
+        assert!(exponent <= 0);
+        let decimals = exponent.unsigned_abs();
+        assert_eq!(decimals, 8);
+        assert!(decimals <= MAX_PRICE_EXPO);
+        // And that decimal count must be usable by the valuation math.
+        assert!(Price::new(100_000_00000000, decimals).is_ok());
     }
 }

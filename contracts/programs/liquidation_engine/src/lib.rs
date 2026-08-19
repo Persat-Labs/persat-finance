@@ -11,17 +11,23 @@
 //! irreversible and takes real user collateral, so the protocol would rather do
 //! nothing and wait.
 //!
-//! The keeper that triggers these instructions has no discretion over amounts.
-//! It chooses only *when* to ask; the program recomputes every figure from
-//! on-chain state and current price.
+//! The price is read directly from a Pyth `PriceUpdateV2` account through the
+//! oracle program's own validation, and is deliberately **not** an instruction
+//! argument. If the caller could supply the price, a keeper could name any
+//! number and liquidate a healthy position at will. The keeper therefore has no
+//! discretion over anything that matters: it chooses only *when* to ask, and
+//! the program recomputes every figure from on-chain state and the verified
+//! oracle price.
 
 use anchor_lang::prelude::*;
 use persat_core::{
     liquidation::{
         evaluate_position, full_liquidation, partial_liquidation_amount, RiskThresholds,
     },
-    ltv::{collateral_value_atoms, Price},
+    ltv::collateral_value_atoms,
 };
+use price_oracle::{program::PriceOracle, OracleConfig};
+use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 declare_id!("ddkJSDR6ke8zhPNNu2UQtESWas2HUopn2PwWKsuUXuj");
 
@@ -57,22 +63,10 @@ pub mod liquidation_engine {
     ///
     /// Read-only with respect to funds. Requires a fresh price, so a stale
     /// oracle blocks evaluation rather than producing a stale verdict.
-    pub fn evaluate(
-        ctx: Context<Evaluate>,
-        position: PositionInput,
-        price_mantissa: u64,
-        price_decimals: u32,
-        price_observed_at: i64,
-        staleness_threshold_seconds: u32,
-    ) -> Result<()> {
+    pub fn evaluate(ctx: Context<Evaluate>, position: PositionInput) -> Result<()> {
         let engine = &ctx.accounts.engine;
         require!(!engine.paused, LiquidationError::EnginePaused);
-        let price = require_fresh_price(
-            price_mantissa,
-            price_decimals,
-            price_observed_at,
-            staleness_threshold_seconds,
-        )?;
+        let price = read_oracle_price(&ctx.accounts.oracle, &ctx.accounts.price_update)?;
         position.validate()?;
 
         let value = collateral_value_atoms(
@@ -110,19 +104,10 @@ pub mod liquidation_engine {
         missed_payment_atoms: u64,
         penalty_bps: u16,
         max_partial_bps: u16,
-        price_mantissa: u64,
-        price_decimals: u32,
-        price_observed_at: i64,
-        staleness_threshold_seconds: u32,
     ) -> Result<()> {
         let engine = &ctx.accounts.engine;
         require!(!engine.paused, LiquidationError::EnginePaused);
-        let price = require_fresh_price(
-            price_mantissa,
-            price_decimals,
-            price_observed_at,
-            staleness_threshold_seconds,
-        )?;
+        let price = read_oracle_price(&ctx.accounts.oracle, &ctx.accounts.price_update)?;
         position.validate()?;
         require!(missed_payment_atoms > 0, LiquidationError::NothingToLiquidate);
 
@@ -180,19 +165,10 @@ pub mod liquidation_engine {
         ctx: Context<ExecuteLiquidation>,
         position: PositionInput,
         terminal_default: bool,
-        price_mantissa: u64,
-        price_decimals: u32,
-        price_observed_at: i64,
-        staleness_threshold_seconds: u32,
     ) -> Result<()> {
         let engine = &ctx.accounts.engine;
         require!(!engine.paused, LiquidationError::EnginePaused);
-        let price = require_fresh_price(
-            price_mantissa,
-            price_decimals,
-            price_observed_at,
-            staleness_threshold_seconds,
-        )?;
+        let price = read_oracle_price(&ctx.accounts.oracle, &ctx.accounts.price_update)?;
         position.validate()?;
 
         let value = collateral_value_atoms(
@@ -243,24 +219,23 @@ pub mod liquidation_engine {
     }
 }
 
-/// Validate freshness and construct a usable price, or fail closed.
-fn require_fresh_price(
-    mantissa: u64,
-    decimals: u32,
-    observed_at: i64,
-    staleness_threshold_seconds: u32,
-) -> Result<Price> {
-    let now = Clock::get()?.unix_timestamp;
-    let age = now
-        .checked_sub(observed_at)
-        .ok_or(LiquidationError::ArithmeticOverflow)?;
-    // Negative age means the observation is future-dated; treat as untrusted.
-    require!(age >= 0, LiquidationError::StalePrice);
-    require!(
-        age <= staleness_threshold_seconds as i64,
-        LiquidationError::StalePrice
-    );
-    Price::new(mantissa, decimals).map_err(|_| error!(LiquidationError::StalePrice))
+/// Read a verified BTC/USD price, or fail closed.
+///
+/// Delegates to the oracle program's own validation so that staleness, feed
+/// identity, Wormhole verification level, sign, and confidence bound are all
+/// enforced in exactly one place. If that validation ever tightens, every
+/// liquidation path inherits the change automatically.
+fn read_oracle_price(
+    oracle: &Account<'_, OracleConfig>,
+    price_update: &Account<'_, PriceUpdateV2>,
+) -> Result<persat_core::ltv::Price> {
+    let clock = Clock::get()?;
+    let observation = oracle
+        .read_price(price_update, &clock)
+        .map_err(|_| error!(LiquidationError::StalePrice))?;
+    observation
+        .price()
+        .map_err(|_| error!(LiquidationError::StalePrice))
 }
 
 /// Position snapshot supplied by the caller and re-validated on chain.
@@ -327,16 +302,33 @@ pub struct UpdateEngine<'info> {
 
 #[derive(Accounts)]
 pub struct Evaluate<'info> {
-    #[account(seeds = [b"liquidation-engine"], bump = engine.bump)]
+    #[account(
+        has_one = oracle @ LiquidationError::UnauthorizedOracle,
+        seeds = [b"liquidation-engine"],
+        bump = engine.bump
+    )]
     pub engine: Account<'info, Engine>,
     pub caller: Signer<'info>,
+    /// Oracle configuration, pinned by the engine so a caller cannot substitute
+    /// a permissive configuration of their own.
+    pub oracle: Account<'info, OracleConfig>,
+    /// Pyth update. `Account<PriceUpdateV2>` enforces Pyth receiver ownership.
+    pub price_update: Account<'info, PriceUpdateV2>,
+    pub price_oracle_program: Program<'info, PriceOracle>,
 }
 
 #[derive(Accounts)]
 pub struct ExecuteLiquidation<'info> {
-    #[account(seeds = [b"liquidation-engine"], bump = engine.bump)]
+    #[account(
+        has_one = oracle @ LiquidationError::UnauthorizedOracle,
+        seeds = [b"liquidation-engine"],
+        bump = engine.bump
+    )]
     pub engine: Account<'info, Engine>,
     pub keeper: Signer<'info>,
+    pub oracle: Account<'info, OracleConfig>,
+    pub price_update: Account<'info, PriceUpdateV2>,
+    pub price_oracle_program: Program<'info, PriceOracle>,
 }
 
 #[account]
@@ -381,8 +373,10 @@ pub enum LiquidationError {
     UnauthorizedGovernance,
     #[msg("Liquidation is paused.")]
     EnginePaused,
-    #[msg("BTC/USD price is stale. Liquidation is blocked until fresh data arrives.")]
+    #[msg("BTC/USD price is stale, unverified, or too uncertain. Liquidation is blocked.")]
     StalePrice,
+    #[msg("The supplied oracle is not the one this engine was configured with.")]
+    UnauthorizedOracle,
     #[msg("Risk thresholds are invalid or out of order.")]
     InvalidThresholds,
     #[msg("Collateral valuation failed.")]

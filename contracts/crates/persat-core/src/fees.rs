@@ -1,13 +1,16 @@
 //! Fee and treasury math.
 //!
-//! The fee model is **not finalized**. Per the Technical Architecture, the
-//! program is kept fully governance-parametrized so the eventual structure —
-//! including a possible split between direct-deal and marketplace-originated
-//! deals — can be configured without a contract redesign.
+//! The origination fee is **2%** for the MVP, applied equally to direct-deal and
+//! marketplace-originated loans. It is collected once, at the FUNDING to ACTIVE
+//! transition, and is charged to the borrower out of the disbursed principal.
 //!
-//! What is fixed here is the safety envelope: an origination fee is collected
-//! once, at the FUNDING to ACTIVE transition, and can never exceed the hard cap
-//! below regardless of what governance sets.
+//! The program remains fully governance-parametrized, and the two paths keep
+//! separate rate fields, so the architecture's open question — whether the two
+//! origination paths should eventually diverge — can be answered later without
+//! a contract redesign. Both fields simply default to the same 2% today.
+//!
+//! What no configuration can change is the safety envelope: no fee may exceed
+//! the hard cap below, regardless of what governance sets.
 
 use crate::MathError;
 
@@ -16,6 +19,9 @@ use crate::MathError;
 /// This is a protocol constant, not a governance parameter. It bounds the worst
 /// case a compromised or mistaken governance action could impose on a borrower.
 pub const MAX_ORIGINATION_FEE_BPS: u16 = 500;
+
+/// The MVP origination fee: 2%, identical on both origination paths.
+pub const DEFAULT_ORIGINATION_FEE_BPS: u16 = 200;
 
 /// Which path a deal originated from, so fees can eventually differ by path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,6 +39,16 @@ pub struct FeeParameters {
     pub direct_origination_fee_bps: u16,
     /// Origination fee applied to marketplace-originated deals.
     pub marketplace_origination_fee_bps: u16,
+}
+
+impl Default for FeeParameters {
+    /// The launch configuration: 2% on both paths.
+    fn default() -> Self {
+        Self {
+            direct_origination_fee_bps: DEFAULT_ORIGINATION_FEE_BPS,
+            marketplace_origination_fee_bps: DEFAULT_ORIGINATION_FEE_BPS,
+        }
+    }
 }
 
 impl FeeParameters {
@@ -163,6 +179,29 @@ mod tests {
         let split = split_disbursement(1, parameters(), DealOrigin::Direct).unwrap();
         assert_eq!(split.to_treasury_atoms, 0);
         assert_eq!(split.to_borrower_atoms, 1);
+    }
+
+    #[test]
+    fn the_default_configuration_is_two_percent_on_both_paths() {
+        let defaults = FeeParameters::default();
+        assert_eq!(defaults.direct_origination_fee_bps, 200);
+        assert_eq!(defaults.marketplace_origination_fee_bps, 200);
+        assert!(defaults.validate().is_ok());
+    }
+
+    #[test]
+    fn the_default_fee_on_ten_thousand_usdc_is_two_hundred() {
+        // 10_000 USDC (6dp) at 2% => 200 USDC to treasury, 9_800 to borrower.
+        let split =
+            split_disbursement(10_000_000_000, FeeParameters::default(), DealOrigin::Direct)
+                .unwrap();
+        assert_eq!(split.to_treasury_atoms, 200_000_000);
+        assert_eq!(split.to_borrower_atoms, 9_800_000_000);
+    }
+
+    #[test]
+    fn the_default_fee_is_well_inside_the_protocol_cap() {
+        assert!(DEFAULT_ORIGINATION_FEE_BPS < MAX_ORIGINATION_FEE_BPS);
     }
 
     #[test]
