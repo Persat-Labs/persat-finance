@@ -1,0 +1,13 @@
+[package]
+name = "persat-core"
+version = "0.1.0"
+description = "Persat Finance shared financial math and protocol invariants"
+edition = "2021"
+
+[lib]
+name = "persat_core"
+
+[dependencies]
+
+[dev-dependencies]
+proptest = "1"

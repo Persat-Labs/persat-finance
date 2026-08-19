@@ -1,6 +1,16 @@
 [workspace]
-members = ["programs/asset_whitelist"]
+members = [
+  "crates/persat-core",
+  "programs/governance",
+  "programs/price_oracle",
+  "programs/asset_whitelist",
+]
 resolver = "2"
+
+[workspace.dependencies]
+anchor-lang = "=1.0.0"
+anchor-spl = "=1.0.0"
+persat-core = { path = "crates/persat-core" }
 
 # Financial programs must never wrap integer arithmetic in release builds.
 [profile.release]
