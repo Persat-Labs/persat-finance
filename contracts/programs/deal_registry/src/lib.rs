@@ -332,7 +332,7 @@ impl DealTerms {
         buffer[80..82].copy_from_slice(&self.rate_bps.to_le_bytes());
         buffer[82..84].copy_from_slice(&self.duration_months.to_le_bytes());
         buffer[84..86].copy_from_slice(&self.ltv_bps.to_le_bytes());
-        anchor_lang::solana_program::hash::hash(&buffer).to_bytes()
+        solana_sha256_hasher::hash(&buffer).to_bytes()
     }
 }
 

@@ -6,6 +6,9 @@ members = [
   "programs/asset_whitelist",
   "programs/deal_registry",
   "programs/escrow_vault",
+  "programs/loan_lifecycle",
+  "programs/liquidation_engine",
+  "programs/fee_treasury",
 ]
 resolver = "2"
 
