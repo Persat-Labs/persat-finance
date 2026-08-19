@@ -13,9 +13,8 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-anchor-lang = "=1.0.2"
-anchor-spl = "=1.0.2"
-pyth-solana-receiver-sdk = "=2.0.0"
+anchor-lang = "=1.0.0"
+anchor-spl = "=1.0.0"
 persat-core = { path = "crates/persat-core" }
 
 # Financial programs must never wrap integer arithmetic in release builds.

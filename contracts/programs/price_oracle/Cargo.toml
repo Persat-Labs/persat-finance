@@ -22,4 +22,3 @@ idl-build = ["anchor-lang/idl-build"]
 [dependencies]
 anchor-lang = { workspace = true }
 persat-core = { workspace = true }
-pyth-solana-receiver-sdk = { workspace = true }

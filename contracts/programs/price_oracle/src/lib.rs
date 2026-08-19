@@ -36,7 +36,9 @@
 
 use anchor_lang::prelude::*;
 use persat_core::ltv::{Price, MAX_PRICE_EXPO};
-use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
+
+pub mod pyth;
+pub use pyth::{feed_id_from_hex, PriceUpdateV2, VerificationLevel};
 
 declare_id!("BajL3G7sLiH1oKUFs54okF3hv1FzkezNYma2MKGoYJDx");
 
@@ -92,8 +94,8 @@ pub mod price_oracle {
 
         let oracle = &mut ctx.accounts.oracle;
         oracle.governance = governance;
-        oracle.feed_id = get_feed_id_from_hex(BTC_USD_FEED_ID)
-            .map_err(|_| error!(OracleError::InvalidFeed))?;
+        oracle.feed_id =
+            feed_id_from_hex(BTC_USD_FEED_ID).map_err(|_| error!(OracleError::InvalidFeed))?;
         oracle.staleness_threshold_seconds = staleness_threshold_seconds;
         oracle.max_confidence_bps = max_confidence_bps;
         oracle.paused = false;
@@ -112,7 +114,7 @@ pub mod price_oracle {
         let observation = ctx
             .accounts
             .oracle
-            .read_price(&ctx.accounts.price_update, &clock)?;
+            .read_price(&ctx.accounts.price_update.to_account_info(), &clock)?;
         emit!(PriceObserved {
             mantissa: observation.mantissa,
             decimals: observation.decimals,
@@ -191,10 +193,10 @@ pub struct InitializeOracle<'info> {
 pub struct ReadPrice<'info> {
     #[account(seeds = [b"oracle"], bump = oracle.bump)]
     pub oracle: Account<'info, OracleConfig>,
-    /// Pyth price update. `Account<PriceUpdateV2>` enforces that the Pyth
-    /// receiver owns this account, which is what prevents a caller from
-    /// supplying a look-alike account holding a price of their choosing.
-    pub price_update: Account<'info, PriceUpdateV2>,
+    /// CHECK: validated in `OracleConfig::read_price`, which enforces Pyth
+    /// receiver ownership, the account discriminator, and the data layout
+    /// before any byte of price data is trusted.
+    pub price_update: UncheckedAccount<'info>,
 }
 
 #[derive(Accounts)]
@@ -230,29 +232,32 @@ impl OracleConfig {
     ///
     /// This is the single entry point for price data. There is deliberately no
     /// way to obtain a mantissa without every check below attached to it.
-    pub fn read_price(
-        &self,
-        price_update: &Account<'_, PriceUpdateV2>,
-        clock: &Clock,
-    ) -> Result<Observation> {
+    pub fn read_price(&self, price_update: &AccountInfo, clock: &Clock) -> Result<Observation> {
         require!(!self.paused, OracleError::OraclePaused);
 
-        // Feed identity and staleness. `get_price_no_older_than` rejects both a
-        // mismatched feed and an update older than the window.
-        let price = price_update
-            .get_price_no_older_than(
-                clock,
-                self.staleness_threshold_seconds as u64,
-                &self.feed_id,
-            )
-            .map_err(|_| error!(OracleError::StalePrice))?;
+        // Ownership, discriminator, and layout are all validated here.
+        let update = PriceUpdateV2::from_account_info(price_update)?;
+        let price = update.price_message;
+
+        // The update must be for BTC/USD and not some other asset.
+        require!(price.feed_id == self.feed_id, OracleError::StalePrice);
 
         // Require a full Wormhole quorum, not a partially verified update.
         require!(
-            price_update.verification_level.gte(
-                pyth_solana_receiver_sdk::price_update::VerificationLevel::Full
-            ),
+            update.is_fully_verified(),
             OracleError::InsufficientVerification
+        );
+
+        // Staleness, evaluated against the chain clock. A future-dated update is
+        // treated as untrusted rather than as an extremely fresh one.
+        let age = clock
+            .unix_timestamp
+            .checked_sub(price.publish_time)
+            .ok_or(OracleError::ArithmeticOverflow)?;
+        require!(age >= 0, OracleError::StalePrice);
+        require!(
+            age <= self.staleness_threshold_seconds as i64,
+            OracleError::StalePrice
         );
 
         // A zero or negative price is a broken feed, never cheap collateral.
@@ -333,7 +338,7 @@ mod tests {
 
     #[test]
     fn the_btc_usd_feed_id_parses() {
-        let feed_id = get_feed_id_from_hex(BTC_USD_FEED_ID).unwrap();
+        let feed_id = feed_id_from_hex(BTC_USD_FEED_ID).unwrap();
         assert_eq!(feed_id.len(), 32);
         // A parsed id must not be all zeroes, which would match a blank account.
         assert_ne!(feed_id, [0u8; 32]);
@@ -342,8 +347,8 @@ mod tests {
     #[test]
     fn a_different_feed_id_produces_a_different_value() {
         // Guards against the adapter accepting any feed. This is the ETH/USD id.
-        let btc = get_feed_id_from_hex(BTC_USD_FEED_ID).unwrap();
-        let eth = get_feed_id_from_hex(
+        let btc = feed_id_from_hex(BTC_USD_FEED_ID).unwrap();
+        let eth = feed_id_from_hex(
             "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
         )
         .unwrap();
