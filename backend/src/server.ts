@@ -22,4 +22,8 @@ app.get("/v1/bridges/health", async () => ({
   ],
 }));
 
+// Security boundary: deal-link and marketplace write routes remain unregistered until
+// wallet-signature authentication is implemented and tested against deployed programs.
+// This prevents an unauthenticated server from binding a wallet or creating protocol state.
+
 await app.listen({ port: config.port, host: "0.0.0.0" });
