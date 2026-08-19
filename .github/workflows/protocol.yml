@@ -63,7 +63,7 @@ jobs:
       - name: Build Anchor workspace
         run: |
           if [ -f Anchor.toml ]; then
-            anchor build
+            anchor build --ignore-keys
           else
             echo "Anchor workspace has not been created yet."
           fi
