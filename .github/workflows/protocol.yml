@@ -1,0 +1,76 @@
+name: Verify Solana protocol
+
+on:
+  push:
+    branches: [arena/01a0117d-persat-finance]
+    paths:
+      - "contracts/**"
+      - ".github/workflows/protocol.yml"
+  pull_request:
+    paths:
+      - "contracts/**"
+      - ".github/workflows/protocol.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  protocol:
+    name: Anchor build and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v3.1.10/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+          solana --version
+
+      - name: Install Anchor Version Manager
+        run: |
+          cargo install --git https://github.com/solana-foundation/anchor avm --locked
+          avm install 1.0.0
+          avm use 1.0.0
+          anchor --version
+
+      - name: Install protocol JavaScript dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          fi
+
+      - name: Build Anchor workspace
+        run: |
+          if [ -f Anchor.toml ]; then
+            anchor build
+          else
+            echo "Anchor workspace has not been created yet."
+          fi
+
+      - name: Run Anchor tests
+        run: |
+          if [ -f Anchor.toml ]; then
+            anchor test --skip-build
+          else
+            echo "Anchor workspace has not been created yet."
+          fi
