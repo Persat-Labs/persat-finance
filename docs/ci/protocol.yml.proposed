@@ -1,0 +1,103 @@
+# PROPOSED replacement for .github/workflows/protocol.yml
+#
+# The Arena agent's GitHub App token lacks the `workflows` permission, so it
+# cannot modify files under .github/workflows/ directly. Copy this file's
+# contents over .github/workflows/protocol.yml to apply the changes below.
+#
+# WHAT THIS CHANGES AND WHY
+#
+# 1. Anchor CLI 1.0.0 -> 1.0.2
+#    `pyth-solana-receiver-sdk` 2.0.0 requires `anchor-lang >= 1.0.2`. AVM
+#    refuses to build when the resolved anchor-lang version and the installed
+#    CLI disagree, and no earlier Pyth release supports Anchor 1.x at all.
+#    Until this is bumped, the oracle has to hand-decode Pyth's PriceUpdateV2
+#    account (contracts/programs/price_oracle/src/pyth.rs). Bumping this lets
+#    that ~200-line workaround be deleted in favour of the official SDK.
+#
+# 2. Push trigger branch name
+#    Currently pinned to `arena/01a0117d-persat-finance`, a branch that is
+#    already merged. The protocol job therefore only runs on pull requests and
+#    would stop running entirely once the current PR merges. Now triggers on
+#    main plus any arena/** working branch.
+#
+# 3. Explicit `cargo test --workspace` step
+#    Surfaces unit and fuzz failures as their own red step rather than burying
+#    them inside `anchor test`.
+
+name: Verify Solana protocol
+
+on:
+  push:
+    branches:
+      - main
+      - "arena/**"
+    paths:
+      - "contracts/**"
+      - ".github/workflows/protocol.yml"
+  pull_request:
+    paths:
+      - "contracts/**"
+      - ".github/workflows/protocol.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protocol-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  protocol:
+    name: Anchor build and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+          cache-on-failure: true
+
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v3.1.10/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Report Solana CLI version
+        run: solana --version
+
+      - name: Install Anchor Version Manager
+        run: |
+          cargo install --git https://github.com/solana-foundation/anchor avm --locked
+          avm install 1.0.2
+          avm use 1.0.2
+          anchor --version
+
+      - name: Install protocol JavaScript dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          fi
+
+      # Host-target unit and fuzz tests. No validator needed, so this is the
+      # fastest signal and runs before the slower SBF build.
+      - name: Run unit and fuzz tests
+        run: cargo test --workspace
+
+      - name: Build Anchor workspace
+        run: anchor build --ignore-keys
