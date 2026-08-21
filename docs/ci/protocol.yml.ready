@@ -1,0 +1,77 @@
+name: Verify Solana protocol
+
+on:
+  push:
+    branches:
+      - main
+      - "arena/**"
+    paths:
+      - "contracts/**"
+      - ".github/workflows/protocol.yml"
+  pull_request:
+    paths:
+      - "contracts/**"
+      - ".github/workflows/protocol.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protocol-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  protocol:
+    name: Anchor build and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+          cache-on-failure: true
+
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v3.1.10/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Report Solana CLI version
+        run: solana --version
+
+      - name: Install Anchor Version Manager
+        run: |
+          cargo install --git https://github.com/solana-foundation/anchor avm --locked
+          avm install 1.0.2
+          avm use 1.0.2
+          anchor --version
+
+      - name: Install protocol JavaScript dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          fi
+
+      # Host-target unit and fuzz tests. No validator needed, so this is the
+      # fastest signal and runs before the slower SBF build.
+      - name: Run unit and fuzz tests
+        run: cargo test --workspace
+
+      - name: Build Anchor workspace
+        run: anchor build --ignore-keys

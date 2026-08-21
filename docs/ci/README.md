@@ -75,3 +75,9 @@ pyth-solana-receiver-sdk = "=2.0.0"
 The module documents this at the top of the file. Ask the agent to do the
 swap — it is a contained change, and the oracle's own tests cover the behaviour
 either way.
+
+## Paste-ready file
+
+[`protocol.yml.ready`](protocol.yml.ready) is the same content with the
+explanatory header already removed. Copy it verbatim into
+`.github/workflows/protocol.yml` — no editing or stripping required.
