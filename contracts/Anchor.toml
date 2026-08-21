@@ -3,14 +3,37 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-asset_whitelist = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+governance = "jr35R8hZWtV7Yc2ekzbsebypD2ooenHg8QgxhpmVgkj"
+price_oracle = "BajL3G7sLiH1oKUFs54okF3hv1FzkezNYma2MKGoYJDx"
+asset_whitelist = "7K66UwFGxZP5TJRRiQQXMV63yUz4v5K45sMiy6qwunZ5"
+deal_registry = "FvjjNfQLUKKE66aRoi5xMmmWbJhgyyY96YDF7j2uSc3D"
+escrow_vault = "7scqu8nHiNWCo98N1WfUpnYqLFXFqBC4PCgw8oDy7QtR"
+loan_lifecycle = "2NQaeeutTk1itRUVDXg3wpJCVxN85r8CuUr59C2aPri3"
+liquidation_engine = "ddkJSDR6ke8zhPNNu2UQtESWas2HUopn2PwWKsuUXuj"
+fee_treasury = "FJqnBp7S8hLtUWinDZFcifN6SeRPoMQVkA7nYi89wzuu"
 
 [provider]
 cluster = "Localnet"
-wallet = "~/.config/solana/id.json"
+# CI has no user wallet. `anchor build` generates a throwaway program keypair in
+# target/deploy (gitignored, regenerated per run), which satisfies the provider
+# without ever committing a key. No deployment uses this wallet.
+wallet = "target/deploy/asset_whitelist-keypair.json"
 
 [workspace]
-members = ["programs/asset_whitelist"]
+members = [
+  "programs/governance",
+  "programs/price_oracle",
+  "programs/asset_whitelist",
+  "programs/deal_registry",
+  "programs/escrow_vault",
+  "programs/loan_lifecycle",
+  "programs/liquidation_engine",
+  "programs/fee_treasury",
+]
+
+# solana-test-validator 3.1.10 panics when bound to 0.0.0.0 on hosted runners.
+[test.validator]
+bind_address = "127.0.0.1"
 
 [scripts]
-test = "cargo test --workspace"
+test = "cargo test --workspace -- --nocapture"
