@@ -13,12 +13,17 @@
 //! # Requires a compiled program
 //!
 //! LiteSVM loads `target/deploy/governance.so`, produced by `anchor build`. When
-//! that file is absent these tests **skip rather than fail**, so a plain
-//! `cargo test` on a fresh checkout stays green. Run the full suite with:
+//! that file is absent these tests skip, so a plain `cargo test` on a fresh
+//! checkout stays green:
 //!
 //! ```bash
 //! cd contracts && anchor build --ignore-keys && cargo test -p protocol-tests
 //! ```
+//!
+//! A skip is a real hazard: the suite reports "ok" having executed nothing, so
+//! a broken access-control constraint would look green. CI therefore sets
+//! `PERSAT_REQUIRE_PROGRAMS=1`, which converts a missing program into a hard
+//! failure. Never set that variable off in CI to make a red build pass.
 
 use anchor_lang::{InstructionData, ToAccountMetas};
 use litesvm::LiteSVM;
@@ -46,6 +51,13 @@ macro_rules! require_program {
     () => {
         match program_bytes() {
             Some(bytes) => bytes,
+            None if std::env::var("PERSAT_REQUIRE_PROGRAMS").is_ok() => {
+                panic!(
+                    "{PROGRAM_SO} not found, but PERSAT_REQUIRE_PROGRAMS is set. \
+                     The SBF build must run before the tests, otherwise these \
+                     access-control checks silently pass without executing."
+                );
+            }
             None => {
                 eprintln!(
                     "skipping: {PROGRAM_SO} not found. Run `anchor build --ignore-keys` first."

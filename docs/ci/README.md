@@ -12,12 +12,21 @@ refusing to allow a GitHub App to create or update workflow
 This directory holds proposed workflow content that a human with write access
 can apply. Nothing here runs on its own; these are inert `.proposed` files.
 
-> **Status: applied.** The workflow now installs Anchor 1.0.2 and triggers on
-> `main` and `arena/**`. The hand-rolled Pyth decoder has been deleted in favour
-> of `pyth-solana-receiver-sdk`. The files here are kept as a record and as a
-> template if the workflow needs changing again.
+> **Status: one further change pending.** Anchor 1.0.2 and the trigger fix are
+> applied and working. A second revision is now needed — see *Pending* below.
 
-## Change (applied)
+## Pending: build before test
+
+`cargo test` currently runs *before* `anchor build`. The LiteSVM integration
+tests load `target/deploy/governance.so` and skip when it is absent, so they
+report `7 passed` in `0.00s` having executed nothing. That is worse than no
+test, because it looks green.
+
+[`protocol.yml.ready`](protocol.yml.ready) now swaps the two steps and sets
+`PERSAT_REQUIRE_PROGRAMS=1`, which turns a missing program into a hard failure
+rather than a silent skip. Re-apply it with the same paste procedure below.
+
+## Changes already applied
 
 [`protocol.yml.proposed`](protocol.yml.proposed) — replaces
 `.github/workflows/protocol.yml`.

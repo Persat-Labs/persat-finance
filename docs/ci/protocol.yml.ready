@@ -68,10 +68,16 @@ jobs:
             npm ci
           fi
 
-      # Host-target unit and fuzz tests. No validator needed, so this is the
-      # fastest signal and runs before the slower SBF build.
-      - name: Run unit and fuzz tests
-        run: cargo test --workspace
-
+      # The SBF build must come first: the LiteSVM integration tests load
+      # target/deploy/*.so, and skip themselves if it is absent. With the old
+      # ordering they silently reported "0 passed" and proved nothing.
       - name: Build Anchor workspace
         run: anchor build --ignore-keys
+
+      # Unit tests, fuzz properties, and LiteSVM access-control tests.
+      # PERSAT_REQUIRE_PROGRAMS turns a missing .so into a hard failure so the
+      # integration tests can never silently no-op in CI again.
+      - name: Run unit, fuzz, and integration tests
+        env:
+          PERSAT_REQUIRE_PROGRAMS: "1"
+        run: cargo test --workspace
