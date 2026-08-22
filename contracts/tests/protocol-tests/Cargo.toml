@@ -11,6 +11,11 @@ publish = false
 anchor-lang = { workspace = true }
 governance = { path = "../../programs/governance", features = ["no-entrypoint"] }
 litesvm = "0.15"
+# litesvm 0.15 declares solana-transaction-context = "4.1.1" as a caret range,
+# but 4.2+ added a `touched_flags` field that its own source does not destructure,
+# so a newer 4.x breaks the litesvm build. Pin the exact version it was written
+# against. Remove once litesvm releases a version supporting the newer field.
+solana-transaction-context = "=4.1.1"
 solana-instruction = "3"
 solana-keypair = "3"
 solana-message = "4"
