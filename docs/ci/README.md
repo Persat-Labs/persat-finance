@@ -12,7 +12,12 @@ refusing to allow a GitHub App to create or update workflow
 This directory holds proposed workflow content that a human with write access
 can apply. Nothing here runs on its own; these are inert `.proposed` files.
 
-## Pending change
+> **Status: applied.** The workflow now installs Anchor 1.0.2 and triggers on
+> `main` and `arena/**`. The hand-rolled Pyth decoder has been deleted in favour
+> of `pyth-solana-receiver-sdk`. The files here are kept as a record and as a
+> template if the workflow needs changing again.
+
+## Change (applied)
 
 [`protocol.yml.proposed`](protocol.yml.proposed) — replaces
 `.github/workflows/protocol.yml`.

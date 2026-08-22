@@ -21,7 +21,8 @@
 //!
 //! 1. **Ownership** — the account is owned by the Pyth receiver. Anchor's
 //!    `Account<'info, PriceUpdateV2>` checks this, which is what stops an
-//!    attacker passing a look-alike account they control.
+//!    attacker passing a look-alike account they control. This is the single
+//!    most important check here.
 //! 2. **Feed identity** — the update is for BTC/USD and not some other asset.
 //! 3. **Staleness** — the update is within the configured window.
 //! 4. **Verification level** — the update carries a full Wormhole quorum
@@ -36,9 +37,9 @@
 
 use anchor_lang::prelude::*;
 use persat_core::ltv::{Price, MAX_PRICE_EXPO};
-
-pub mod pyth;
-pub use pyth::{feed_id_from_hex, PriceUpdateV2, VerificationLevel};
+use pyth_solana_receiver_sdk::price_update::{
+    get_feed_id_from_hex, PriceUpdateV2, VerificationLevel,
+};
 
 declare_id!("BajL3G7sLiH1oKUFs54okF3hv1FzkezNYma2MKGoYJDx");
 
@@ -95,7 +96,7 @@ pub mod price_oracle {
         let oracle = &mut ctx.accounts.oracle;
         oracle.governance = governance;
         oracle.feed_id =
-            feed_id_from_hex(BTC_USD_FEED_ID).map_err(|_| error!(OracleError::InvalidFeed))?;
+            get_feed_id_from_hex(BTC_USD_FEED_ID).map_err(|_| error!(OracleError::InvalidFeed))?;
         oracle.staleness_threshold_seconds = staleness_threshold_seconds;
         oracle.max_confidence_bps = max_confidence_bps;
         oracle.paused = false;
@@ -114,7 +115,7 @@ pub mod price_oracle {
         let observation = ctx
             .accounts
             .oracle
-            .read_price(&ctx.accounts.price_update.to_account_info(), &clock)?;
+            .read_price(&ctx.accounts.price_update, &clock)?;
         emit!(PriceObserved {
             mantissa: observation.mantissa,
             decimals: observation.decimals,
@@ -193,10 +194,11 @@ pub struct InitializeOracle<'info> {
 pub struct ReadPrice<'info> {
     #[account(seeds = [b"oracle"], bump = oracle.bump)]
     pub oracle: Account<'info, OracleConfig>,
-    /// CHECK: validated in `OracleConfig::read_price`, which enforces Pyth
-    /// receiver ownership, the account discriminator, and the data layout
-    /// before any byte of price data is trusted.
-    pub price_update: UncheckedAccount<'info>,
+    /// Pyth price update. `Account<'info, PriceUpdateV2>` enforces that the
+    /// Pyth receiver owns this account and that the discriminator matches,
+    /// which is what prevents a caller supplying a look-alike account holding
+    /// a price of their choosing.
+    pub price_update: Account<'info, PriceUpdateV2>,
 }
 
 #[derive(Accounts)]
@@ -232,32 +234,27 @@ impl OracleConfig {
     ///
     /// This is the single entry point for price data. There is deliberately no
     /// way to obtain a mantissa without every check below attached to it.
-    pub fn read_price(&self, price_update: &AccountInfo, clock: &Clock) -> Result<Observation> {
+    pub fn read_price(
+        &self,
+        price_update: &Account<'_, PriceUpdateV2>,
+        clock: &Clock,
+    ) -> Result<Observation> {
         require!(!self.paused, OracleError::OraclePaused);
 
-        // Ownership, discriminator, and layout are all validated here.
-        let update = PriceUpdateV2::from_account_info(price_update)?;
-        let price = update.price_message;
-
-        // The update must be for BTC/USD and not some other asset.
-        require!(price.feed_id == self.feed_id, OracleError::StalePrice);
+        // Feed identity and staleness together. `get_price_no_older_than`
+        // rejects both a mismatched feed and an update older than the window.
+        let price = price_update
+            .get_price_no_older_than(
+                clock,
+                self.staleness_threshold_seconds as u64,
+                &self.feed_id,
+            )
+            .map_err(|_| error!(OracleError::StalePrice))?;
 
         // Require a full Wormhole quorum, not a partially verified update.
         require!(
-            update.is_fully_verified(),
+            price_update.verification_level.gte(VerificationLevel::Full),
             OracleError::InsufficientVerification
-        );
-
-        // Staleness, evaluated against the chain clock. A future-dated update is
-        // treated as untrusted rather than as an extremely fresh one.
-        let age = clock
-            .unix_timestamp
-            .checked_sub(price.publish_time)
-            .ok_or(OracleError::ArithmeticOverflow)?;
-        require!(age >= 0, OracleError::StalePrice);
-        require!(
-            age <= self.staleness_threshold_seconds as i64,
-            OracleError::StalePrice
         );
 
         // A zero or negative price is a broken feed, never cheap collateral.
@@ -325,14 +322,6 @@ pub enum OracleError {
     ConfidenceTooWide,
     #[msg("An oracle arithmetic operation overflowed.")]
     ArithmeticOverflow,
-    #[msg("The price account is not owned by the Pyth receiver program.")]
-    WrongPriceAccountOwner,
-    #[msg("The account is not a Pyth PriceUpdateV2 account.")]
-    NotAPriceUpdateAccount,
-    #[msg("The Pyth price account data is malformed or truncated.")]
-    MalformedPriceAccount,
-    #[msg("The feed id is not valid 32-byte hex.")]
-    InvalidFeedId,
 }
 
 #[cfg(test)]
@@ -346,7 +335,7 @@ mod tests {
 
     #[test]
     fn the_btc_usd_feed_id_parses() {
-        let feed_id = feed_id_from_hex(BTC_USD_FEED_ID).unwrap();
+        let feed_id = get_feed_id_from_hex(BTC_USD_FEED_ID).unwrap();
         assert_eq!(feed_id.len(), 32);
         // A parsed id must not be all zeroes, which would match a blank account.
         assert_ne!(feed_id, [0u8; 32]);
@@ -355,8 +344,8 @@ mod tests {
     #[test]
     fn a_different_feed_id_produces_a_different_value() {
         // Guards against the adapter accepting any feed. This is the ETH/USD id.
-        let btc = feed_id_from_hex(BTC_USD_FEED_ID).unwrap();
-        let eth = feed_id_from_hex(
+        let btc = get_feed_id_from_hex(BTC_USD_FEED_ID).unwrap();
+        let eth = get_feed_id_from_hex(
             "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
         )
         .unwrap();

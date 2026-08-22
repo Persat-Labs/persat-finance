@@ -63,12 +63,6 @@ against the configured window, a full Wormhole verification level, a strictly po
 price, and a confidence interval no wider than 2% of the price. Any failure blocks the
 action.
 
-> **Note:** `programs/price_oracle/src/pyth.rs` decodes `PriceUpdateV2` directly rather
-> than using `pyth-solana-receiver-sdk`. The SDK requires `anchor-lang >= 1.0.2` while
-> the CI workflow pins the Anchor CLI to exactly 1.0.0, and AVM refuses to build on a
-> mismatch. Replace that module with the upstream SDK once the workflow can install
-> 1.0.2 — see the note in the file.
-
 ## Fees
 
 Origination fee is **2%** (200 bps) on both direct-deal and marketplace-originated

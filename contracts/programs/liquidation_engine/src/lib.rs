@@ -27,6 +27,7 @@ use persat_core::{
     ltv::collateral_value_atoms,
 };
 use price_oracle::OracleConfig;
+use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 declare_id!("ddkJSDR6ke8zhPNNu2UQtESWas2HUopn2PwWKsuUXuj");
 
@@ -65,7 +66,7 @@ pub mod liquidation_engine {
     pub fn evaluate(ctx: Context<Evaluate>, position: PositionInput) -> Result<()> {
         let engine = &ctx.accounts.engine;
         require!(!engine.paused, LiquidationError::EnginePaused);
-        let price = read_oracle_price(&ctx.accounts.oracle, &ctx.accounts.price_update.to_account_info())?;
+        let price = read_oracle_price(&ctx.accounts.oracle, &ctx.accounts.price_update)?;
         position.validate()?;
 
         let value = collateral_value_atoms(
@@ -106,7 +107,7 @@ pub mod liquidation_engine {
     ) -> Result<()> {
         let engine = &ctx.accounts.engine;
         require!(!engine.paused, LiquidationError::EnginePaused);
-        let price = read_oracle_price(&ctx.accounts.oracle, &ctx.accounts.price_update.to_account_info())?;
+        let price = read_oracle_price(&ctx.accounts.oracle, &ctx.accounts.price_update)?;
         position.validate()?;
         require!(missed_payment_atoms > 0, LiquidationError::NothingToLiquidate);
 
@@ -167,7 +168,7 @@ pub mod liquidation_engine {
     ) -> Result<()> {
         let engine = &ctx.accounts.engine;
         require!(!engine.paused, LiquidationError::EnginePaused);
-        let price = read_oracle_price(&ctx.accounts.oracle, &ctx.accounts.price_update.to_account_info())?;
+        let price = read_oracle_price(&ctx.accounts.oracle, &ctx.accounts.price_update)?;
         position.validate()?;
 
         let value = collateral_value_atoms(
@@ -226,7 +227,7 @@ pub mod liquidation_engine {
 /// liquidation path inherits the change automatically.
 fn read_oracle_price(
     oracle: &Account<'_, OracleConfig>,
-    price_update: &AccountInfo,
+    price_update: &Account<'_, PriceUpdateV2>,
 ) -> Result<persat_core::ltv::Price> {
     let clock = Clock::get()?;
     let observation = oracle
@@ -311,9 +312,10 @@ pub struct Evaluate<'info> {
     /// Oracle configuration, pinned by the engine so a caller cannot substitute
     /// a permissive configuration of their own.
     pub oracle: Account<'info, OracleConfig>,
-    /// CHECK: validated by the oracle program's `read_price`, which enforces
-    /// Pyth receiver ownership, discriminator, feed identity, and freshness.
-    pub price_update: UncheckedAccount<'info>,
+    /// Pyth update. The typed account enforces receiver ownership and the
+    /// discriminator; `read_price` adds feed identity, freshness, verification
+    /// level, sign, and the confidence bound.
+    pub price_update: Account<'info, PriceUpdateV2>,
 }
 
 #[derive(Accounts)]
@@ -326,8 +328,8 @@ pub struct ExecuteLiquidation<'info> {
     pub engine: Account<'info, Engine>,
     pub keeper: Signer<'info>,
     pub oracle: Account<'info, OracleConfig>,
-    /// CHECK: validated by the oracle program's `read_price`.
-    pub price_update: UncheckedAccount<'info>,
+    /// Pyth update, validated by the oracle program's `read_price`.
+    pub price_update: Account<'info, PriceUpdateV2>,
 }
 
 #[account]

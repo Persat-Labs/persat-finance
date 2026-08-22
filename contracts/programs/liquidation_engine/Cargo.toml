@@ -22,4 +22,5 @@ idl-build = ["anchor-lang/idl-build", "price_oracle/idl-build"]
 [dependencies]
 anchor-lang = { workspace = true }
 persat-core = { workspace = true }
+pyth-solana-receiver-sdk = { workspace = true }
 price_oracle = { path = "../price_oracle", features = ["no-entrypoint"] }
