@@ -2,7 +2,9 @@ name: Verify Solana protocol
 
 on:
   push:
-    branches: [arena/01a0117d-persat-finance]
+    branches:
+      - main
+      - "arena/**"
     paths:
       - "contracts/**"
       - ".github/workflows/protocol.yml"
@@ -14,6 +16,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: protocol-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   protocol:
@@ -39,19 +45,21 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: contracts
+          cache-on-failure: true
 
       - name: Install Solana CLI
         run: |
           sh -c "$(curl -sSfL https://release.anza.xyz/v3.1.10/install)"
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
-          solana --version
+
+      - name: Report Solana CLI version
+        run: solana --version
 
       - name: Install Anchor Version Manager
         run: |
           cargo install --git https://github.com/solana-foundation/anchor avm --locked
-          avm install 1.0.0
-          avm use 1.0.0
+          avm install 1.0.2
+          avm use 1.0.2
           anchor --version
 
       - name: Install protocol JavaScript dependencies
@@ -60,18 +68,10 @@ jobs:
             npm ci
           fi
 
-      - name: Build Anchor workspace
-        run: |
-          if [ -f Anchor.toml ]; then
-            anchor build --ignore-keys
-          else
-            echo "Anchor workspace has not been created yet."
-          fi
+      # Host-target unit and fuzz tests. No validator needed, so this is the
+      # fastest signal and runs before the slower SBF build.
+      - name: Run unit and fuzz tests
+        run: cargo test --workspace
 
-      - name: Run Anchor tests
-        run: |
-          if [ -f Anchor.toml ]; then
-            anchor test --skip-build --validator legacy
-          else
-            echo "Anchor workspace has not been created yet."
-          fi
+      - name: Build Anchor workspace
+        run: anchor build --ignore-keys
