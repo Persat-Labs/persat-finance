@@ -13,7 +13,10 @@ liquidation_engine = "ddkJSDR6ke8zhPNNu2UQtESWas2HUopn2PwWKsuUXuj"
 fee_treasury = "FJqnBp7S8hLtUWinDZFcifN6SeRPoMQVkA7nYi89wzuu"
 
 [provider]
-cluster = "Localnet"
+# Devnet is the MVP target cluster. See contracts/config/devnet.json for the
+# reasoning: Solana testnet is for validator operators, and the Pyth receiver
+# is not deployed there, so the protocol would have no BTC/USD price at all.
+cluster = "Devnet"
 # CI has no user wallet. `anchor build` generates a throwaway program keypair in
 # target/deploy (gitignored, regenerated per run), which satisfies the provider
 # without ever committing a key. No deployment uses this wallet.

@@ -1,0 +1,139 @@
+{
+  "$comment": [
+    "Persat Finance devnet cluster configuration.",
+    "",
+    "Devnet is the target cluster for the MVP. The authoritative documents say",
+    "'testnet' throughout, which is correct as PRODUCT language — users read it",
+    "as 'not real money'. It should not be read as the Solana testnet cluster:",
+    "",
+    "  * Solana's own docs say 'Application developers should target Devnet'.",
+    "    Testnet exists for validator operators stress-testing pre-release",
+    "    validator software, and is documented as often unstable during upgrade",
+    "    cycles.",
+    "  * Decisively: the Pyth receiver program is deployed on mainnet and devnet,",
+    "    but not on Solana testnet. On testnet the protocol would have no BTC/USD",
+    "    price at all, and every price-dependent action would fail closed.",
+    "",
+    "Every address below marked PLACEHOLDER must be replaced before deployment.",
+    "This file contains no secrets and never will: it holds public addresses",
+    "only. Keypairs live in a secret manager, never in this repository."
+  ],
+
+  "cluster": "devnet",
+  "rpcUrl": "https://api.devnet.solana.com",
+  "explorerSuffix": "?cluster=devnet",
+
+  "$rpcNote": [
+    "The public endpoint is rate-limited (100 requests / 10s per IP) and is not",
+    "intended for production traffic. Provision a dedicated Helius, QuickNode,",
+    "or Triton endpoint before the indexer and keeper run continuously, and set",
+    "it via SOLANA_RPC_URL rather than editing this file."
+  ],
+
+  "programs": {
+    "$comment": "Deterministic placeholders derived from a domain string. Replace with real generated program keypairs at deployment time.",
+    "governance": "jr35R8hZWtV7Yc2ekzbsebypD2ooenHg8QgxhpmVgkj",
+    "price_oracle": "BajL3G7sLiH1oKUFs54okF3hv1FzkezNYma2MKGoYJDx",
+    "asset_whitelist": "7K66UwFGxZP5TJRRiQQXMV63yUz4v5K45sMiy6qwunZ5",
+    "deal_registry": "FvjjNfQLUKKE66aRoi5xMmmWbJhgyyY96YDF7j2uSc3D",
+    "escrow_vault": "7scqu8nHiNWCo98N1WfUpnYqLFXFqBC4PCgw8oDy7QtR",
+    "loan_lifecycle": "2NQaeeutTk1itRUVDXg3wpJCVxN85r8CuUr59C2aPri3",
+    "liquidation_engine": "ddkJSDR6ke8zhPNNu2UQtESWas2HUopn2PwWKsuUXuj",
+    "fee_treasury": "FJqnBp7S8hLtUWinDZFcifN6SeRPoMQVkA7nYi89wzuu"
+  },
+
+  "oracle": {
+    "provider": "pyth",
+    "receiverProgram": "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ",
+    "wormholeReceiver": "HDwcJBJXjL9FpJ7UBsYBtaDjsBUhuLCUYoz3zr8SWWaQ",
+    "hermesUrl": "https://hermes.pyth.network",
+    "btcUsdFeedId": "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43",
+    "stalenessThresholdSeconds": 60,
+    "maxConfidenceBps": 200,
+    "$comment": "The feed id identifies the feed, not an account, and is identical on every cluster. Pyth is a pull oracle: a client posts a signed Hermes update into a PriceUpdateV2 account, then passes that account to the instruction that needs it. No pusher keypair exists."
+  },
+
+  "assets": {
+    "$comment": [
+      "Devnet has no canonical tBTC, zBTC, or USDC faucet. Standard practice is",
+      "to mint your own SPL tokens with matching decimals and treat them as",
+      "stand-ins, which is exactly what the /faucet route is for.",
+      "",
+      "Collateral MUST be 8 decimals: the whitelist registry rejects any other",
+      "value for a collateral asset, because the risk parameters are calibrated",
+      "against real tBTC/zBTC precision."
+    ],
+    "collateral": [
+      {
+        "symbol": "tBTC",
+        "mint": "PLACEHOLDER_CREATE_DEVNET_MINT",
+        "decimals": 8,
+        "bridge": "Threshold Network",
+        "riskParameters": {
+          "maxLtvBps": 5000,
+          "partialLiquidationLtvBps": 7000,
+          "fullLiquidationLtvBps": 8000,
+          "liquidationPenaltyBps": 500,
+          "maxPartialLiquidationBps": 2000
+        },
+        "$riskNote": "tBTC is the more decentralised option but has thinner Solana liquidity, so a fast liquidation could face real slippage. Consider a stricter maxLtv than zBTC once real liquidity is measurable."
+      },
+      {
+        "symbol": "zBTC",
+        "mint": "PLACEHOLDER_CREATE_DEVNET_MINT",
+        "decimals": 8,
+        "bridge": "Zeus Network",
+        "riskParameters": {
+          "maxLtvBps": 5000,
+          "partialLiquidationLtvBps": 7000,
+          "fullLiquidationLtvBps": 8000,
+          "liquidationPenaltyBps": 500,
+          "maxPartialLiquidationBps": 2000
+        },
+        "$riskNote": "zBTC has a smaller validator set but deeper Solana liquidity, so liquidation executes closer to true market price."
+      }
+    ],
+    "loanCurrency": [
+      {
+        "symbol": "USDC",
+        "mint": "PLACEHOLDER_CREATE_DEVNET_MINT",
+        "decimals": 6,
+        "$comment": "Treated as exactly $1. No oracle feed, by protocol policy."
+      },
+      {
+        "symbol": "USDT",
+        "mint": "PLACEHOLDER_CREATE_DEVNET_MINT",
+        "decimals": 6,
+        "$comment": "Treated as exactly $1. No oracle feed, by protocol policy."
+      }
+    ],
+    "excluded": {
+      "$comment": "Excluded from collateral by explicit protocol policy, not oversight. add_asset_type is governance-gated so none of these can be added without a deliberate, visible governance action.",
+      "cbBTC": "Single centralised company holds the backing reserves.",
+      "WBTC": "Single-custodian model.",
+      "SolvBTC": "CeFi-adjacent externally-verified custodian reserve model."
+    }
+  },
+
+  "fees": {
+    "directOriginationFeeBps": 200,
+    "marketplaceOriginationFeeBps": 200,
+    "$comment": "2% on both paths for the MVP. Separate fields so the paths can diverge later without a contract change. No configuration may exceed the 5% protocol cap."
+  },
+
+  "governance": {
+    "$comment": "Three independent signer public keys. Publish public keys only; the keypairs belong in a secret manager. Standard actions are 2-of-3 with a 24h timelock; emergency pause is 1-of-3 with no timelock, and unpausing requires the full 2-of-3.",
+    "signers": [
+      "PLACEHOLDER_GOVERNANCE_SIGNER_1_PUBKEY",
+      "PLACEHOLDER_GOVERNANCE_SIGNER_2_PUBKEY",
+      "PLACEHOLDER_GOVERNANCE_SIGNER_3_PUBKEY"
+    ],
+    "treasury": "PLACEHOLDER_TREASURY_PUBKEY"
+  },
+
+  "keeper": {
+    "$comment": "Funded for transaction fees only. It never custodies user funds and has no discretion over amounts: it chooses only when to ask, and every figure is recomputed on-chain from state and the verified oracle price.",
+    "pubkey": "PLACEHOLDER_KEEPER_PUBKEY",
+    "pollIntervalSeconds": 60
+  }
+}

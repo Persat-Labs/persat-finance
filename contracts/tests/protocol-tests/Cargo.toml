@@ -1,0 +1,20 @@
+[package]
+name = "protocol-tests"
+version = "0.1.0"
+description = "Persat Finance in-process integration tests against compiled programs"
+edition = "2021"
+publish = false
+
+[dependencies]
+
+[dev-dependencies]
+anchor-lang = { workspace = true }
+governance = { path = "../../programs/governance", features = ["no-entrypoint"] }
+litesvm = "0.15"
+solana-instruction = "3"
+solana-keypair = "3"
+solana-message = "4"
+solana-pubkey = "4"
+solana-signer = "3"
+solana-transaction = "4"
+solana-clock = "3"

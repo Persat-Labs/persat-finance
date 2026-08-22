@@ -9,6 +9,7 @@ members = [
   "programs/loan_lifecycle",
   "programs/liquidation_engine",
   "programs/fee_treasury",
+  "tests/protocol-tests",
 ]
 resolver = "2"
 

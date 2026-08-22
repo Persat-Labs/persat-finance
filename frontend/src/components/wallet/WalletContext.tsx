@@ -13,7 +13,12 @@ const SafeConnectionProvider = ConnectionProvider as unknown as ComponentType<{ 
 const SafeWalletProvider = WalletProvider as unknown as ComponentType<{ wallets: unknown[]; autoConnect: boolean; children: ReactNode }>;
 const SafeWalletModalProvider = WalletModalProvider as unknown as ComponentType<{ children: ReactNode }>;
 
-/** Devnet is intentional during development. Production configuration must supply NEXT_PUBLIC_SOLANA_RPC_URL. */
+/**
+ * Devnet is the MVP target cluster, not Solana testnet: testnet exists for
+ * validator operators and has no Pyth receiver deployed, so the protocol would
+ * have no BTC/USD price there. Override with NEXT_PUBLIC_SOLANA_RPC_URL to use
+ * a dedicated (non rate-limited) endpoint.
+ */
 export function PersatWalletProvider({ children }: { children: ReactNode }) {
   const endpoint = process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? clusterApiUrl("devnet");
   const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()], []);
