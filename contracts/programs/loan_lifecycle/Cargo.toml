@@ -1,12 +1,12 @@
 [package]
-name = "asset_whitelist"
+name = "loan_lifecycle"
 version = "0.1.0"
-description = "Persat Finance Asset Whitelist Registry"
+description = "Persat Finance loan lifecycle and payment program"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "asset_whitelist"
+name = "loan_lifecycle"
 
 [features]
 default = []

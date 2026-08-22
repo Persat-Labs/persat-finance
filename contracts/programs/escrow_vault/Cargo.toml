@@ -1,12 +1,12 @@
 [package]
-name = "asset_whitelist"
+name = "escrow_vault"
 version = "0.1.0"
-description = "Persat Finance Asset Whitelist Registry"
+description = "Persat Finance Escrow Vault holding collateral for active deals"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "asset_whitelist"
+name = "escrow_vault"
 
 [features]
 default = []

@@ -1,6 +1,23 @@
 [workspace]
-members = ["programs/asset_whitelist"]
+members = [
+  "crates/persat-core",
+  "programs/governance",
+  "programs/price_oracle",
+  "programs/asset_whitelist",
+  "programs/deal_registry",
+  "programs/escrow_vault",
+  "programs/loan_lifecycle",
+  "programs/liquidation_engine",
+  "programs/fee_treasury",
+  "tests/protocol-tests",
+]
 resolver = "2"
+
+[workspace.dependencies]
+anchor-lang = "=1.0.2"
+anchor-spl = "=1.0.2"
+pyth-solana-receiver-sdk = "=2.0.0"
+persat-core = { path = "crates/persat-core" }
 
 # Financial programs must never wrap integer arithmetic in release builds.
 [profile.release]
