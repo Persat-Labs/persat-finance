@@ -47,17 +47,47 @@ runtime:
 - **Loan Lifecycle:** payment outside the schedule, incorrect payment amount, default flagged before
   the grace window closes, action on a completed schedule.
 
+## LiteSVM access-control harness — written, not yet proven
+
+`contracts/tests/protocol-tests/tests/governance.rs` runs the **real compiled program** inside
+LiteSVM, an in-process Solana VM. This is the only way to exercise Anchor's
+`#[derive(Accounts)]` constraints — signer checks, `has_one`, PDA seeds — which the unit tests
+cannot reach because they are enforced by the runtime, not by program logic.
+
+Seven tests cover the governance security root:
+
+| Test | Asserts |
+| --- | --- |
+| `governance_initializes_with_three_distinct_signers` | Singleton PDA is created, protocol starts unpaused |
+| `a_single_signer_can_trigger_the_emergency_pause` | 1-of-3 pause, no timelock |
+| `a_wallet_outside_the_signer_set_cannot_pause` | **Arbitrary wallet is rejected** — the core access-control claim |
+| `unpausing_requires_two_distinct_signers` | Same signer twice fails; two distinct succeed |
+| `pausing_an_already_paused_protocol_is_rejected` | No double-pause |
+| `unpausing_a_running_protocol_is_rejected` | No spurious unpause |
+| `the_governance_singleton_cannot_be_initialized_twice` | Signer set cannot be reset |
+
+> **These have not yet executed in CI.** The workflow currently runs `cargo test` *before*
+> `anchor build`, so `target/deploy/governance.so` does not exist and every test takes the skip
+> path — reporting `7 passed` in `0.00s` while proving nothing. A green tick that verifies
+> nothing is worse than a red one, so this is recorded as unproven rather than as evidence.
+>
+> The fix is prepared in `docs/ci/protocol.yml.ready`: build before test, and set
+> `PERSAT_REQUIRE_PROGRAMS=1` so a missing program becomes a hard failure instead of a silent
+> skip. Applying it requires the `workflows` permission or a manual paste. Once applied, replace
+> this note with the run id and the real pass count.
+
 ## Gaps before Pass 1 can be marked complete
 
-1. **Instruction-level access control against a runtime.** The signer, owner, and PDA-seed
-   constraints are declared in `#[derive(Accounts)]` and enforced by Anchor, but they are not yet
-   *exercised* by a test that submits a transaction with a wrong signer or a spoofed PDA and
-   observes the rejection. This requires the LiteSVM harness.
-2. **Measured coverage.** The 95% line/branch target is stated but not yet measured. A coverage
+1. **Execute the LiteSVM harness in CI.** Written and committed; blocked only on the workflow
+   step-order fix described above.
+2. **Extend the harness to the remaining seven programs.** Governance is covered because it is the
+   security root. Escrow Vault is the next priority, since it is the only program that custodies
+   funds, followed by the Deal Registry terms-hash binding.
+3. **Measured coverage.** The 95% line/branch target is stated but not yet measured. A coverage
    tool (`cargo-llvm-cov`) needs adding to CI to produce a real number rather than an assertion.
    The instruction bodies of `escrow_vault` and `liquidation_engine` in particular have no
    host-target tests, because their logic is almost entirely CPI and account validation.
-3. **Escrow Vault and Liquidation Engine.** Both compile and are reviewed, but neither has
+4. **Escrow Vault and Liquidation Engine.** Both compile and are reviewed, but neither has
    executable test evidence yet for the same reason.
 
-Pass 1 stays marked partial until items 1 and 2 have executed and their results are recorded here.
+Pass 1 stays marked partial until every item above has executed and its result is recorded here.
