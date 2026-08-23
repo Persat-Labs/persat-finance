@@ -92,7 +92,7 @@ macro_rules! require_program {
             }
             None => {
                 eprintln!("skipping: {} not found. Run `anchor build --ignore-keys` first.", $path);
-                return Vec::new();
+                return;
             }
         }
     };

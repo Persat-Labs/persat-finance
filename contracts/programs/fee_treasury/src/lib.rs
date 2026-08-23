@@ -16,7 +16,7 @@
 //!   never takes custody of user funds.
 
 use anchor_lang::prelude::*;
-use persat_core::fees::{split_disbursement, DealOrigin, FeeParameters, MAX_ORIGINATION_FEE_BPS};
+use persat_core::fees::{split_disbursement, DealOrigin, FeeParameters};
 
 declare_id!("FJqnBp7S8hLtUWinDZFcifN6SeRPoMQVkA7nYi89wzuu");
 
@@ -237,6 +237,7 @@ pub enum FeeError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use persat_core::fees::MAX_ORIGINATION_FEE_BPS;
 
     fn config() -> TreasuryConfig {
         TreasuryConfig {
