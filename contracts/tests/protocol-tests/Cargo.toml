@@ -9,8 +9,12 @@ publish = false
 
 [dev-dependencies]
 anchor-lang = { workspace = true }
+deal_registry = { path = "../../programs/deal_registry", features = ["no-entrypoint"] }
+escrow_vault = { path = "../../programs/escrow_vault", features = ["no-entrypoint"] }
 governance = { path = "../../programs/governance", features = ["no-entrypoint"] }
+persat-core = { path = "../../crates/persat-core" }
 litesvm = "0.15"
+solana-account = "4"
 # litesvm 0.15 declares solana-transaction-context = "4.1.1" as a caret range,
 # but 4.2+ added a `touched_flags` field that its own source does not destructure,
 # so a newer 4.x breaks the litesvm build. Pin the exact version it was written
