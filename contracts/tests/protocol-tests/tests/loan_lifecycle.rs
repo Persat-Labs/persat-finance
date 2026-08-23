@@ -465,6 +465,20 @@ impl Fixture {
         self.activate(handles, PRINCIPAL_ATOMS, 6, FEE_ATOMS).expect("activation");
     }
 
+    /// Credit the lender's token account so a second loan can activate
+    /// inside one fixture (one standing balance only covers one principal).
+    fn top_up_lender(&mut self, extra_atoms: u64) {
+        let at = self.lender_account;
+        let current = self.token_balance_of(&at);
+        let mint = self.mint;
+        let owner = self.lender.pubkey();
+        self.write_account(
+            at,
+            token_account_data(&mint, &owner, current + extra_atoms),
+            token_program_id(),
+        );
+    }
+
     fn read_loan(&self, at: &Pubkey) -> loan_lifecycle::Loan {
         let account = self.svm.get_account(at).expect("loan account exists");
         loan_lifecycle::Loan::try_deserialize(&mut account.data.as_slice())
@@ -548,15 +562,27 @@ fn activation_rejects_a_lender_account_the_lender_does_not_own() {
     let mut fixture = Fixture::new(&bytes);
     let handles = fixture.loan_handles();
 
-    // The borrower offers their own account as the "lender" funding source:
-    // funding yourself does not create a loan.
-    let borrower_account = fixture.borrower_account;
+    // The borrower offers one of their own accounts as the "lender" funding
+    // source: real, funded, correct-mint — but token-owned by the borrower,
+    // so it cannot fund a loan from the lender's purse. It must be a
+    // *distinct* address from the borrower's disbursement account: reusing
+    // that account would alias two mutable accounts and Anchor would reject
+    // the transaction at the framework layer (2040) before the program's
+    // owner check is ever evaluated.
+    let impostor_source = Keypair::new().pubkey();
+    let borrower_pk = fixture.borrower.pubkey();
+    let mint = fixture.mint;
+    fixture.write_account(
+        impostor_source,
+        token_account_data(&mint, &borrower_pk, PRINCIPAL_ATOMS),
+        token_program_id(),
+    );
     let result = fixture.activate_from(
         &handles,
         PRINCIPAL_ATOMS,
         6,
         FEE_ATOMS,
-        borrower_account,
+        impostor_source,
     );
     assert_failed_with(&result, loan_error::INVALID_TOKEN_ACCOUNT_OWNER);
 }
@@ -618,9 +644,21 @@ fn only_the_borrower_can_make_a_payment() {
     let result = fixture.pay_from(&handles, &outsider, INSTALLMENT_ATOMS, borrower_account);
     assert_failed_with(&result, loan_error::UNAUTHORIZED_BORROWER);
 
+    // Not even the lender may service the schedule in the borrower's name.
+    // A second lender-owned account keeps source and destination distinct —
+    // paying out of the loan's own destination account would alias two
+    // mutable accounts and Anchor would reject the transaction at the
+    // framework layer (2040) before the borrower-authority check runs.
+    let lender_account_2 = Keypair::new().pubkey();
+    let lender_pk = fixture.lender.pubkey();
+    let mint = fixture.mint;
+    fixture.write_account(
+        lender_account_2,
+        token_account_data(&mint, &lender_pk, LENDER_STARTING_ATOMS),
+        token_program_id(),
+    );
     let lender = fixture.lender.insecure_clone();
-    let lender_account = fixture.lender_account;
-    let result = fixture.pay_from(&handles, &lender, INSTALLMENT_ATOMS, lender_account);
+    let result = fixture.pay_from(&handles, &lender, INSTALLMENT_ATOMS, lender_account_2);
     assert_failed_with(&result, loan_error::UNAUTHORIZED_BORROWER);
 }
 
@@ -725,10 +763,17 @@ fn default_cannot_be_flagged_before_the_grace_window_closes() {
     let result = fixture.flag_default_as(&handles, &outsider);
     assert_failed_with(&result, loan_error::PAYMENT_NOT_OVERDUE);
 
+    // Each retry needs a fresh blockhash: LiteSVM's status cache remembers
+    // even failed transactions, so a byte-identical retry short-circuits
+    // with AlreadyProcessed instead of re-executing the program.
+    fixture.svm.expire_blockhash();
+
     // One second after the due date: late, but inside the grace window.
     fixture.set_time(SECONDS_PER_MONTH + 1);
     let result = fixture.flag_default_as(&handles, &outsider);
     assert_failed_with(&result, loan_error::PAYMENT_NOT_OVERDUE);
+
+    fixture.svm.expire_blockhash();
 
     // The final second of grace: still not overdue.
     fixture.set_time(SECONDS_PER_MONTH + GRACE_PERIOD_SECONDS);
@@ -815,6 +860,9 @@ fn mark_liquidated_requires_the_configured_liquidation_authority() {
     assert_failed_with(&result, loan_error::LOAN_NOT_REPAYABLE);
 
     // Full liquidation on a second loan settles the other terminal state.
+    // The first activation left the lender with only the remainder, so the
+    // second principal needs fresh capacity.
+    fixture.top_up_lender(PRINCIPAL_ATOMS);
     let handles = fixture.loan_handles();
     fixture.active_loan(&handles);
     let liquidation = fixture.liquidation_authority.insecure_clone();
