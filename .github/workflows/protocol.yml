@@ -81,3 +81,74 @@ jobs:
         env:
           PERSAT_REQUIRE_PROGRAMS: "1"
         run: cargo test --workspace
+
+  coverage:
+    name: Pass 1 coverage measurement (95% target)
+    runs-on: ubuntu-latest
+    needs: protocol
+    defaults:
+      run:
+        working-directory: contracts
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+          cache-on-failure: true
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked
+
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v3.1.10/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Install Anchor Version Manager
+        run: |
+          cargo install --git https://github.com/solana-foundation/anchor avm --locked
+          avm install 1.0.2
+          avm use 1.0.2
+
+      # Same ordering discipline as the test job: the LiteSVM suites must not
+      # silently no-op, and they are a large part of the exercised surface.
+      - name: Build Anchor workspace
+        run: anchor build --ignore-keys
+
+      # llvm-cov needs its own profile so instrumentation does not leak into
+      # the SBF build; --workspace covers every program plus persat-core.
+      - name: Measure coverage
+        env:
+          PERSAT_REQUIRE_PROGRAMS: "1"
+        run: |
+          cargo llvm-cov --workspace \
+            --summary-only \
+            --output-path coverage-summary.json
+          cargo llvm-cov --workspace \
+            --lcov \
+            --output-path coverage.lcov
+          cat coverage-summary.json
+
+      # Enforce per the Pass 1 scope standard. 90 is the transitional floor for
+      # the two programs whose instruction bodies only gained executable tests
+      # with the LiteSVM harness; tighten to 95 once the true number is known.
+      - name: Enforce coverage floor
+        run: |
+          cargo llvm-cov --workspace --summary-only --fail-under-lines 90
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: protocol-coverage
+          path: |
+            contracts/coverage-summary.json
+            contracts/coverage.lcov
+          retention-days: 90
