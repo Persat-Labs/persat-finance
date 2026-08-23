@@ -37,6 +37,7 @@
 
 use anchor_lang::prelude::*;
 use persat_core::ltv::{Price, MAX_PRICE_EXPO};
+use pyth_solana_receiver_sdk::error::GetPriceError;
 use pyth_solana_receiver_sdk::price_update::{
     get_feed_id_from_hex, PriceUpdateV2, VerificationLevel,
 };
@@ -241,17 +242,27 @@ impl OracleConfig {
     ) -> Result<Observation> {
         require!(!self.paused, OracleError::OraclePaused);
 
-        // Feed identity and staleness together. `get_price_no_older_than`
-        // rejects both a mismatched feed and an update older than the window.
-        let price = price_update
-            .get_price_no_older_than(
-                clock,
-                self.staleness_threshold_seconds as u64,
-                &self.feed_id,
-            )
-            .map_err(|_| error!(OracleError::StalePrice))?;
+        // Feed identity, staleness, and verification all gate on this call:
+        // `get_price_no_older_than` rejects a mismatched feed, an update
+        // older than the window, and any update below full guardian
+        // verification. The under-verification case maps to its own error so
+        // an operator can tell an incomplete Wormhole quorum apart from a
+        // stale-but-verified feed; both still fail closed.
+        let price = match price_update.get_price_no_older_than(
+            clock,
+            self.staleness_threshold_seconds as u64,
+            &self.feed_id,
+        ) {
+            Ok(price) => price,
+            Err(GetPriceError::InsufficientVerificationLevel) => {
+                return err!(OracleError::InsufficientVerification)
+            }
+            Err(_) => return err!(OracleError::StalePrice),
+        };
 
         // Require a full Wormhole quorum, not a partially verified update.
+        // The SDK call above already enforces this; kept as
+        // belt-and-suspenders should the SDK's requirement ever loosen.
         require!(
             price_update.verification_level.gte(VerificationLevel::Full),
             OracleError::InsufficientVerification

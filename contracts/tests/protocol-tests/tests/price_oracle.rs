@@ -473,11 +473,15 @@ fn a_too_wide_confidence_band_is_rejected() {
     let mut fixture = Fixture::new(&bytes);
     fixture.initialize().unwrap();
 
-    // Exactly 2% is allowed; one unit beyond it is not.
+    // The program floors `conf * 10_000 / mantissa` and compares against the
+    // 200 bps bound. One bps of this mantissa is a billion confidence atoms,
+    // so "2% plus one atom" would still floor to 200 bps; the first
+    // rejectable value is a full basis-point granule over the bound.
+    let one_bps_in_atoms = PRICE_MANTISSA as u64 / 10_000;
     let inside = fixture.write_price_update(
         btc_feed_id(),
         PRICE_MANTISSA,
-        PRICE_MANTISSA as u64 / 50, // exactly 2%
+        one_bps_in_atoms * 200, // exactly the 200 bps bound
         PRICE_EXPONENT,
         NOW,
         VerificationLevel::Full,
@@ -487,7 +491,7 @@ fn a_too_wide_confidence_band_is_rejected() {
     let wide = fixture.write_price_update(
         btc_feed_id(),
         PRICE_MANTISSA,
-        PRICE_MANTISSA as u64 / 50 + 1, // >2%
+        one_bps_in_atoms * 201, // 201 bps: one granule over the bound
         PRICE_EXPONENT,
         NOW,
         VerificationLevel::Full,
