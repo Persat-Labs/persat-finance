@@ -25,15 +25,22 @@ pub mod fee_treasury {
     use super::*;
 
     /// Create the treasury configuration singleton.
+    ///
+    /// `loan_authority` is the only identity permitted to record collected
+    /// fees, so the cumulative total cannot be inflated by an arbitrary
+    /// caller replaying self-consistent fee math.
     pub fn initialize_treasury(
         ctx: Context<InitializeTreasury>,
         governance: Pubkey,
         treasury: Pubkey,
+        loan_authority: Pubkey,
         direct_origination_fee_bps: u16,
         marketplace_origination_fee_bps: u16,
     ) -> Result<()> {
         require!(
-            governance != Pubkey::default() && treasury != Pubkey::default(),
+            governance != Pubkey::default()
+                && treasury != Pubkey::default()
+                && loan_authority != Pubkey::default(),
             FeeError::InvalidAuthority
         );
         let parameters = FeeParameters {
@@ -47,6 +54,7 @@ pub mod fee_treasury {
         let config = &mut ctx.accounts.config;
         config.governance = governance;
         config.treasury = treasury;
+        config.loan_authority = loan_authority;
         config.direct_origination_fee_bps = direct_origination_fee_bps;
         config.marketplace_origination_fee_bps = marketplace_origination_fee_bps;
         config.total_collected_atoms = 0;
@@ -101,6 +109,10 @@ pub mod fee_treasury {
         require!(
             split.to_treasury_atoms == reported_fee_atoms,
             FeeError::FeeMismatch
+        );
+        require!(
+            ctx.accounts.loan_program.key() == config.loan_authority,
+            FeeError::UnauthorizedProgram
         );
 
         let config = &mut ctx.accounts.config;
@@ -159,6 +171,9 @@ pub struct TreasuryConfig {
     pub governance: Pubkey,
     /// Destination that receives origination fees.
     pub treasury: Pubkey,
+    /// The loan lifecycle program's authority: the only identity permitted to
+    /// record collected fees into `total_collected_atoms`.
+    pub loan_authority: Pubkey,
     pub direct_origination_fee_bps: u16,
     pub marketplace_origination_fee_bps: u16,
     /// Cumulative fees recorded, for transparency.
@@ -215,6 +230,8 @@ pub enum FeeError {
     FeeMismatch,
     #[msg("A treasury arithmetic operation overflowed.")]
     ArithmeticOverflow,
+    #[msg("Only the loan program's recorded authority may record collected fees.")]
+    UnauthorizedProgram,
 }
 
 #[cfg(test)]
@@ -225,6 +242,7 @@ mod tests {
         TreasuryConfig {
             governance: Pubkey::new_unique(),
             treasury: Pubkey::new_unique(),
+            loan_authority: Pubkey::new_unique(),
             direct_origination_fee_bps: 50,
             marketplace_origination_fee_bps: 100,
             total_collected_atoms: 0,
