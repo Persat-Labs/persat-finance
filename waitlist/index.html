@@ -43,6 +43,7 @@
   --maxw:1180px;
 }
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+#home,#features,#why,#testimonials,#faq,#waitlist{scroll-margin-top:84px}
 body{
   background:var(--bg);
   color:var(--ink);
@@ -121,7 +122,7 @@ svg{display:block}
    ============================================================ */
 .stage{position:relative;width:100%;overflow:hidden}
 
-.hero{position:relative;overflow:hidden;isolation:isolate}
+.hero{position:relative;overflow:hidden;isolation:isolate;z-index:4}
 .hero-bg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 
 /* the whole ripple system lives in one centered, masked stage */
@@ -230,7 +231,13 @@ svg{display:block}
 /* ============================================================
    NAVBAR
    ============================================================ */
-.nav{position:relative;z-index:30;padding-top:22px}
+.nav{position:fixed;top:0;left:0;right:0;z-index:30;padding-top:22px;
+  border-bottom:1px solid transparent;transition:background .3s,border-color .3s}
+.nav.scrolled{
+  background:rgba(0,0,0,.62);
+  backdrop-filter:blur(16px) saturate(135%);-webkit-backdrop-filter:blur(16px) saturate(135%);
+  border-bottom-color:rgba(255,255,255,.06);
+}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;gap:24px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;letter-spacing:-.01em}
 .brand-mark{
@@ -264,7 +271,7 @@ svg{display:block}
 /* ============================================================
    HERO
    ============================================================ */
-.hero-inner{position:relative;z-index:5;text-align:center;padding:78px 0 0}
+.hero-inner{position:relative;z-index:5;text-align:center;padding:140px 0 0}
 .hero h1{
   font-size:clamp(34px,5.4vw,62px);line-height:1.1;font-weight:700;letter-spacing:-.025em;
   text-shadow:0 2px 40px rgba(0,0,0,.55);
@@ -674,7 +681,7 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
 }
 @media (max-width:560px){
   .wrap{padding-inline:18px}
-  .hero-inner{padding-top:52px}
+  .hero-inner{padding-top:114px}
   .brand{font-size:17px}
   .btn-ghost{padding:9px 14px;font-size:12px}
   .dash{margin-top:32px;padding-bottom:56px}
@@ -1214,6 +1221,14 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
     secs.forEach(function(s){if(s.offsetTop<=y)cur=s});
     links.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#'+cur.id)});
   },{passive:true});
+})();
+
+/* sticky nav backdrop */
+(function(){
+  var nav=document.querySelector('.nav');
+  if(!nav)return;
+  var up=function(){nav.classList.toggle('scrolled',window.scrollY>10)};
+  window.addEventListener('scroll',up,{passive:true});up();
 })();
 
 /* subtle parallax on hero glow */
