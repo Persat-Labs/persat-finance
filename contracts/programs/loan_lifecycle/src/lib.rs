@@ -251,12 +251,36 @@ pub mod loan_lifecycle {
         Ok(())
     }
 
+    /// Create the loan configuration singleton.
+    ///
+    /// Records the liquidation engine's authority, the only identity allowed
+    /// to mark a loan liquidated. Without this binding any wallet could set a
+    /// live loan's state to `FullyLiquidated`, permanently blocking the
+    /// borrower's ability to repay.
+    pub fn initialize_loan_config(
+        ctx: Context<InitializeLoanConfig>,
+        liquidation_authority: Pubkey,
+    ) -> Result<()> {
+        require!(
+            liquidation_authority != Pubkey::default(),
+            LoanError::InvalidAuthority
+        );
+        let config = &mut ctx.accounts.config;
+        config.liquidation_authority = liquidation_authority;
+        config.bump = ctx.bumps.config;
+        Ok(())
+    }
+
     /// Record that the liquidation engine closed this loan.
     pub fn mark_liquidated(ctx: Context<MarkLiquidated>, fully: bool) -> Result<()> {
         let loan = &mut ctx.accounts.loan;
         require!(
             matches!(loan.state, LoanState::Active | LoanState::Defaulted),
             LoanError::LoanNotRepayable
+        );
+        require!(
+            ctx.accounts.liquidation_engine.key() == ctx.accounts.config.liquidation_authority,
+            LoanError::UnauthorizedProgram
         );
         loan.state = if fully {
             LoanState::FullyLiquidated
@@ -337,10 +361,38 @@ pub struct FlagDefault<'info> {
 }
 
 #[derive(Accounts)]
+pub struct InitializeLoanConfig<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + LoanConfig::INIT_SPACE,
+        seeds = [b"loan-config"],
+        bump
+    )]
+    pub config: Account<'info, LoanConfig>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct MarkLiquidated<'info> {
     #[account(mut, seeds = [b"loan", loan.deal_id.as_ref()], bump = loan.bump)]
     pub loan: Account<'info, Loan>,
     pub liquidation_engine: Signer<'info>,
+    /// Binds the caller to the liquidation authority recorded at setup.
+    #[account(seeds = [b"loan-config"], bump = config.bump)]
+    pub config: Account<'info, LoanConfig>,
+}
+
+/// Protocol authorities for loan-level state changes.
+#[account]
+#[derive(InitSpace)]
+pub struct LoanConfig {
+    /// The liquidation engine's authority: the only identity that may mark a
+    /// loan liquidated.
+    pub liquidation_authority: Pubkey,
+    pub bump: u8,
 }
 
 #[account]
@@ -490,6 +542,10 @@ pub enum LoanError {
     InvalidTokenAccountOwner,
     #[msg("A loan arithmetic operation overflowed.")]
     ArithmeticOverflow,
+    #[msg("Only the authorized liquidation engine may mark a loan liquidated.")]
+    UnauthorizedProgram,
+    #[msg("Authority must not be the default public key.")]
+    InvalidAuthority,
 }
 
 #[cfg(test)]

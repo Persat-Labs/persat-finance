@@ -22,16 +22,18 @@ This record follows the authoritative 10-week roadmap. Status reflects verified 
 - [x] Deal Registry: `propose_deal` (Public and Private), `confirm_deal` (binding-only, terms-hash checked), `cancel_deal`, state advancement. Unit tested and CI-verified.
 - [ ] tBTC, zBTC, USDC, USDT mint addresses integrated into the whitelist on a live cluster — blocked on founder-side cluster choice and mint confirmation.
 
-## Weeks 3–5 — Remaining programs (source ahead of schedule, not yet integration tested)
+## Weeks 3–5 — Remaining programs (source ahead of schedule, runtime-tested)
 
 - [x] Escrow Vault, Price Oracle, Loan Lifecycle, Liquidation Engine, Fee & Treasury, and Governance program source complete; SBF build verified in CI.
 - [x] Shared financial math extracted to `contracts/crates/persat-core` with checked arithmetic throughout.
-- [ ] Cross-program invocation testing between Deal Registry, Whitelist, and Escrow Vault — requires the LiteSVM harness.
+- [x] LiteSVM access-control harness covers all eight programs — 107 runtime tests, all CI-verified at commit `554b2fd` (run 32671421373) with non-zero wall-clock times in every suite (no silent skips; `PERSAT_REQUIRE_PROGRAMS=1` in force): governance 7, escrow vault 18, deal registry terms-hash binding 18, loan lifecycle 17, liquidation engine 16 (drives the real price_oracle program — stale feed, wrong feed, partial Wormhole quorum, wide confidence all block evaluation), price oracle 11, asset whitelist 12, fee treasury 8. Every suite asserts exact Anchor error codes.
+- [x] Four findings discovered by the harness and fixed the same week: registry state transitions, loan `mark_liquidated`, and the treasury fee counter now bind to recorded protocol authorities (F-1, F-2, F-4), and the oracle attributes under-verified Pyth updates distinctly from staleness (F-5). See `security-audits/pass-1/README.md`.
+- [ ] Cross-program CPI invocation testing between the programs themselves (loan program calling `lock_vault`, etc.) — the harness currently binds authority with standing keypairs, an identical check at Anchor's layer; full CPI welding is part of Pass 3.
 - [ ] First full manual lifecycle dry run on a live cluster — blocked on deployment approval.
 
 ## Security audit passes
 
-- [~] Pass 1 — unit and access-control coverage: partial. See `security-audits/pass-1/`.
+- [~] Pass 1 — unit and access-control coverage: runtime suites exist and are CI-verified for all eight programs (run 32671421373, 107 tests green). Remaining to mark complete: measured coverage, which awaits the founder-applied `cargo llvm-cov` workflow in `docs/ci/`, plus cross-program CPI welding (Pass 3 scope). See `security-audits/pass-1/`.
 - [~] Pass 2 — fuzzing: financial calculation families complete at 10,000 iterations each, 29 properties passing. PDA and state-transition fuzzing outstanding. See `security-audits/pass-2/`.
 - [ ] Pass 3 — live testnet integration: not started, requires deployment.
 - [ ] Pass 4 — adversarial audit: not started.

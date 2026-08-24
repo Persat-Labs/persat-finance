@@ -12,10 +12,26 @@ refusing to allow a GitHub App to create or update workflow
 This directory holds proposed workflow content that a human with write access
 can apply. Nothing here runs on its own; these are inert `.proposed` files.
 
-> **Status: one further change pending.** Anchor 1.0.2 and the trigger fix are
-> applied and working. A second revision is now needed — see *Pending* below.
+> **Status: pending founder application.** The build-before-test fix and
+> `PERSAT_REQUIRE_PROGRAMS=1` are applied and working (verified green,
+> run 32602659432 and all subsequent runs). A third revision — coverage
+> measurement — is new and not yet applied. See *Pending* below.
 
-## Pending: build before test
+## Pending: measured Pass 1 coverage
+
+The 95% unit-test coverage target in `docs/testing-strategy.md` is currently
+*stated but not measured*. [`protocol.yml.coverage.proposed`](protocol.yml.coverage.proposed)
+adds a `coverage` job that runs `cargo llvm-cov` over the whole workspace,
+uploads the full report as an artifact, and fails the build below the
+enforcement floor (transitionally 90 for the two programs whose instruction
+bodies had no executable tests before the LiteSVM harness; tighten to 95 once
+the true measured numbers are recorded in `security-audits/pass-1/README.md`).
+
+To apply: copy the file's contents from the `name: Verify Solana protocol` line
+onward over `.github/workflows/protocol.yml` — or use Option A below to grant
+the permission permanently.
+
+## Previously applied: build before test
 
 `cargo test` currently runs *before* `anchor build`. The LiteSVM integration
 tests load `target/deploy/governance.so` and skip when it is absent, so they

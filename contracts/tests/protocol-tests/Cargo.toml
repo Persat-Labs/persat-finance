@@ -9,8 +9,18 @@ publish = false
 
 [dev-dependencies]
 anchor-lang = { workspace = true }
+asset_whitelist = { path = "../../programs/asset_whitelist", features = ["no-entrypoint"] }
+deal_registry = { path = "../../programs/deal_registry", features = ["no-entrypoint"] }
+escrow_vault = { path = "../../programs/escrow_vault", features = ["no-entrypoint"] }
+fee_treasury = { path = "../../programs/fee_treasury", features = ["no-entrypoint"] }
 governance = { path = "../../programs/governance", features = ["no-entrypoint"] }
+liquidation_engine = { path = "../../programs/liquidation_engine", features = ["no-entrypoint"] }
+loan_lifecycle = { path = "../../programs/loan_lifecycle", features = ["no-entrypoint"] }
+persat-core = { path = "../../crates/persat-core" }
+price_oracle = { path = "../../programs/price_oracle", features = ["no-entrypoint"] }
+pyth-solana-receiver-sdk = { workspace = true }
 litesvm = "0.15"
+solana-account = "4"
 # litesvm 0.15 declares solana-transaction-context = "4.1.1" as a caret range,
 # but 4.2+ added a `touched_flags` field that its own source does not destructure,
 # so a newer 4.x breaks the litesvm build. Pin the exact version it was written

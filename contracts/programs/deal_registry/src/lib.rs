@@ -35,6 +35,34 @@ pub const MAX_RATE_BPS: u16 = 10_000;
 pub mod deal_registry {
     use super::*;
 
+    /// Create the registry authority configuration singleton.
+    ///
+    /// The three authorities recorded here are the CPI signer identities of
+    /// the escrow vault, loan lifecycle, and liquidation engine programs. The
+    /// sensitive state transitions below (`begin_funding`, `mark_active`,
+    /// `close_deal`) are bound to them, so the deal state machine — and the
+    /// marketplace reputation signal derived from it — cannot be advanced or
+    /// closed by an arbitrary wallet.
+    pub fn initialize_registry(
+        ctx: Context<InitializeRegistry>,
+        escrow_authority: Pubkey,
+        loan_authority: Pubkey,
+        liquidation_authority: Pubkey,
+    ) -> Result<()> {
+        require!(
+            escrow_authority != Pubkey::default()
+                && loan_authority != Pubkey::default()
+                && liquidation_authority != Pubkey::default(),
+            DealError::InvalidAuthority
+        );
+        let config = &mut ctx.accounts.config;
+        config.escrow_authority = escrow_authority;
+        config.loan_authority = loan_authority;
+        config.liquidation_authority = liquidation_authority;
+        config.bump = ctx.bumps.config;
+        Ok(())
+    }
+
     /// Create a deal in `Proposed` state.
     ///
     /// The creator declares whether they are the borrower or the lender. The
@@ -164,25 +192,40 @@ pub mod deal_registry {
 
     /// Advance a confirmed deal into `Funding`.
     ///
-    /// Restricted to the escrow vault program, which is the only component that
-    /// can observe a real collateral deposit.
+    /// Restricted to the escrow vault program, which is the only component
+    /// that can observe a real collateral deposit.
     pub fn begin_funding(ctx: Context<AdvanceState>) -> Result<()> {
         let deal = &mut ctx.accounts.deal;
         require!(deal.state == DealState::Confirmed, DealError::InvalidStateTransition);
         require!(deal.is_fully_bound(), DealError::CounterpartyNotBound);
+        require!(
+            ctx.accounts.authority.key() == ctx.accounts.config.escrow_authority,
+            DealError::UnauthorizedProgram
+        );
         deal.state = DealState::Funding;
         Ok(())
     }
 
     /// Mark a deal active once collateral is locked and principal disbursed.
+    ///
+    /// Restricted to the loan lifecycle program.
     pub fn mark_active(ctx: Context<AdvanceState>) -> Result<()> {
         let deal = &mut ctx.accounts.deal;
         require!(deal.state == DealState::Funding, DealError::InvalidStateTransition);
+        require!(
+            ctx.accounts.authority.key() == ctx.accounts.config.loan_authority,
+            DealError::UnauthorizedProgram
+        );
         deal.state = DealState::Active;
         Ok(())
     }
 
     /// Record a terminal outcome for the deal.
+    ///
+    /// A clean completion is reported by the loan lifecycle program; a full
+    /// liquidation is reported by the liquidation engine. No other wallet may
+    /// write a terminal state, because the marketplace reputation signal is
+    /// built from these outcomes.
     pub fn close_deal(ctx: Context<AdvanceState>, outcome: CloseOutcome) -> Result<()> {
         let deal = &mut ctx.accounts.deal;
         require!(
@@ -192,6 +235,11 @@ pub mod deal_registry {
             ),
             DealError::InvalidStateTransition
         );
+        let required = match outcome {
+            CloseOutcome::Completed => ctx.accounts.config.loan_authority,
+            CloseOutcome::FullyLiquidated => ctx.accounts.config.liquidation_authority,
+        };
+        require!(ctx.accounts.authority.key() == required, DealError::UnauthorizedProgram);
         deal.state = match outcome {
             CloseOutcome::Completed => DealState::Completed,
             CloseOutcome::FullyLiquidated => DealState::FullyLiquidated,
@@ -231,12 +279,47 @@ pub struct CancelDeal<'info> {
     pub deal: Account<'info, Deal>,
 }
 
+#[derive(Accounts)]
+pub struct InitializeRegistry<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + RegistryConfig::INIT_SPACE,
+        seeds = [b"registry-config"],
+        bump
+    )]
+    pub config: Account<'info, RegistryConfig>,
+    pub system_program: Program<'info, System>,
+}
+
 /// State advanced by another protocol program via CPI.
+///
+/// The `config` account binds the caller to the one protocol program allowed
+/// to perform the requested transition: the instructions above compare
+/// `authority` against a field of this singleton. Presenting a config that is
+/// not the canonical PDA is rejected by the seeds constraint.
 #[derive(Accounts)]
 pub struct AdvanceState<'info> {
     pub authority: Signer<'info>,
     #[account(mut, seeds = [b"deal", deal.deal_id.as_ref()], bump = deal.bump)]
     pub deal: Account<'info, Deal>,
+    #[account(seeds = [b"registry-config"], bump = config.bump)]
+    pub config: Account<'info, RegistryConfig>,
+}
+
+/// The protocol programs permitted to advance deal state.
+#[account]
+#[derive(InitSpace)]
+pub struct RegistryConfig {
+    /// Escrow vault authority: begins funding when collateral is observed.
+    pub escrow_authority: Pubkey,
+    /// Loan lifecycle authority: activation and clean completion.
+    pub loan_authority: Pubkey,
+    /// Liquidation engine authority: the terminal liquidation outcome.
+    pub liquidation_authority: Pubkey,
+    pub bump: u8,
 }
 
 #[account]
@@ -441,6 +524,10 @@ pub enum DealError {
     InvalidStateTransition,
     #[msg("Both borrower and lender must be bound before funding.")]
     CounterpartyNotBound,
+    #[msg("Only the authorized protocol program may perform this state transition.")]
+    UnauthorizedProgram,
+    #[msg("Authority must not be the default public key.")]
+    InvalidAuthority,
 }
 
 #[cfg(test)]
