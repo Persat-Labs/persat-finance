@@ -1,6 +1,24 @@
 <html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Persat Finance — Join the Waitlist</title>
+<script>
+/* Stale-deploy cleanup: unregister any service worker or cache left over from
+   a previous deploy of this site so visitors always see the current design. */
+(function () {
+  try {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (rs) {
+        rs.forEach(function (r) { r.unregister(); });
+      }).catch(function () {});
+    }
+    if (window.caches && window.caches.keys) {
+      window.caches.keys().then(function (ks) {
+        ks.forEach(function (k) { window.caches.delete(k); });
+      }).catch(function () {});
+    }
+  } catch (e) { /* no-op */ }
+})();
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
