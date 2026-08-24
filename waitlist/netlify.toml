@@ -9,3 +9,15 @@
   to = "https://mipalifltoqppvamtemg.supabase.co/functions/v1/waitlist"
   status = 200
   force = true
+
+# Never let browsers (or shared caches) pin a stale copy of the page: HTML must
+# always be revalidated, while hashed/static assets under /assets may cache.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

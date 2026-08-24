@@ -4,7 +4,7 @@ A single-file, amber sci-fi landing page for Persat Finance. The original page's
 
 ## Architecture
 
-- **Frontend:** the static `index.html`, hosted on Netlify Free, using `assets/persatlogo-edited.png` as the logo.
+- **Frontend:** the static `index.html`, hosted on Netlify Free, using `assets/persatlogo.png` as the logo.
 - **API:** a Supabase Edge Function at `supabase/functions/waitlist/index.ts`.
 - **Database:** Supabase Postgres table `public.waitlist_signups`, created by `supabase/schema.sql`.
 - **Admin console:** `/admin/`, protected by Supabase Auth email/password login plus the `public.admin_users` allowlist. It includes live signup metrics, charts, filters, a latest-signups table, and Supabase Realtime INSERT updates.
