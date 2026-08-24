@@ -88,3 +88,7 @@ Generating real program keypairs is a founder-side, secure-environment action â€
 5. No Persat-controlled key can move user funds. Vault authority is a PDA.
 6. Governance standard actions are 2-of-3 plus a 24-hour timelock; emergency pause is 1-of-3 with
    no timelock, and unpausing requires the full 2-of-3.
+
+> **CI note (2026-08-24):** the last full `anchor build` + `cargo test --workspace` verification of this
+> workspace was re-run from this branch to confirm a clean compile of all 8 programs after the
+> waitlist/rebrand and backend-blueprint milestones.
