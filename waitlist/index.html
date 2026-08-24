@@ -1228,6 +1228,7 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
 })();
 </script>
 
+<script>
 /* waitlist form -> POST /api/waitlist (Netlify proxy -> Supabase edge function) */
 (function(){
   var form=document.getElementById('waitlist-form');
@@ -1265,5 +1266,6 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
       .catch(function(){btn.disabled=false;btn.style.opacity='';note.className='wl-note err';note.textContent='Network error. Please try again.';});
   });
 })();
+</script>
 </body>
 </html>
