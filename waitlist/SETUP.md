@@ -5,7 +5,7 @@ This file is written for a first-time Supabase, GitHub, and Netlify user. Follow
 ## 0. What is already in this repository
 
 - `index.html` — the rebuilt landing page and client-side waitlist form.
-- `assets/persatlogo-edited.png` — the supplied Persat logo used by the public site and admin console.
+- `assets/persatlogo.png` — the supplied Persat logo used by the public site and admin console.
 - `admin/index.html` — the authenticated dashboard with charts, filters, latest-signup table, and Realtime updates.
 - `admin/config.js` — browser-safe Supabase URL and anon/publishable-key placeholders for the admin console.
 - `supabase/schema.sql` — the waitlist table, INSERT-only public policy, admin allowlist policies, Realtime publication, and data-free keep-alive RPC.
