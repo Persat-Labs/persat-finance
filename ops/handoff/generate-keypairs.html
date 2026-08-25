@@ -88,24 +88,56 @@ const ROLES = [
 
 const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 function b58(bytes) {
-  let digits = [0];
-  for (const b of bytes) {
-    let carry = b;
-    for (let i = 0; i < digits.length; i++) {
-      carry += digits[i] << 8;
-      digits[i] = carry % 58;
+  // Count leading zero bytes: each encodes to the digit "1".
+  let leading = 0;
+  while (leading < bytes.length && bytes[leading] === 0) leading++;
+  const digits = [];
+  for (let i = leading; i < bytes.length; i++) {
+    let carry = bytes[i];
+    for (let j = 0; j < digits.length; j++) {
+      carry += digits[j] << 8;
+      digits[j] = carry % 58;
       carry = (carry / 58) | 0;
     }
     while (carry > 0) { digits.push(carry % 58); carry = (carry / 58) | 0; }
   }
-  for (const b of bytes) if (b) break; else digits.shift();
-  return digits.reverse().map(d => B58[d]).join("") || "1";
+  let out = "1".repeat(leading);
+  for (let j = digits.length - 1; j >= 0; j--) out += B58[digits[j]];
+  return out || "1";
 }
+
+function b64urlToBytes(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  s += "=".repeat((4 - (s.length % 4)) % 4);
+  const bin = atob(s);
+  return Uint8Array.from(bin, c => c.charCodeAt(0));
+}
+
+// Ed25519 PKCS#8 is a fixed 48-byte DER wrapper around the 32-byte seed.
+const PKCS8_PREFIX = new Uint8Array([48,46,2,1,0,48,5,6,3,43,101,112,4,34,4,32]);
 
 async function generateOne() {
   const kp = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]);
-  const seed = new Uint8Array(await crypto.subtle.exportKey("raw", kp.privateKey));
-  const pub  = new Uint8Array(await crypto.subtle.exportKey("raw", kp.publicKey));
+  const pub = new Uint8Array(await crypto.subtle.exportKey("raw", kp.publicKey));
+  // Private keys cannot be exported "raw" (that format is public/symmetric
+  // only) — the original bug. JWK carries the seed in `d`; PKCS#8 wraps it.
+  let seed;
+  try {
+    const jwk = await crypto.subtle.exportKey("jwk", kp.privateKey);
+    seed = b64urlToBytes(jwk.d);
+  } catch (_) {
+    seed = new Uint8Array(await crypto.subtle.exportKey("pkcs8", kp.privateKey)).slice(16);
+  }
+  if (seed.length !== 32 || pub.length !== 32) throw new Error("Unexpected key sizes (seed " + seed.length + ", pub " + pub.length + ")");
+  // Self-check: re-import the seed and confirm it derives the same public key,
+  // so the 64-byte keypair JSON we emit is internally consistent.
+  const pkcs8 = new Uint8Array(48);
+  pkcs8.set(PKCS8_PREFIX); pkcs8.set(seed, 16);
+  const reimported = await crypto.subtle.importKey("pkcs8", pkcs8, { name: "Ed25519" }, true, ["sign"]);
+  const rederived = new Uint8Array(await crypto.subtle.exportKey("raw", reimported.publicKey));
+  for (let i = 0; i < 32; i++) {
+    if (rederived[i] !== pub[i]) throw new Error("Self-check failed: seed does not derive the public key");
+  }
   const full = new Uint8Array(64); full.set(seed); full.set(pub, 32);
   return { pub58: b58(pub), json: JSON.stringify(Array.from(full), null, 2) };
 }
