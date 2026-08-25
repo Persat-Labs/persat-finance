@@ -108,11 +108,19 @@ impl Fixture {
     }
 
     /// Submit one instruction signed by `signers`, returning the result.
+    ///
+    /// The blockhash is rotated first: LiteSVM deduplicates transactions by
+    /// signature, so an identical retry after a failure would be rejected as
+    /// a replay (`AlreadyProcessed`) before the program ever runs. A real
+    /// validator produces a new blockhash every block; tests that retry the
+    /// same instruction after a deliberate failure must reach the program
+    /// again for the rejection to prove anything.
     fn send(
         &mut self,
         instruction: Instruction,
         signers: &[&Keypair],
     ) -> std::result::Result<(), String> {
+        self.svm.expire_blockhash();
         let message = Message::new(&[instruction], Some(&self.payer.pubkey()));
         let mut all: Vec<&Keypair> = vec![&self.payer];
         all.extend_from_slice(signers);
