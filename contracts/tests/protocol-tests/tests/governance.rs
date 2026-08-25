@@ -27,6 +27,7 @@
 
 use anchor_lang::{InstructionData, ToAccountMetas};
 use litesvm::LiteSVM;
+use solana_clock::Clock;
 use solana_instruction::Instruction;
 use solana_keypair::Keypair;
 use solana_message::Message;
@@ -221,6 +222,110 @@ impl Fixture {
     }
 }
 
+/// Proposal-lifecycle helpers. The pause tests above cover the emergency
+/// powers; these exercise the slower, higher-friction path every parameter
+/// change must travel: propose -> approve -> timelock -> execute.
+impl Fixture {
+    /// Current VM time, so tests can measure windows relative to reality.
+    fn now(&self) -> i64 {
+        self.svm.get_sysvar::<Clock>().unix_timestamp
+    }
+
+    /// Move the VM clock, as a validator producing future slots would.
+    fn set_time(&mut self, unix_timestamp: i64) {
+        let mut clock = self.svm.get_sysvar::<Clock>();
+        clock.unix_timestamp = unix_timestamp;
+        self.svm.set_sysvar::<Clock>(&clock);
+    }
+
+    /// Derive the proposal PDA: [b"proposal", governance, proposal_id le].
+    fn proposal_pda(&self, proposal_id: u64) -> Pubkey {
+        let gov = self.anchor_key(&self.governance_pda);
+        Pubkey::find_program_address(
+            &[b"proposal", gov.as_ref(), &proposal_id.to_le_bytes()],
+            &self.program_id,
+        )
+        .0
+    }
+
+    /// Read the executed-proposal counter from the governance account.
+    fn proposal_count(&self) -> u64 {
+        let account = self.svm.get_account(&self.governance_pda).unwrap();
+        // Layout: 8 discriminator + 96 signers + 1 paused + 8 proposal_count.
+        let offset = 8 + 96 + 1;
+        u64::from_le_bytes(
+            account.data[offset..offset + 8]
+                .try_into()
+                .expect("governance account is large enough"),
+        )
+    }
+
+    /// Propose a parameter change as `signers[signer_index]`.
+    fn propose(&mut self, signer_index: usize, proposal_id: u64, payload: Vec<u8>) -> std::result::Result<(), String> {
+        self.propose_with(&self.signers[signer_index].insecure_clone(), proposal_id, payload)
+    }
+
+    /// Attempt to propose with an arbitrary wallet.
+    fn propose_with(&mut self, wallet: &Keypair, proposal_id: u64, payload: Vec<u8>) -> std::result::Result<(), String> {
+        let gov = self.anchor_key(&self.governance_pda);
+        let proposer = self.anchor_key(&wallet.pubkey());
+        let proposal = self.anchor_key(&self.proposal_pda(proposal_id));
+        let ix = self.instruction(
+            governance::accounts::ProposeParameterChange {
+                governance: gov,
+                proposer,
+                proposal,
+                system_program: anchor_lang::system_program::ID,
+            },
+            governance::instruction::ProposeParameterChange {
+                proposal_id,
+                target_program: self.anchor_key(&self.program_id),
+                action: governance::ParameterAction::SetFeeParameters,
+                payload,
+            },
+        );
+        self.send(ix, &[wallet])
+    }
+
+    /// Add `signers[signer_index]`'s approval to a proposal.
+    fn approve(&mut self, signer_index: usize, proposal_id: u64) -> std::result::Result<(), String> {
+        self.approve_with(&self.signers[signer_index].insecure_clone(), proposal_id)
+    }
+
+    /// Attempt to approve with an arbitrary wallet.
+    fn approve_with(&mut self, wallet: &Keypair, proposal_id: u64) -> std::result::Result<(), String> {
+        let gov = self.anchor_key(&self.governance_pda);
+        let approver = self.anchor_key(&wallet.pubkey());
+        let proposal = self.anchor_key(&self.proposal_pda(proposal_id));
+        let ix = self.instruction(
+            governance::accounts::ApproveProposal {
+                governance: gov,
+                approver,
+                proposal,
+            },
+            governance::instruction::ApproveProposal {},
+        );
+        self.send(ix, &[wallet])
+    }
+
+    /// Execute a proposal as `signers[signer_index]`.
+    fn execute_proposal(&mut self, signer_index: usize, proposal_id: u64) -> std::result::Result<(), String> {
+        let gov = self.anchor_key(&self.governance_pda);
+        let executor = self.anchor_key(&self.signers[signer_index].pubkey());
+        let proposal = self.anchor_key(&self.proposal_pda(proposal_id));
+        let ix = self.instruction(
+            governance::accounts::ExecuteProposal {
+                governance: gov,
+                executor,
+                proposal,
+            },
+            governance::instruction::ExecuteProposal {},
+        );
+        let keypair = self.signers[signer_index].insecure_clone();
+        self.send(ix, &[&keypair])
+    }
+}
+
 #[test]
 fn governance_initializes_with_three_distinct_signers() {
     let bytes = require_program!();
@@ -312,4 +417,203 @@ fn the_governance_singleton_cannot_be_initialized_twice() {
 
     let second = fixture.initialize();
     assert!(second.is_err(), "re-initialization must be rejected");
+}
+
+// ---------------------------------------------------------------------------
+// Parameter-change proposals: propose -> approve -> timelock -> execute.
+// These paths authorize every risk-parameter, oracle, and fee change in the
+// protocol, so the 2-of-3 threshold and 24-hour observation window must hold
+// under the real runtime, not just in unit tests of the helpers.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_proposal_cannot_execute_before_the_timelock_elapses() {
+    let bytes = require_program!();
+    let mut fixture = Fixture::new(&bytes);
+    fixture.initialize().unwrap();
+
+    let start = fixture.now();
+    fixture.propose(0, 1, vec![7u8; 16]).expect("a signer may propose");
+    fixture.approve(1, 1).expect("a second signer may approve");
+
+    // One second inside the 24-hour observation window: refuse.
+    fixture.set_time(start + governance::TIMELOCK_SECONDS - 1);
+    let early = fixture.execute_proposal(2, 1);
+    assert!(
+        early.is_err(),
+        "a fully approved proposal must still wait out its timelock"
+    );
+    assert_eq!(fixture.proposal_count(), 0, "nothing executed yet");
+
+    // Exactly at the boundary is permitted: the window is >=, not >.
+    fixture.set_time(start + governance::TIMELOCK_SECONDS);
+    fixture
+        .execute_proposal(2, 1)
+        .expect("execution at the timelock boundary should succeed");
+    assert_eq!(fixture.proposal_count(), 1);
+}
+
+#[test]
+fn one_approval_cannot_execute_a_parameter_change() {
+    let bytes = require_program!();
+    let mut fixture = Fixture::new(&bytes);
+    fixture.initialize().unwrap();
+
+    let start = fixture.now();
+    // Proposing records the proposer's own approval: 1-of-3.
+    fixture.propose(0, 1, vec![7u8; 16]).expect("a signer may propose");
+
+    // Even with the timelock long past, a single approval must not execute.
+    fixture.set_time(start + governance::TIMELOCK_SECONDS + 3600);
+    let lonely = fixture.execute_proposal(1, 1);
+    assert!(
+        lonely.is_err(),
+        "1-of-3 must never execute a parameter change"
+    );
+    assert_eq!(fixture.proposal_count(), 0);
+}
+
+#[test]
+fn two_approvals_execute_a_proposal_exactly_once() {
+    let bytes = require_program!();
+    let mut fixture = Fixture::new(&bytes);
+    fixture.initialize().unwrap();
+
+    let start = fixture.now();
+    fixture.propose(0, 1, vec![7u8; 16]).unwrap();
+    fixture.approve(1, 1).unwrap();
+    fixture.set_time(start + governance::TIMELOCK_SECONDS);
+
+    fixture
+        .execute_proposal(2, 1)
+        .expect("2-of-3 approvals after the timelock should execute");
+    assert_eq!(fixture.proposal_count(), 1);
+
+    // A executed proposal is spent: no re-execution, no further approvals.
+    let again = fixture.execute_proposal(0, 1);
+    assert!(again.is_err(), "an executed proposal must not execute again");
+    let late_approval = fixture.approve(2, 1);
+    assert!(
+        late_approval.is_err(),
+        "approving an executed proposal must be rejected"
+    );
+    assert_eq!(fixture.proposal_count(), 1);
+}
+
+#[test]
+fn a_signer_cannot_approve_a_proposal_twice() {
+    let bytes = require_program!();
+    let mut fixture = Fixture::new(&bytes);
+    fixture.initialize().unwrap();
+
+    fixture.propose(0, 1, vec![7u8; 16]).unwrap();
+
+    // The proposer's approval was recorded at proposal time; repeating it
+    // must be an error, not a silent no-op, or 1 signer could fake 2-of-3.
+    let duplicate_proposer = fixture.approve(0, 1);
+    assert!(
+        duplicate_proposer.is_err(),
+        "the proposer must not approve their own proposal a second time"
+    );
+
+    // A distinct signer approving twice must likewise be rejected.
+    fixture.approve(1, 1).expect("a first genuine approval succeeds");
+    let duplicate_approver = fixture.approve(1, 1);
+    assert!(
+        duplicate_approver.is_err(),
+        "a signer must not approve the same proposal twice"
+    );
+}
+
+#[test]
+fn a_proposal_expires_after_a_week() {
+    let bytes = require_program!();
+    let mut fixture = Fixture::new(&bytes);
+    fixture.initialize().unwrap();
+
+    // Two fully approved proposals, created at the same instant.
+    let start = fixture.now();
+    fixture.propose(0, 1, vec![7u8; 16]).unwrap();
+    fixture.approve(1, 1).unwrap();
+    fixture.propose(0, 2, vec![8u8; 16]).unwrap();
+    fixture.approve(2, 2).unwrap();
+
+    // The last permitted second: past the timelock, before the expiry.
+    fixture.set_time(start + governance::PROPOSAL_EXPIRY_SECONDS - 1);
+    fixture
+        .execute_proposal(0, 1)
+        .expect("a proposal may execute up to the instant it expires");
+
+    // At exactly the expiry the approvals are void; they cannot be banked
+    // indefinitely and replayed long after the context has changed.
+    fixture.set_time(start + governance::PROPOSAL_EXPIRY_SECONDS);
+    let expired = fixture.execute_proposal(0, 2);
+    assert!(expired.is_err(), "an expired proposal must not execute");
+    assert_eq!(fixture.proposal_count(), 1);
+}
+
+#[test]
+fn a_paused_protocol_refuses_to_execute_parameter_changes() {
+    let bytes = require_program!();
+    let mut fixture = Fixture::new(&bytes);
+    fixture.initialize().unwrap();
+
+    let start = fixture.now();
+    fixture.propose(0, 1, vec![7u8; 16]).unwrap();
+    fixture.approve(1, 1).unwrap();
+    // Any signer may halt; while halted, governance must not enact changes.
+    fixture.pause(2).expect("a single signer may pause");
+
+    fixture.set_time(start + governance::TIMELOCK_SECONDS + 60);
+    let blocked = fixture.execute_proposal(0, 1);
+    assert!(
+        blocked.is_err(),
+        "a paused protocol must refuse to execute parameter changes"
+    );
+    assert_eq!(fixture.proposal_count(), 0);
+
+    // Resuming takes the full 2-of-3; afterwards the proposal executes.
+    fixture.unpause(0, 1).expect("2-of-3 resumes the protocol");
+    fixture
+        .execute_proposal(0, 1)
+        .expect("after unpausing the approved proposal may execute");
+    assert_eq!(fixture.proposal_count(), 1);
+}
+
+#[test]
+fn an_oversized_payload_is_rejected_at_proposal_time() {
+    let bytes = require_program!();
+    let mut fixture = Fixture::new(&bytes);
+    fixture.initialize().unwrap();
+
+    let oversized = fixture.propose(0, 1, vec![0u8; governance::MAX_PAYLOAD_LEN + 1]);
+    assert!(
+        oversized.is_err(),
+        "a payload above the cap must be rejected when proposed"
+    );
+
+    fixture
+        .propose(0, 2, vec![0u8; governance::MAX_PAYLOAD_LEN])
+        .expect("a payload at exactly the cap is permitted");
+}
+
+#[test]
+fn a_wallet_outside_the_signer_set_cannot_propose_or_approve() {
+    let bytes = require_program!();
+    let mut fixture = Fixture::new(&bytes);
+    fixture.initialize().unwrap();
+
+    let outsider = Keypair::new();
+    fixture.svm.airdrop(&outsider.pubkey(), 10_000_000_000).unwrap();
+
+    fixture.propose(0, 1, vec![7u8; 16]).unwrap();
+
+    let proposed = fixture.propose_with(&outsider, 2, vec![7u8; 16]);
+    assert!(proposed.is_err(), "an outsider must not be able to propose");
+
+    let approved = fixture.approve_with(&outsider, 1);
+    assert!(approved.is_err(), "an outsider must not be able to approve");
+
+    // The genuine signer's approval still lands afterwards.
+    fixture.approve(1, 1).expect("a real signer may still approve");
 }
