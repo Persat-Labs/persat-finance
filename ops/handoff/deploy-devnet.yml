@@ -195,7 +195,6 @@ jobs:
         with:
           name: devnet-deployment
           path: |
-            contracts/keys/README-only-if-needed
             ops/handoff/devnet-deployed.json
           if-no-files-found: ignore
           retention-days: 90

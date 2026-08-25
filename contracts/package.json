@@ -5,6 +5,11 @@
   "description": "Anchor workspace dependencies and local protocol test tooling",
   "scripts": {
     "build": "anchor build",
-    "test": "anchor test"
+    "test": "anchor test",
+    "devnet:init": "node scripts/devnet-init.mjs"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4",
+    "@solana/spl-token": "^0.4.15"
   }
 }
