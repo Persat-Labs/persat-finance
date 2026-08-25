@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persat Finance — Devnet keypair generator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0 }
+  body { background: #000; color: #fff; font: 15px/1.55 "Segoe UI", system-ui, sans-serif; padding: 40px 20px }
+  .wrap { max-width: 900px; margin: 0 auto }
+  h1 { font-size: 26px; letter-spacing: .03em; margin-bottom: 6px }
+  .brand { color: #ff8a00; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; margin-bottom: 22px }
+  .card { background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.09); border-radius: 14px; padding: 20px 22px; margin-bottom: 18px }
+  .card h2 { font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: #ffaa45; margin-bottom: 10px }
+  .card p, .card li { color: #c9c9c9; font-size: 14px }
+  .card ol, .card ul { padding-left: 20px }
+  .card li { margin: 6px 0 }
+  code, .mono { font-family: ui-monospace, "Cascadia Code", Menlo, monospace; font-size: 12.5px; color: #ffba69; word-break: break-all }
+  button { background: linear-gradient(180deg,#ffad4d,#ff8a00 55%,#f08c15); color: #fff; border: 0; border-radius: 999px; padding: 13px 28px; font-size: 15px; font-weight: 600; letter-spacing: .05em; cursor: pointer; margin-top: 14px }
+  button:hover { filter: brightness(1.06) }
+  button:disabled { opacity: .4; cursor: not-allowed }
+  table { width: 100%; border-collapse: collapse; margin-top: 14px }
+  th { text-align: left; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #ffaa45; padding: 8px 10px; border-bottom: 1px solid rgba(255,138,0,.3) }
+  td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 12.5px; vertical-align: top }
+  td.pub { font-family: ui-monospace, Menlo, monospace; color: #fff; word-break: break-all }
+  .secret-name { font-family: ui-monospace, Menlo, monospace; color: #7fd18f }
+  textarea { width: 100%; height: 170px; background: #0d0d0d; color: #d7d7d7; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 12px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; margin-top: 10px }
+  .warn { color: #ffba69 }
+  .ok { color: #7fd18f }
+  a { color: #ffaa45 }
+  .step-tag { display: inline-block; background: rgba(255,138,0,.14); border: 1px solid rgba(255,138,0,.35); color: #ffaa45; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; border-radius: 999px; padding: 2px 10px; margin-bottom: 8px }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Devnet Keypair Generator</h1>
+  <div class="brand">Persat Finance — Testnet Sprint · Day 0</div>
+
+  <div class="card">
+    <h2>How this protects you</h2>
+    <p>This page runs entirely in your browser. Keypairs are generated with your machine's WebCrypto engine, are never sent anywhere, and are not stored. Work offline if you like — download this file first and open it locally.</p>
+    <p style="margin-top:8px">Generate <b>once</b>, save the download, then follow the three steps below. If you lose a program keypair, that program address can never be used again (recoverable, but it costs a redeploy and new IDs).</p>
+  </div>
+
+  <div class="card">
+    <h2>Step 1 — Generate</h2>
+    <p>Creates 12 keypairs: 8 program IDs, 1 deployer wallet, 3 governance signers.</p>
+    <button id="generate">Generate keypairs</button>
+    <div id="out"></div>
+  </div>
+
+  <div class="card">
+    <h2>Step 2 — Paste the public keys into the Arena chat</h2>
+    <p>Public keys only — always safe to share. Arena updates <code>declare_id!</code>s and the manifest with them.</p>
+    <textarea id="pubs" readonly placeholder="Public keys appear here after generation"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>Step 3 — Upload secrets to GitHub, then fund the deployer</h2>
+    <p>Repo → <b>Settings → Secrets and variables → Actions → New repository secret</b>. For each row below, create a secret with the exact name shown, pasting that row's <b>keypair JSON</b> (the <code>[…64 numbers…]</code> text) as the value. The download from Step 1 contains one labelled file per keypair so you can copy them one by one.</p>
+    <table id="secrets"></table>
+    <p style="margin-top:14px">No secret needed for governance signers 2 and 3 — keep those keypairs offline. They exist so no single wallet controls the protocol.</p>
+    <p style="margin-top:10px"><b class="warn">Then fund the deployer:</b> copy the deployer's public key and request Devnet SOL at <a href="https://faucet.solana.com" target="_blank" rel="noopener">faucet.solana.com</a> (repeat until it holds <b>≥ 25 SOL</b>; program deploy rent is the bulk of the cost). <code>solana airdrop 2 &lt;deployer-pubkey&gt; --url devnet</code> also works if you have the CLI.</p>
+  </div>
+
+  <div class="card">
+    <h2>Already have Solana CLI?</h2>
+    <p>Equivalent, if you prefer the terminal:</p>
+    <p class="mono" style="margin-top:8px">for n in governance price_oracle asset_whitelist deal_registry escrow_vault loan_lifecycle liquidation_engine fee_treasury deployer gov1 gov2 gov3; do solana-keygen new --no-bip39-passphrase -o "persat-$n.json"; done</p>
+  </div>
+</div>
+
+<script>
+const ROLES = [
+  { slug: "governance",          label: "Program — governance",          secret: "PERSAT_PROGRAM_KEY_GOVERNANCE" },
+  { slug: "price_oracle",        label: "Program — price_oracle",        secret: "PERSAT_PROGRAM_KEY_PRICE_ORACLE" },
+  { slug: "asset_whitelist",     label: "Program — asset_whitelist",     secret: "PERSAT_PROGRAM_KEY_ASSET_WHITELIST" },
+  { slug: "deal_registry",       label: "Program — deal_registry",       secret: "PERSAT_PROGRAM_KEY_DEAL_REGISTRY" },
+  { slug: "escrow_vault",        label: "Program — escrow_vault",        secret: "PERSAT_PROGRAM_KEY_ESCROW_VAULT" },
+  { slug: "loan_lifecycle",      label: "Program — loan_lifecycle",      secret: "PERSAT_PROGRAM_KEY_LOAN_LIFECYCLE" },
+  { slug: "liquidation_engine",  label: "Program — liquidation_engine",  secret: "PERSAT_PROGRAM_KEY_LIQUIDATION_ENGINE" },
+  { slug: "fee_treasury",        label: "Program — fee_treasury",        secret: "PERSAT_PROGRAM_KEY_FEE_TREASURY" },
+  { slug: "deployer",            label: "Wallet — deployer (fund with SOL)", secret: "PERSAT_DEPLOYER_KEYPAIR" },
+  { slug: "gov-signer-1",        label: "Wallet — governance signer 1",  secret: "PERSAT_GOVERNANCE_SIGNER_1_KEYPAIR" },
+  { slug: "gov-signer-2",        label: "Wallet — governance signer 2 (offline, no secret)", secret: null },
+  { slug: "gov-signer-3",        label: "Wallet — governance signer 3 (offline, no secret)", secret: null },
+];
+
+const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function b58(bytes) {
+  let digits = [0];
+  for (const b of bytes) {
+    let carry = b;
+    for (let i = 0; i < digits.length; i++) {
+      carry += digits[i] << 8;
+      digits[i] = carry % 58;
+      carry = (carry / 58) | 0;
+    }
+    while (carry > 0) { digits.push(carry % 58); carry = (carry / 58) | 0; }
+  }
+  for (const b of bytes) if (b) break; else digits.shift();
+  return digits.reverse().map(d => B58[d]).join("") || "1";
+}
+
+async function generateOne() {
+  const kp = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]);
+  const seed = new Uint8Array(await crypto.subtle.exportKey("raw", kp.privateKey));
+  const pub  = new Uint8Array(await crypto.subtle.exportKey("raw", kp.publicKey));
+  const full = new Uint8Array(64); full.set(seed); full.set(pub, 32);
+  return { pub58: b58(pub), json: JSON.stringify(Array.from(full), null, 2) };
+}
+
+function download(name, text) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+
+document.getElementById("generate").addEventListener("click", async function () {
+  const btn = this; btn.disabled = true; btn.textContent = "Generating…";
+  const out = document.getElementById("out");
+  try {
+    if (!crypto?.subtle) throw new Error("WebCrypto unavailable — use a current browser (Chrome 113+, Safari 17+, Firefox 129+) or the solana-keygen command at the bottom of this page.");
+    const results = [];
+    for (const role of ROLES) {
+      const kp = await generateOne();
+      results.push({ ...role, ...kp });
+    }
+    let rows = "", pubs = "", bundle = {};
+    for (const r of results) {
+      rows += `<tr><td>${r.label}</td><td class="pub">${r.pub58}</td><td>${r.secret ? `<span class="secret-name">${r.secret}</span>` : "—"}</td></tr>`;
+      pubs += `${r.slug.padEnd(20)} ${r.pub58}\n`;
+      bundle[r.slug] = { pubkey: r.pub58, keypair: r.json };
+    }
+    out.innerHTML = `<table><tr><th>Role</th><th>Public key (share freely)</th><th>GitHub Secret name (Step 3)</th></tr>${rows}</table>
+      <p class="ok" style="margin-top:12px">✔ Generated. Now: paste the block below into Arena chat, download the backup bundle, and continue to Steps 2–3.</p>
+      <button id="dl">Download backup bundle (keep secret!)</button>`;
+    document.getElementById("pubs").value = pubs;
+    document.getElementById("dl").addEventListener("click", () =>
+      download("persat-devnet-keypairs-KEEP-SECRET.json", JSON.stringify(bundle, null, 2)));
+    // Auto-download the bundle once so it is not forgotten.
+    download("persat-devnet-keypairs-KEEP-SECRET.json", JSON.stringify(bundle, null, 2));
+  } catch (e) {
+    out.innerHTML = `<p class="warn">✖ ${e.message}</p>`;
+  }
+  btn.disabled = false; btn.textContent = "Generate keypairs";
+});
+</script>
+</body>
+</html>

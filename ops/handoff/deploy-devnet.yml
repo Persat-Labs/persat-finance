@@ -1,0 +1,201 @@
+# Persat Finance — Devnet deployment (Day-0 handoff copy).
+#
+# ACTION FOR MAINTAINER (one time, ~2 minutes):
+#   1. Open this file in the repo: ops/handoff/deploy-devnet.yml
+#   2. GitHub web UI: create the file `.github/workflows/deploy-devnet.yml`
+#      with this exact content (Add file -> Create new file, paste, commit).
+#      Committing it yourself grants the workflow change your own authority;
+#      the Arena token intentionally cannot push workflow files.
+#   3. Required repository secrets (Settings -> Secrets and variables ->
+#      Actions), values from the keypair generator page:
+#        PERSAT_RPC_URL                          (optional; defaults to public devnet)
+#        PERSAT_DEPLOYER_KEYPAIR                 (JSON array, funded with >= 25 SOL)
+#        PERSAT_GOVERNANCE_SIGNER_1_KEYPAIR      (JSON array)
+#        PERSAT_PROGRAM_KEY_GOVERNANCE           (JSON array)
+#        PERSAT_PROGRAM_KEY_PRICE_ORACLE
+#        PERSAT_PROGRAM_KEY_ASSET_WHITELIST
+#        PERSAT_PROGRAM_KEY_DEAL_REGISTRY
+#        PERSAT_PROGRAM_KEY_ESCROW_VAULT
+#        PERSAT_PROGRAM_KEY_LOAN_LIFECYCLE
+#        PERSAT_PROGRAM_KEY_LIQUIDATION_ENGINE
+#        PERSAT_PROGRAM_KEY_FEE_TREASURY
+#   4. Run it: Actions -> "Deploy programs to Devnet" -> Run workflow.
+#
+# The workflow is idempotent for upgrades: programs already deployed with the
+# same keypairs are upgraded in place (deployer is the upgrade authority).
+
+name: Deploy programs to Devnet
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip-initialization:
+        description: "Deploy/upgrade programs only, skip PDA initialization"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: devnet-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build, deploy, initialize
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: contracts
+    env:
+      SOLANA_RPC_URL: ${{ secrets.PERSAT_RPC_URL || 'https://api.devnet.solana.com' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+          cache-on-failure: true
+
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v3.1.10/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Install Anchor
+        run: |
+          cargo install --git https://github.com/solana-foundation/anchor avm --locked
+          avm install 1.0.2
+          avm use 1.0.2
+          anchor --version
+
+      - name: Install client dependencies
+        run: npm ci || npm install
+
+      - name: Verify required secrets exist
+        env:
+          DEPLOYER: ${{ secrets.PERSAT_DEPLOYER_KEYPAIR }}
+          GOV1: ${{ secrets.PERSAT_GOVERNANCE_SIGNER_1_KEYPAIR }}
+        run: |
+          missing=0
+          for pair in \
+            "PERSAT_DEPLOYER_KEYPAIR:$DEPLOYER" \
+            "PERSAT_GOVERNANCE_SIGNER_1_KEYPAIR:$GOV1" \
+            "PERSAT_PROGRAM_KEY_GOVERNANCE:${{ secrets.PERSAT_PROGRAM_KEY_GOVERNANCE }}" \
+            "PERSAT_PROGRAM_KEY_PRICE_ORACLE:${{ secrets.PERSAT_PROGRAM_KEY_PRICE_ORACLE }}" \
+            "PERSAT_PROGRAM_KEY_ASSET_WHITELIST:${{ secrets.PERSAT_PROGRAM_KEY_ASSET_WHITELIST }}" \
+            "PERSAT_PROGRAM_KEY_DEAL_REGISTRY:${{ secrets.PERSAT_PROGRAM_KEY_DEAL_REGISTRY }}" \
+            "PERSAT_PROGRAM_KEY_ESCROW_VAULT:${{ secrets.PERSAT_PROGRAM_KEY_ESCROW_VAULT }}" \
+            "PERSAT_PROGRAM_KEY_LOAN_LIFECYCLE:${{ secrets.PERSAT_PROGRAM_KEY_LOAN_LIFECYCLE }}" \
+            "PERSAT_PROGRAM_KEY_LIQUIDATION_ENGINE:${{ secrets.PERSAT_PROGRAM_KEY_LIQUIDATION_ENGINE }}" \
+            "PERSAT_PROGRAM_KEY_FEE_TREASURY:${{ secrets.PERSAT_PROGRAM_KEY_FEE_TREASURY }}"; do
+            name="${pair%%:*}"
+            if [ -z "${pair#*:}" ]; then echo "::error::Missing secret $name"; missing=1; fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+
+      - name: Build Anchor workspace
+        run: anchor build --ignore-keys
+
+      - name: Materialize keypairs from secrets
+        run: |
+          mkdir -p keys
+          write_key() {
+            name="$1"; secret="$2"
+            printf '%s' "$secret" > "keys/$name.json"
+            node -e "
+              const fs = require('fs');
+              const kp = JSON.parse(fs.readFileSync('keys/$name.json', 'utf8'));
+              if (!Array.isArray(kp) || kp.length !== 64) { console.error('$name.json is not a 64-byte keypair JSON'); process.exit(1); }
+              console.log('$name ok');
+            "
+          }
+          write_key deployer        "${{ secrets.PERSAT_DEPLOYER_KEYPAIR }}"
+          write_key gov-signer-1    "${{ secrets.PERSAT_GOVERNANCE_SIGNER_1_KEYPAIR }}"
+          write_key governance      "${{ secrets.PERSAT_PROGRAM_KEY_GOVERNANCE }}"
+          write_key price_oracle    "${{ secrets.PERSAT_PROGRAM_KEY_PRICE_ORACLE }}"
+          write_key asset_whitelist "${{ secrets.PERSAT_PROGRAM_KEY_ASSET_WHITELIST }}"
+          write_key deal_registry   "${{ secrets.PERSAT_PROGRAM_KEY_DEAL_REGISTRY }}"
+          write_key escrow_vault    "${{ secrets.PERSAT_PROGRAM_KEY_ESCROW_VAULT }}"
+          write_key loan_lifecycle  "${{ secrets.PERSAT_PROGRAM_KEY_LOAN_LIFECYCLE }}"
+          write_key liquidation_engine "${{ secrets.PERSAT_PROGRAM_KEY_LIQUIDATION_ENGINE }}"
+          write_key fee_treasury    "${{ secrets.PERSAT_PROGRAM_KEY_FEE_TREASURY }}"
+          # Anchor expects the program keypair next to the .so it built.
+          for p in governance price_oracle asset_whitelist deal_registry escrow_vault loan_lifecycle liquidation_engine fee_treasury; do
+            cp "keys/$p.json" "target/deploy/$p-keypair.json"
+          done
+          chmod 600 keys/*.json target/deploy/*-keypair.json
+
+      - name: Point the Solana CLI at Devnet with the deployer wallet
+        run: |
+          solana config set --url "$SOLANA_RPC_URL"
+          solana config set --keypair "$PWD/keys/deployer.json"
+          solana --version
+          solana address
+          balance=$(solana balance | awk '{print $1}')
+          echo "Deployer balance: $balance SOL"
+          awk -v b="$balance" 'BEGIN { if (b+0 < 5) { print "::error::Deployer holds under 5 SOL — fund it via faucet.solana.com (>= 25 SOL recommended) and rerun."; exit 1 } }'
+
+      - name: Deploy programs
+        run: |
+          set -e
+          for p in governance price_oracle asset_whitelist deal_registry escrow_vault loan_lifecycle liquidation_engine fee_treasury; do
+            echo "=== deploying $p ==="
+            solana program deploy "target/deploy/$p.so" \
+              --program-id "target/deploy/$p-keypair.json" \
+              --upgrade-authority "$PWD/keys/deployer.json" \
+              --with-compute-unit-limit 200000
+          done
+          solana address --all | sort | uniq -c || true
+
+      - name: Record deployed program IDs
+        run: |
+          {
+            echo "## Devnet deployment manifest"
+            echo
+            echo "- Commit: $GITHUB_SHA"
+            echo "- RPC: $SOLANA_RPC_URL"
+            echo "- Deployer: $(solana address)"
+            echo
+            echo "| Program | Address | Explorer |"
+            echo "| --- | --- | --- |"
+            for p in governance price_oracle asset_whitelist deal_registry escrow_vault loan_lifecycle liquidation_engine fee_treasury; do
+              id=$(solana-keygen pubkey "target/deploy/$p-keypair.json")
+              echo "| $p | \`$id\` | [view](https://explorer.solana.com/address/$id?cluster=devnet) |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Initialize configuration PDAs and devnet assets
+        if: ${{ !inputs.skip-initialization }}
+        run: |
+          if [ ! -f scripts/devnet-init.mjs ]; then
+            echo "::notice::scripts/devnet-init.mjs not present yet — programs deployed; initialization will land with the next push."
+            exit 0
+          fi
+          node scripts/devnet-init.mjs \
+            --rpc "$SOLANA_RPC_URL" \
+            --deployer keys/deployer.json \
+            --governance-signer keys/gov-signer-1.json \
+            --out ../ops/handoff/devnet-deployed.json
+
+      - name: Upload deployment manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: devnet-deployment
+          path: |
+            contracts/keys/README-only-if-needed
+            ops/handoff/devnet-deployed.json
+          if-no-files-found: ignore
+          retention-days: 90
