@@ -129,15 +129,16 @@ async function generateOne() {
     seed = new Uint8Array(await crypto.subtle.exportKey("pkcs8", kp.privateKey)).slice(16);
   }
   if (seed.length !== 32 || pub.length !== 32) throw new Error("Unexpected key sizes (seed " + seed.length + ", pub " + pub.length + ")");
-  // Self-check: re-import the seed and confirm it derives the same public key,
-  // so the 64-byte keypair JSON we emit is internally consistent.
+  // Self-check: import the extracted seed as a signing key, sign a challenge,
+  // and verify that signature against the generated public key. This proves
+  // the seed and the public key correspond before anything is emitted.
   const pkcs8 = new Uint8Array(48);
   pkcs8.set(PKCS8_PREFIX); pkcs8.set(seed, 16);
-  const reimported = await crypto.subtle.importKey("pkcs8", pkcs8, { name: "Ed25519" }, true, ["sign"]);
-  const rederived = new Uint8Array(await crypto.subtle.exportKey("raw", reimported.publicKey));
-  for (let i = 0; i < 32; i++) {
-    if (rederived[i] !== pub[i]) throw new Error("Self-check failed: seed does not derive the public key");
-  }
+  const fromSeed = await crypto.subtle.importKey("pkcs8", pkcs8, { name: "Ed25519" }, true, ["sign"]);
+  const challenge = new TextEncoder().encode("persat-keypair-self-check");
+  const signature = await crypto.subtle.sign({ name: "Ed25519" }, fromSeed, challenge);
+  const consistent = await crypto.subtle.verify({ name: "Ed25519" }, kp.publicKey, signature, challenge);
+  if (!consistent) throw new Error("Self-check failed: the extracted seed does not correspond to the generated public key");
   const full = new Uint8Array(64); full.set(seed); full.set(pub, 32);
   return { pub58: b58(pub), json: JSON.stringify(Array.from(full), null, 2) };
 }
