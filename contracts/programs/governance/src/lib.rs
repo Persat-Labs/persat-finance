@@ -384,3 +384,91 @@ pub enum GovernanceError {
     #[msg("A governance arithmetic operation overflowed.")]
     ArithmeticOverflow,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn governance() -> Governance {
+        Governance {
+            signers: [
+                Pubkey::new_unique(),
+                Pubkey::new_unique(),
+                Pubkey::new_unique(),
+            ],
+            paused: false,
+            proposal_count: 0,
+            bump: 255,
+        }
+    }
+
+    fn proposal(approvals: [bool; SIGNER_COUNT]) -> Proposal {
+        Proposal {
+            governance: Pubkey::new_unique(),
+            proposal_id: 1,
+            target_program: Pubkey::new_unique(),
+            action: ParameterAction::SetFeeParameters,
+            payload: vec![1, 2, 3],
+            created_at: 100,
+            executable_at: 100 + TIMELOCK_SECONDS,
+            expires_at: 100 + PROPOSAL_EXPIRY_SECONDS,
+            approvals,
+            executed: false,
+            bump: 255,
+        }
+    }
+
+    #[test]
+    fn signer_index_finds_each_configured_signer_in_order() {
+        let governance = governance();
+        for (index, signer) in governance.signers.iter().enumerate() {
+            assert_eq!(governance.signer_index(signer).unwrap(), index);
+        }
+    }
+
+    #[test]
+    fn signer_index_refuses_keys_outside_the_signer_set() {
+        let governance = governance();
+        assert!(governance.signer_index(&Pubkey::new_unique()).is_err());
+        assert!(governance.signer_index(&Pubkey::default()).is_err());
+    }
+
+    #[test]
+    fn approval_counts_only_distinct_signer_slots() {
+        assert_eq!(proposal([false; SIGNER_COUNT]).approval_count(), 0);
+        assert_eq!(proposal([true, false, false]).approval_count(), 1);
+        assert_eq!(proposal([false, true, true]).approval_count(), 2);
+        assert_eq!(proposal([true, true, true]).approval_count(), 3);
+    }
+
+    #[test]
+    fn the_proposer_alone_never_reaches_the_execution_threshold() {
+        let one_approval = proposal([true, false, false]);
+        assert!(one_approval.approval_count() < APPROVAL_THRESHOLD);
+        let two_approvals = proposal([true, true, false]);
+        assert!(two_approvals.approval_count() >= APPROVAL_THRESHOLD);
+    }
+
+    #[test]
+    fn thresholds_and_windows_keep_their_documented_values() {
+        assert_eq!(SIGNER_COUNT, 3);
+        assert_eq!(APPROVAL_THRESHOLD, 2);
+        assert_eq!(TIMELOCK_SECONDS, 24 * 60 * 60);
+        assert_eq!(PROPOSAL_EXPIRY_SECONDS, 7 * 24 * 60 * 60);
+        // A proposal must outlive its own timelock, or nothing could execute.
+        assert!(PROPOSAL_EXPIRY_SECONDS > TIMELOCK_SECONDS);
+        assert_eq!(MAX_PAYLOAD_LEN, 128);
+    }
+
+    #[test]
+    fn account_layouts_stay_pinned() {
+        // signers + paused + proposal_count + bump
+        assert_eq!(Governance::INIT_SPACE, 3 * 32 + 1 + 8 + 1);
+        // governance + id + target + action + payload (4 + MAX_PAYLOAD_LEN)
+        // + three timestamps + approvals + executed + bump
+        assert_eq!(
+            Proposal::INIT_SPACE,
+            32 + 8 + 32 + 1 + (4 + MAX_PAYLOAD_LEN) + 8 + 8 + 8 + SIGNER_COUNT + 1 + 1
+        );
+    }
+}

@@ -374,3 +374,25 @@ pub enum VaultError {
     #[msg("A vault arithmetic operation overflowed.")]
     ArithmeticOverflow,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn vault_states_are_distinct() {
+        // The three lifecycle states must never collapse into one another:
+        // deposits are only accepted while Open, movements only while Locked,
+        // and Closed is terminal.
+        assert_ne!(VaultState::Open, VaultState::Locked);
+        assert_ne!(VaultState::Locked, VaultState::Closed);
+        assert_ne!(VaultState::Open, VaultState::Closed);
+    }
+
+    #[test]
+    fn vault_layout_stays_pinned() {
+        // deal_id + five pubkeys (borrower, mint, token account, loan
+        // authority, liquidation authority) + atoms + state + bump
+        assert_eq!(Vault::INIT_SPACE, 16 + 5 * 32 + 8 + 1 + 1);
+    }
+}
