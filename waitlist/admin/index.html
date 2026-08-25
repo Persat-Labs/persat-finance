@@ -5,21 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Persat Finance — Admin Console</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
   <style>
+    @font-face { font-family: "Persat Sogea"; src: url("/assets/fonts/sogea.otf") format("opentype"); font-display: swap; }
+    @font-face { font-family: "Persat Cuaniex"; src: url("/assets/fonts/cuaniex-trial.otf") format("opentype"); font-display: swap; }
+    @font-face { font-family: "Persat Rigter"; src: url("/assets/fonts/rigter.otf") format("opentype"); font-display: swap; }
+    @font-face { font-family: "Persat Detra"; src: url("/assets/fonts/detra.otf") format("opentype"); font-display: swap; }
+    @font-face { font-family: "Persat Gafter"; src: url("/assets/fonts/gafter.otf") format("opentype"); font-display: swap; }
     body {
-      font-family: 'Rajdhani', sans-serif;
+      font-family: "Persat Detra", "Arial Narrow", sans-serif;
+      letter-spacing: .035em;
       background-color: #000000;
       color: #ffffff;
       overflow-x: hidden;
     }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
-    .font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
-    .font-geist { font-family: 'Geist', sans-serif; }
+    .font-mono { font-family: "Persat Rigter", "Arial Narrow", sans-serif; }
+    .font-jakarta { font-family: "Persat Sogea", "Arial Narrow", sans-serif; letter-spacing: .045em; }
+    .font-geist { font-family: "Persat Cuaniex", "Segoe UI", sans-serif; }
+    .metric-value { font-family: "Persat Gafter", "Segoe UI", sans-serif; letter-spacing: .05em; }
+    @media (max-width: 640px) {
+      body { font-family: "Persat Detra", "Arial Narrow", sans-serif; }
+      h1, h2, .font-jakarta { font-family: "Persat Sogea", "Arial Narrow", sans-serif; letter-spacing: .035em; }
+      input, select, button { font-size: 16px; }
+    }
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: #000000; }
     ::-webkit-scrollbar-thumb { background: #FFAB00; }
@@ -244,10 +253,10 @@
       responsive: true,
       maintainAspectRatio: false,
       animation: { duration: 350 },
-      plugins: { legend: { labels: { color: "#FBE9D7", font: { family: "JetBrains Mono", size: 10 }, boxWidth: 12, padding: 16 } } },
+      plugins: { legend: { labels: { color: "#FBE9D7", font: { family: "Persat Rigter", size: 10 }, boxWidth: 12, padding: 16 } } },
       scales: {
-        x: { ticks: { color: "#D4A373", font: { family: "JetBrains Mono", size: 9 } }, grid: { color: "rgba(255,171,0,0.08)" } },
-        y: { beginAtZero: true, ticks: { color: "#D4A373", precision: 0, font: { family: "JetBrains Mono", size: 9 } }, grid: { color: "rgba(255,171,0,0.08)" } }
+        x: { ticks: { color: "#D4A373", font: { family: "Persat Rigter", size: 9 } }, grid: { color: "rgba(255,171,0,0.08)" } },
+        y: { beginAtZero: true, ticks: { color: "#D4A373", precision: 0, font: { family: "Persat Rigter", size: 9 } }, grid: { color: "rgba(255,171,0,0.08)" } }
       }
     };
 

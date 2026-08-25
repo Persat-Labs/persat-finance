@@ -5,6 +5,7 @@ A single-file, amber sci-fi landing page for Persat Finance. The original page's
 ## Architecture
 
 - **Frontend:** the static `index.html`, hosted on Netlify Free, using `assets/persatlogo.png` as the logo.
+- **Typography:** five self-hosted display faces under `assets/fonts/` form a responsive Persat type system: Sogea for technology headlines, Cuaniex for finance section titles, Rigter for product panels, Detra for compact UI labels, and Gafter for the wordmark and financial figures. The same system is used by `/admin/`, with mobile-specific sizing and iOS-safe 16px form controls. Original font notices are retained under `assets/fonts/licenses/`; commercial/webfont usage rights must be maintained by the site owner.
 - **API:** a Supabase Edge Function at `supabase/functions/waitlist/index.ts`.
 - **Database:** Supabase Postgres table `public.waitlist_signups`, created by `supabase/schema.sql`.
 - **Admin console:** `/admin/`, protected by Supabase Auth email/password login plus the `public.admin_users` allowlist. It includes live signup metrics, charts, filters, a latest-signups table, and Supabase Realtime INSERT updates.
