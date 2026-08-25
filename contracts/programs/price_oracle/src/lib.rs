@@ -42,7 +42,7 @@ use pyth_solana_receiver_sdk::price_update::{
     get_feed_id_from_hex, PriceUpdateV2, VerificationLevel,
 };
 
-declare_id!("BajL3G7sLiH1oKUFs54okF3hv1FzkezNYma2MKGoYJDx");
+declare_id!("8udyx5YywfH7KTk6WyaECzaqenyni4JQrWpF5y774qgc");
 
 /// Pyth BTC/USD price feed id.
 ///

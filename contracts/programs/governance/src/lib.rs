@@ -18,7 +18,7 @@
 
 use anchor_lang::prelude::*;
 
-declare_id!("jr35R8hZWtV7Yc2ekzbsebypD2ooenHg8QgxhpmVgkj");
+declare_id!("gSCWC42bnn8XbRNXt7FdoGPGqG5dkfMihqYj8xhGwuj");
 
 /// Number of governance signers. Fixed at three for the MVP.
 pub const SIGNER_COUNT: usize = 3;

@@ -18,7 +18,7 @@
 use anchor_lang::prelude::*;
 use persat_core::fees::{split_disbursement, DealOrigin, FeeParameters};
 
-declare_id!("FJqnBp7S8hLtUWinDZFcifN6SeRPoMQVkA7nYi89wzuu");
+declare_id!("Gnq8qb2Rmnua296VcQ7KHZsuav5ZnWTsP39xCYv8aK5V");
 
 #[program]
 pub mod fee_treasury {

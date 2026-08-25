@@ -29,7 +29,7 @@ use persat_core::{
 use price_oracle::OracleConfig;
 use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
-declare_id!("ddkJSDR6ke8zhPNNu2UQtESWas2HUopn2PwWKsuUXuj");
+declare_id!("C2nL9d8EyyeEz5XQiJVLACMjN9S8GVBvxV9FQ65VTtUx");
 
 #[program]
 pub mod liquidation_engine {

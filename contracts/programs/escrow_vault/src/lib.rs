@@ -25,7 +25,7 @@ use anchor_spl::token_interface::{
     self, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
 
-declare_id!("7scqu8nHiNWCo98N1WfUpnYqLFXFqBC4PCgw8oDy7QtR");
+declare_id!("ETZyNBxrn43GApFkiAwfEimzWC93P7nEdSQMcT8Snmy3");
 
 #[program]
 pub mod escrow_vault {

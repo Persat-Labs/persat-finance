@@ -18,30 +18,25 @@
     "This file contains no secrets and never will: it holds public addresses",
     "only. Keypairs live in a secret manager, never in this repository."
   ],
-
   "cluster": "devnet",
   "rpcUrl": "https://api.devnet.solana.com",
   "explorerSuffix": "?cluster=devnet",
-
   "$rpcNote": [
     "The public endpoint is rate-limited (100 requests / 10s per IP) and is not",
     "intended for production traffic. Provision a dedicated Helius, QuickNode,",
     "or Triton endpoint before the indexer and keeper run continuously, and set",
     "it via SOLANA_RPC_URL rather than editing this file."
   ],
-
   "programs": {
-    "$comment": "Deterministic placeholders derived from a domain string. Replace with real generated program keypairs at deployment time.",
-    "governance": "jr35R8hZWtV7Yc2ekzbsebypD2ooenHg8QgxhpmVgkj",
-    "price_oracle": "BajL3G7sLiH1oKUFs54okF3hv1FzkezNYma2MKGoYJDx",
-    "asset_whitelist": "7K66UwFGxZP5TJRRiQQXMV63yUz4v5K45sMiy6qwunZ5",
-    "deal_registry": "FvjjNfQLUKKE66aRoi5xMmmWbJhgyyY96YDF7j2uSc3D",
-    "escrow_vault": "7scqu8nHiNWCo98N1WfUpnYqLFXFqBC4PCgw8oDy7QtR",
-    "loan_lifecycle": "2NQaeeutTk1itRUVDXg3wpJCVxN85r8CuUr59C2aPri3",
-    "liquidation_engine": "ddkJSDR6ke8zhPNNu2UQtESWas2HUopn2PwWKsuUXuj",
-    "fee_treasury": "FJqnBp7S8hLtUWinDZFcifN6SeRPoMQVkA7nYi89wzuu"
+    "governance": "gSCWC42bnn8XbRNXt7FdoGPGqG5dkfMihqYj8xhGwuj",
+    "price_oracle": "8udyx5YywfH7KTk6WyaECzaqenyni4JQrWpF5y774qgc",
+    "asset_whitelist": "F9m5MaeNeLurf1A3fuwL9EEP6ZNJ6e46UqnW26LvjqSe",
+    "deal_registry": "2jGypEsuyB31ZFUfgLvLLEEAJHdWdMoVimeWWTrzGks2",
+    "escrow_vault": "ETZyNBxrn43GApFkiAwfEimzWC93P7nEdSQMcT8Snmy3",
+    "loan_lifecycle": "HLsDiU1oABybsQhXxnodvoG9tngwTDZGeKwMG5i9Lo3p",
+    "liquidation_engine": "C2nL9d8EyyeEz5XQiJVLACMjN9S8GVBvxV9FQ65VTtUx",
+    "fee_treasury": "Gnq8qb2Rmnua296VcQ7KHZsuav5ZnWTsP39xCYv8aK5V"
   },
-
   "oracle": {
     "provider": "pyth",
     "receiverProgram": "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ",
@@ -52,7 +47,6 @@
     "maxConfidenceBps": 200,
     "$comment": "The feed id identifies the feed, not an account, and is identical on every cluster. Pyth is a pull oracle: a client posts a signed Hermes update into a PriceUpdateV2 account, then passes that account to the instruction that needs it. No pusher keypair exists."
   },
-
   "assets": {
     "$comment": [
       "Devnet has no canonical tBTC, zBTC, or USDC faucet. Standard practice is",
@@ -114,23 +108,20 @@
       "SolvBTC": "CeFi-adjacent externally-verified custodian reserve model."
     }
   },
-
   "fees": {
     "directOriginationFeeBps": 200,
     "marketplaceOriginationFeeBps": 200,
     "$comment": "2% on both paths for the MVP. Separate fields so the paths can diverge later without a contract change. No configuration may exceed the 5% protocol cap."
   },
-
   "governance": {
     "$comment": "Three independent signer public keys. Publish public keys only; the keypairs belong in a secret manager. Standard actions are 2-of-3 with a 24h timelock; emergency pause is 1-of-3 with no timelock, and unpausing requires the full 2-of-3.",
     "signers": [
-      "PLACEHOLDER_GOVERNANCE_SIGNER_1_PUBKEY",
-      "PLACEHOLDER_GOVERNANCE_SIGNER_2_PUBKEY",
-      "PLACEHOLDER_GOVERNANCE_SIGNER_3_PUBKEY"
+      "99QGZmjKBsm9Bcnw21jn61Qe9SLAKS5ZAFoKLZDu3aAD",
+      "9Az4yhFKRoGhCiJLY5ubS3ybLL9F4hvgKj4SQSnbURv2",
+      "F4rJY7TBP3eG381MTm5SwzehwPKYG5XA8T2etMD67Mki"
     ],
     "treasury": "PLACEHOLDER_TREASURY_PUBKEY"
   },
-
   "keeper": {
     "$comment": "Funded for transaction fees only. It never custodies user funds and has no discretion over amounts: it chooses only when to ask, and every figure is recomputed on-chain from state and the verified oracle price.",
     "pubkey": "PLACEHOLDER_KEEPER_PUBKEY",

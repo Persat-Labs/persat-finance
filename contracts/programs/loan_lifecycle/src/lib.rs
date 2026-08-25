@@ -24,7 +24,7 @@ use anchor_spl::token_interface::{
 };
 use persat_core::schedule::{build_schedule, Schedule};
 
-declare_id!("2NQaeeutTk1itRUVDXg3wpJCVxN85r8CuUr59C2aPri3");
+declare_id!("HLsDiU1oABybsQhXxnodvoG9tngwTDZGeKwMG5i9Lo3p");
 
 /// Nominal month length used for scheduling, in seconds (30 days).
 ///

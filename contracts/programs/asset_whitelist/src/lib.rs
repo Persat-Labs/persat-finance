@@ -22,7 +22,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 use persat_core::{liquidation::RiskThresholds, MAX_PROTOCOL_LTV_BPS};
 
-declare_id!("7K66UwFGxZP5TJRRiQQXMV63yUz4v5K45sMiy6qwunZ5");
+declare_id!("F9m5MaeNeLurf1A3fuwL9EEP6ZNJ6e46UqnW26LvjqSe");
 
 /// Maximum share of collateral a single partial liquidation may seize.
 pub const MAX_PARTIAL_LIQUIDATION_BPS: u16 = 5_000;
