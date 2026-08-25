@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint && npm run verify:marketplace",
-    "verify:marketplace": "node scripts/verify-marketplace-no-free-text.mjs"
+    "verify:marketplace": "node scripts/verify-marketplace-no-free-text.mjs",
+    "test:protocol": "node scripts/test-protocol-lib.mjs"
   },
   "dependencies": {
+    "@solana/spl-token": "^0.4.15",
     "@solana/wallet-adapter-phantom": "^0.9.29",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-react-ui": "^0.9.39",

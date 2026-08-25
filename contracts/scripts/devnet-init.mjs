@@ -172,6 +172,20 @@ const govSigners = [
   new PublicKey(signersConfig[1]),
   new PublicKey(signersConfig[2]),
 ];
+/**
+ * The operator (keeper) wallet signs state transitions the programs cannot
+ * drive themselves — the workspace contains no cross-program CPIs, so
+ * begin_funding / mark_active / close_deal (deal registry), lock_vault /
+ * release_collateral / seize_collateral (escrow), mark_liquidated (loan
+ * lifecycle), and record_origination_fee (treasury) are all signed directly
+ * by the wallet recorded in each program's configuration. Governance signer 1
+ * doubles as the operator for devnet; production uses a dedicated keeper.
+ */
+const operatorRaw = config.keeper && !String(config.keeper.pubkey).includes("PLACEHOLDER") ? config.keeper.pubkey : null;
+const operator = operatorRaw ? new PublicKey(operatorRaw) : govSigner1.publicKey;
+if (!operatorRaw) {
+  console.log("note: keeper.pubkey is a placeholder; governance signer 1 acts as the operator for devnet");
+}
 const treasuryWallet = String(config.governance.treasury).includes("PLACEHOLDER") ? govSigner1.publicKey : new PublicKey(config.governance.treasury);
 if (String(config.governance.treasury).includes("PLACEHOLDER")) {
   console.log("note: governance.treasury is a placeholder; using governance signer 1 as the fee destination for devnet");
@@ -211,14 +225,18 @@ await step("deal_registry", dealConfigPda, () =>
   send("initialize_deal_registry", () => new TransactionInstruction({
     programId: ids.deal_registry,
     keys: [payerMeta, { pubkey: dealConfigPda, isSigner: false, isWritable: true }, { pubkey: SYSTEM, isSigner: false, isWritable: false }],
-    data: Buffer.concat([disc("initialize_registry"), pk(ids.escrow_vault), pk(ids.loan_lifecycle), pk(ids.liquidation_engine)]),
+    // The registry's "program authorities" are off-chain operator wallets
+    // (the keeper): the programs never CPI each other, so state transitions
+    // are signed directly by the operator recorded here. For devnet the
+    // governance signer 1 doubles as the operator.
+    data: Buffer.concat([disc("initialize_registry"), pk(operator), pk(operator), pk(operator)]),
   })));
 
 await step("loan_lifecycle", loanConfigPda, () =>
   send("initialize_loan_config", () => new TransactionInstruction({
     programId: ids.loan_lifecycle,
     keys: [payerMeta, { pubkey: loanConfigPda, isSigner: false, isWritable: true }, { pubkey: SYSTEM, isSigner: false, isWritable: false }],
-    data: Buffer.concat([disc("initialize_loan_config"), pk(ids.liquidation_engine)]),
+    data: Buffer.concat([disc("initialize_loan_config"), pk(operator)]),
   })));
 
 await step("liquidation_engine", enginePda, () =>
@@ -236,7 +254,7 @@ await step("fee_treasury", treasuryPda, () =>
       disc("initialize_treasury"),
       pk(govSigner1.publicKey),
       pk(treasuryWallet),
-      pk(ids.loan_lifecycle),
+      pk(operator),
       u16(config.fees.directOriginationFeeBps),
       u16(config.fees.marketplaceOriginationFeeBps),
     ]),
@@ -310,6 +328,11 @@ manifest.pdas = {
   treasury: treasuryPda.toBase58(),
 };
 manifest.governance = { signers: govSigners.map((s) => s.toBase58()), treasury: treasuryWallet.toBase58() };
+manifest.operator = {
+  pubkey: operator.toBase58(),
+  note: "Signs lock_vault, begin_funding, mark_active, close_deal, release_collateral, seize_collateral, mark_liquidated, and record_origination_fee. Vaults MUST be initialized with this address as both the loan and liquidation authority.",
+  actions: ["lock_vault", "begin_funding", "mark_active", "close_deal", "release_collateral", "seize_collateral", "mark_liquidated", "record_origination_fee"],
+};
 manifest.explorer = Object.fromEntries(PROGRAMS.map((name) => [name, `https://explorer.solana.com/address/${ids[name].toBase58()}?cluster=devnet`]));
 saveManifest();
 
