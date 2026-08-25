@@ -34,6 +34,13 @@ export const PROGRAM_IDS = {
  */
 export const OPERATOR = new PublicKey("99QGZmjKBsm9Bcnw21jn61Qe9SLAKS5ZAFoKLZDu3aAD");
 
+/**
+ * Fee destination wallet (devnet: governance signer 1, matching the
+ * initializer's placeholder fallback). Origination fees flow to this wallet's
+ * associated token accounts, which the keeper prepares once after deploy.
+ */
+export const TREASURY = OPERATOR;
+
 /** Stand-in mint addresses, filled from devnet-deployed.json after first deploy. */
 export const MINTS: Record<"tBTC" | "zBTC" | "USDC" | "USDT", PublicKey | null> = {
   tBTC: null,
