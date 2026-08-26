@@ -99,12 +99,26 @@ export default function KeeperPage() {
                     operator, vaultPda: vaultPda(dealId), collateralMint: deal.terms.collateralMint,
                     vaultTokenAccount: vaultTokenPda(dealId),
                     recipientTokenAccount: ataOf(deal.terms.collateralMint, deal.lender as PublicKey),
+                    amount: vault ? BigInt(Math.round(Number(vault.collateralAtoms) * 0.5)) : BigInt(0),
+                  })])}>Partial seize (50% collateral)</Button>
+                  <Button className="w-full" disabled={pending.busy} onClick={() => act([seizeCollateral({
+                    operator, vaultPda: vaultPda(dealId), collateralMint: deal.terms.collateralMint,
+                    vaultTokenAccount: vaultTokenPda(dealId),
+                    recipientTokenAccount: ataOf(deal.terms.collateralMint, deal.lender as PublicKey),
                     amount: vault ? vault.collateralAtoms : BigInt(0),
                   })])}>Seize remaining collateral (full liquidation)</Button>
+                  <Button className="w-full" disabled={pending.busy} onClick={() => act([markLiquidated({
+                    operator, loanPda: loanPda(dealId), fully: false,
+                  })])}>Mark loan partially liquidated</Button>
                   <Button className="w-full" disabled={pending.busy} onClick={() => act([markLiquidated({
                     operator, loanPda: loanPda(dealId), fully: true,
                   })])}>Mark loan fully liquidated</Button>
                 </>
+              )}
+              {loan?.state === "partially_liquidated" && deal.state !== "partially_liquidated" && (
+                <Button className="w-full" disabled={pending.busy} onClick={() => act([closeDeal({
+                  operator, dealPda: dealPda(dealId), outcome: CloseOutcome.PartiallyLiquidated,
+                })])}>Close deal (partially liquidated)</Button>
               )}
               {loan?.state === "fully_liquidated" && deal.state !== "fully_liquidated" && (
                 <Button className="w-full" disabled={pending.busy} onClick={() => act([closeDeal({

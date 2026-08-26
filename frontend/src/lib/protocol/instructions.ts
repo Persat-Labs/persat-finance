@@ -40,7 +40,7 @@ const SYS = SystemProgram.programId;
 
 export const Visibility = { Private: 0, Public: 1 } as const;
 export const Side = { Borrower: 0, Lender: 1 } as const;
-export const CloseOutcome = { Completed: 0, FullyLiquidated: 1 } as const;
+export const CloseOutcome = { Completed: 0, PartiallyLiquidated: 1, FullyLiquidated: 2 } as const;
 
 /** propose_deal(deal_id, terms, visibility, creator_side, counterparty) */
 export function proposeDeal(input: {

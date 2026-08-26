@@ -231,17 +231,19 @@ pub mod deal_registry {
         require!(
             matches!(
                 deal.state,
-                DealState::Active | DealState::Repaying | DealState::Defaulted
+                DealState::Active | DealState::Repaying | DealState::Defaulted | DealState::PartiallyLiquidated
             ),
             DealError::InvalidStateTransition
         );
         let required = match outcome {
             CloseOutcome::Completed => ctx.accounts.config.loan_authority,
+            CloseOutcome::PartiallyLiquidated => ctx.accounts.config.liquidation_authority,
             CloseOutcome::FullyLiquidated => ctx.accounts.config.liquidation_authority,
         };
         require!(ctx.accounts.authority.key() == required, DealError::UnauthorizedProgram);
         deal.state = match outcome {
             CloseOutcome::Completed => DealState::Completed,
+            CloseOutcome::PartiallyLiquidated => DealState::PartiallyLiquidated,
             CloseOutcome::FullyLiquidated => DealState::FullyLiquidated,
         };
         emit!(DealClosed { deal_id: deal.deal_id, outcome });
@@ -464,6 +466,7 @@ pub enum DealState {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug, InitSpace)]
 pub enum CloseOutcome {
     Completed,
+    PartiallyLiquidated,
     FullyLiquidated,
 }
 
