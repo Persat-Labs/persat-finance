@@ -23,7 +23,7 @@ use persat_core::{
     MAX_PROTOCOL_LTV_BPS,
 };
 
-declare_id!("FvjjNfQLUKKE66aRoi5xMmmWbJhgyyY96YDF7j2uSc3D");
+declare_id!("2jGypEsuyB31ZFUfgLvLLEEAJHdWdMoVimeWWTrzGks2");
 
 /// Upper bound on an interest rate, in basis points (100% APR).
 ///

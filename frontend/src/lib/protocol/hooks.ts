@@ -1,0 +1,79 @@
+"use client";
+/**
+ * React glue between the wallet-adapter context and the protocol client.
+ */
+import { useCallback, useMemo, useState } from "react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import {
+  createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddressSync,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+import type { TransactionInstruction } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
+import { sendAndConfirm, type SendResult } from "./tx";
+import { OPERATOR } from "./config";
+
+export type PendingState = { busy: boolean; result: SendResult | null };
+
+export function useProtocol() {
+  const { connection } = useConnection();
+  const wallet = useWallet();
+  const [state, setState] = useState<PendingState>({ busy: false, result: null });
+
+  const publicKey = wallet.publicKey;
+  const isOperator = useMemo(() => Boolean(publicKey && publicKey.equals(OPERATOR)), [publicKey]);
+
+  /** Send instructions, creating any missing associated token accounts first. */
+  const send = useCallback(
+    async (instructions: TransactionInstruction[], mintsForAtas: PublicKey[] = []) => {
+      if (!publicKey || !wallet.signTransaction) {
+        setState({ busy: false, result: { ok: false, failure: { kind: "wallet-rejected", message: "Connect your wallet first." } } });
+        return;
+      }
+      setState({ busy: true, result: null });
+      const prep: TransactionInstruction[] = [];
+      for (const mint of mintsForAtas) {
+        const ata = getAssociatedTokenAddressSync(mint, publicKey, false, TOKEN_PROGRAM_ID);
+        const info = await connection.getAccountInfo(ata);
+        if (!info) prep.push(createAssociatedTokenAccountInstruction(publicKey, ata, publicKey, mint, TOKEN_PROGRAM_ID));
+      }
+      const all = [...prep, ...instructions];
+      if (all.length === 0) {
+        // Nothing to do (e.g. treasury accounts already exist) — not an error.
+        setState({ busy: false, result: { ok: true, signature: "", explorerUrl: "" } });
+        return;
+      }
+      const result = await sendAndConfirm(connection, { publicKey, signTransaction: wallet.signTransaction }, all);
+      setState({ busy: false, result });
+    },
+    [connection, publicKey, wallet.signTransaction],
+  );
+
+  const ataOf = useCallback(
+    (mint: PublicKey, owner: PublicKey) => getAssociatedTokenAddressSync(mint, owner, false, TOKEN_PROGRAM_ID),
+    [],
+  );
+
+  const clear = useCallback(() => setState({ busy: false, result: null }), []);
+
+  return { connection, wallet, publicKey, isOperator, send, ataOf, pending: state, clear };
+}
+
+/** Encode/decode 16-byte deal ids for URLs. */
+export const dealIdToUrl = (id: Uint8Array) => Buffer.from(id).toString("base64url");
+export const dealIdFromUrl = (text: string): Uint8Array | null => {
+  try {
+    const bytes = Buffer.from(text, "base64url");
+    return bytes.length === 16 ? new Uint8Array(bytes) : null;
+  } catch {
+    return null;
+  }
+};
+
+export function randomDealId(): Uint8Array {
+  const id = new Uint8Array(16);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) crypto.getRandomValues(id);
+  else for (let i = 0; i < 16; i += 1) id[i] = Math.floor(Math.random() * 256);
+  return id;
+}

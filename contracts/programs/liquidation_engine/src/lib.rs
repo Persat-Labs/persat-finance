@@ -29,7 +29,7 @@ use persat_core::{
 use price_oracle::OracleConfig;
 use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
-declare_id!("ddkJSDR6ke8zhPNNu2UQtESWas2HUopn2PwWKsuUXuj");
+declare_id!("C2nL9d8EyyeEz5XQiJVLACMjN9S8GVBvxV9FQ65VTtUx");
 
 #[program]
 pub mod liquidation_engine {
@@ -392,4 +392,76 @@ pub enum LiquidationError {
     ConservationViolation,
     #[msg("A liquidation arithmetic operation overflowed.")]
     ArithmeticOverflow,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn position(max_ltv: u16, partial: u16, full: u16) -> PositionInput {
+        PositionInput {
+            deal_id: [9u8; 16],
+            outstanding_debt_atoms: 10_000_000_000,
+            collateral_atoms: 20_000_000,
+            collateral_decimals: 8,
+            loan_decimals: 6,
+            max_ltv_bps: max_ltv,
+            partial_liquidation_ltv_bps: partial,
+            full_liquidation_ltv_bps: full,
+        }
+    }
+
+    #[test]
+    fn an_ordered_snapshot_within_the_ceiling_validates() {
+        assert!(position(5_000, 7_000, 9_000).validate().is_ok());
+    }
+
+    #[test]
+    fn a_zero_or_above_ceiling_max_ltv_is_rejected() {
+        assert!(position(0, 7_000, 9_000).validate().is_err());
+        // The protocol origination ceiling is 5_000 bps.
+        assert!(position(5_001, 7_000, 9_000).validate().is_err());
+    }
+
+    #[test]
+    fn thresholds_must_stay_strictly_ordered() {
+        // Partial must strictly exceed max, and full must strictly exceed partial.
+        assert!(position(5_000, 5_000, 9_000).validate().is_err());
+        assert!(position(5_000, 7_000, 7_000).validate().is_err());
+        assert!(position(5_000, 9_000, 7_000).validate().is_err());
+    }
+
+    #[test]
+    fn a_full_threshold_above_total_bps_is_rejected() {
+        assert!(position(5_000, 7_000, 10_001).validate().is_err());
+        // Exactly 10_000 bps is permitted.
+        assert!(position(5_000, 7_000, 10_000).validate().is_ok());
+    }
+
+    #[test]
+    fn exotic_decimals_are_rejected_before_any_valuation() {
+        let mut snapshot = position(5_000, 7_000, 9_000);
+        snapshot.collateral_decimals = 19;
+        assert!(snapshot.validate().is_err());
+        snapshot.collateral_decimals = 8;
+        snapshot.loan_decimals = 255;
+        assert!(snapshot.validate().is_err());
+        snapshot.loan_decimals = 18;
+        assert!(snapshot.validate().is_ok());
+    }
+
+    #[test]
+    fn thresholds_mirror_the_snapshot_exactly() {
+        let snapshot = position(4_000, 6_000, 8_000);
+        let thresholds = snapshot.thresholds();
+        assert_eq!(thresholds.max_ltv_bps, 4_000);
+        assert_eq!(thresholds.partial_liquidation_ltv_bps, 6_000);
+        assert_eq!(thresholds.full_liquidation_ltv_bps, 8_000);
+    }
+
+    #[test]
+    fn engine_layout_stays_pinned() {
+        // governance + oracle + paused + bump
+        assert_eq!(Engine::INIT_SPACE, 2 * 32 + 1 + 1);
+    }
 }
