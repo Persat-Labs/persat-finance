@@ -52,10 +52,14 @@ const manifestPaths = [
 const manifest = manifestPaths
   .map((path) => { try { return JSON.parse(readFileSync(path, "utf8")); } catch { return null; } })
   .find(Boolean);
-if (!manifest?.mints) {
-  console.error("No deployment manifest with mints found. Run the deploy workflow first.");
-  process.exit(1);
-}
+
+const FALLBACK_MINTS = {
+  tBTC: "79ALd5ZPZNRLSwaWgFKbtffSSNFDS3TZh3faVbgdNhDg",
+  zBTC: "DqQ1yzTPsfpuMMyuV6mVBvusxpq9mqmTTJZ4yMUQwQEt",
+  USDC: "FsSPdkdWnb8R7oziaiYFvhMbhHT7Sd9Uq55t88B7Muqe",
+  USDT: "8zdnnnuNJPNDkGTCxREnTyKnRo494By7MrDSTYtRx1aJ",
+};
+const knownMints = manifest?.mints || FALLBACK_MINTS;
 
 const DECIMALS = {
   tbtc: { mint: "tBTC", decimals: 8 },
@@ -104,7 +108,7 @@ if (wantsSol) {
 
 for (const [flag, amountText] of wants) {
   const { mint: symbol, decimals } = DECIMALS[flag.toLowerCase()];
-  const mintAddress = manifest.mints[symbol];
+  const mintAddress = knownMints[symbol];
   if (!mintAddress) { console.error(`no mint recorded for ${symbol}`); continue; }
   const mint = new PublicKey(mintAddress);
   const amount = BigInt(Math.round(Number(amountText) * 10 ** decimals));
