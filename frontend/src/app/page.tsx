@@ -139,7 +139,7 @@ export default function Home() {
                           maximumFractionDigits: 2,
                         })}`
                       ) : (
-                        "••••••••"
+                        "******"
                       )
                     ) : (
                       "$0.00"
@@ -149,10 +149,22 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => setBalanceVisible(!balanceVisible)}
-                      className="text-white/70 hover:text-white transition"
-                      title="Toggle balance visibility"
+                      className="p-1 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition"
+                      title={balanceVisible ? "Hide balance (show asterisks)" : "Show balance"}
                     >
-                      {balanceVisible ? "👁️" : "🙈"}
+                      {balanceVisible ? (
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="m2 2 20 20" />
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                        </svg>
+                      )}
                     </button>
                   )}
                 </div>
@@ -180,7 +192,7 @@ export default function Home() {
                     balanceVisible ? (
                       `${userBalances.solBalance.toFixed(4)} SOL`
                     ) : (
-                      "••••"
+                      "**** SOL"
                     )
                   ) : (
                     "0.0000 SOL"
@@ -197,7 +209,7 @@ export default function Home() {
                     balanceVisible ? (
                       `${userBalances.lockedCollateralBtc.toFixed(4)} tBTC Locked`
                     ) : (
-                      "••••"
+                      "**** tBTC"
                     )
                   ) : (
                     "0.0000 tBTC"

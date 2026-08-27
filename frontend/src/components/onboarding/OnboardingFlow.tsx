@@ -238,6 +238,10 @@ export function useOnboarding() {
     } catch {
       //
     }
+
+    const handleTrigger = () => setShowOnboarding(true);
+    window.addEventListener("persat_show_onboarding", handleTrigger);
+    return () => window.removeEventListener("persat_show_onboarding", handleTrigger);
   }, []);
 
   return {
