@@ -60,7 +60,7 @@
     "collateral": [
       {
         "symbol": "tBTC",
-        "mint": "PLACEHOLDER_CREATE_DEVNET_MINT",
+        "mint": "79ALd5ZPZNRLSwaWgFKbtffSSNFDS3TZh3faVbgdNhDg",
         "decimals": 8,
         "bridge": "Threshold Network",
         "riskParameters": {
@@ -90,7 +90,7 @@
     "loanCurrency": [
       {
         "symbol": "USDC",
-        "mint": "PLACEHOLDER_CREATE_DEVNET_MINT",
+        "mint": "FsSPdkdWnb8R7oziaiYFvhMbhHT7Sd9Uq55t88B7Muqe",
         "decimals": 6,
         "$comment": "Treated as exactly $1. No oracle feed, by protocol policy."
       },
