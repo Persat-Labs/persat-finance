@@ -8,6 +8,8 @@ import { proposeDeal, Side, Visibility } from "@/lib/protocol/instructions";
 import { dealIdToUrl, randomDealId, useProtocol } from "@/lib/protocol/hooks";
 import { PublicKey } from "@solana/web3.js";
 import { DealShareModal } from "@/components/deal/DealShareModal";
+import { saveListing } from "@/lib/marketplace/marketplaceStore";
+import { getProfileByWalletOrUsername } from "@/lib/profile/userProfile";
 
 export default function NewDealPage() {
   const { publicKey, send, pending } = useProtocol();
@@ -66,6 +68,28 @@ export default function NewDealPage() {
     ]);
 
     const urlId = dealIdToUrl(dealId);
+
+    // If public deal (no counterparty), publish to live marketplace
+    if (!counterpartyKey) {
+      const myProfile = getProfileByWalletOrUsername(publicKey.toBase58());
+      const handle = myProfile ? myProfile.username : `user_${publicKey.toBase58().slice(0, 4)}`;
+      saveListing({
+        id: `list_${urlId}`,
+        dealId: Buffer.from(dealId).toString("hex"),
+        creatorWallet: publicKey.toBase58(),
+        creatorHandle: handle,
+        side: side === "borrower" ? "borrow" : "lend",
+        principal: Number(principal).toLocaleString(),
+        currency,
+        rateBps: Number(rateBps) || 0,
+        months,
+        collateralBtc,
+        reputation: myProfile?.reputationScore ?? 100,
+        dealUrlId: urlId,
+        createdAt: Date.now(),
+      });
+    }
+
     setCreatedDeal({ dealUrlId: urlId });
   }
 

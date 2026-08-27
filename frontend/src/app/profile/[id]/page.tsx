@@ -1,15 +1,18 @@
 "use client";
 import { useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { AppFrame } from "@/components/AppFrame";
 import { Button, Card, Input, Modal } from "@/lib/design-system";
 import { useProtocol } from "@/lib/protocol/hooks";
 import { getProfileByWalletOrUsername, saveProfile, UserProfile } from "@/lib/profile/userProfile";
 import { MessagesDrawer } from "@/components/messaging/MessagesDrawer";
+import { useMarketplaceListings } from "@/lib/marketplace/marketplaceStore";
 
 export default function ProfilePage() {
   const params = useParams<{ id: string }>();
   const { publicKey } = useProtocol();
+  const { listings } = useMarketplaceListings();
   const myWallet = publicKey ? publicKey.toBase58() : null;
 
   const rawId = params.id ? decodeURIComponent(params.id) : "";
@@ -49,10 +52,15 @@ export default function ProfilePage() {
     );
   }
 
+  // Filter listings by this user
+  const userListings = listings.filter(
+    (l) => l.creatorWallet === profile.wallet || l.creatorHandle === profile.username,
+  );
+
   return (
     <AppFrame eyebrow="User Profile" title={`@${profile.username}`}>
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_.9fr]">
-        {/* Profile Card */}
+        {/* Profile Details Card */}
         <Card>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -87,7 +95,7 @@ export default function ProfilePage() {
           </div>
 
           <p className="mt-6 text-sm leading-6 text-white/80 border-t border-white/10 pt-4">
-            {profile.bio || "No bio set yet."}
+            {profile.bio || (isMyProfile ? "No bio written yet. Click 'Edit Profile' to introduce yourself." : "No bio provided.")}
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-4 border-t border-white/10 pt-6 sm:grid-cols-4">
@@ -110,30 +118,49 @@ export default function ProfilePage() {
           </div>
         </Card>
 
-        {/* Listings / Deal Activity Card */}
+        {/* Real Marketplace Listings by this User */}
         <Card>
-          <p className="eyebrow">Marketplace Activity</p>
-          <h3 className="mt-1 font-display-persat text-xl uppercase text-white">Active Listings by User</h3>
-          <div className="mt-5 space-y-3 font-mono text-xs">
-            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-white">1,000 USDC @ 8.2% APR</p>
-                <p className="text-white/50 mt-0.5">12 months · 0.05 tBTC collateral</p>
-              </div>
-              <Button onClick={() => setMessagesOpen(true)} variant="secondary" className="text-xs px-3 py-1.5">
-                Negotiate
-              </Button>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="eyebrow">Marketplace Activity</p>
+              <h3 className="mt-1 font-display-persat text-xl uppercase text-white">Listings by User</h3>
             </div>
+            {isMyProfile && (
+              <Link href="/deal/new">
+                <Button variant="secondary" className="text-xs px-3 py-1.5">
+                  + Create Offer
+                </Button>
+              </Link>
+            )}
+          </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-white">5,000 USDC @ 9.0% APR</p>
-                <p className="text-white/50 mt-0.5">24 months · 0.25 tBTC collateral</p>
+          <div className="mt-5 space-y-3 font-mono text-xs">
+            {userListings.length === 0 ? (
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-6 text-center text-white/50">
+                No active marketplace listings created by this user yet.
               </div>
-              <Button onClick={() => setMessagesOpen(true)} variant="secondary" className="text-xs px-3 py-1.5">
-                Negotiate
-              </Button>
-            </div>
+            ) : (
+              userListings.map((listing) => (
+                <div
+                  key={listing.id}
+                  className="rounded-xl border border-white/10 bg-white/[0.02] p-4 flex items-center justify-between"
+                >
+                  <div>
+                    <p className="font-semibold text-white">
+                      {listing.principal} {listing.currency} @ {listing.rateBps / 100}% APR
+                    </p>
+                    <p className="text-white/50 mt-0.5">
+                      {listing.months} months · {listing.collateralBtc} tBTC collateral
+                    </p>
+                  </div>
+                  <Link href={`/deal/${listing.dealUrlId}`}>
+                    <Button variant="secondary" className="text-xs px-3 py-1.5">
+                      View Deal
+                    </Button>
+                  </Link>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </div>

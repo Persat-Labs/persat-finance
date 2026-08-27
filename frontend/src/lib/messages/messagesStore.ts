@@ -24,59 +24,20 @@ export interface DirectMessage {
   createdAt: number;
 }
 
-const STORAGE_MESSAGES_KEY = "persat_direct_messages_v1";
+const STORAGE_MESSAGES_KEY = "persat_direct_messages_live_v1";
 
 function getConversationId(walletA: string, walletB: string): string {
   return [walletA, walletB].sort().join("::");
 }
 
-const SEED_MESSAGES: DirectMessage[] = [
-  {
-    id: "msg_seed_1",
-    conversationId: getConversationId(
-      "8mdkcgNT2CDk5G9Pes55SUf7TkMxPpVvpu5wTL2myUWL",
-      "2G2avktDrH2GTf5bodA6PnLK6zNhAp4Nxfxp4n3maCsX",
-    ),
-    senderWallet: "2G2avktDrH2GTf5bodA6PnLK6zNhAp4Nxfxp4n3maCsX",
-    recipientWallet: "8mdkcgNT2CDk5G9Pes55SUf7TkMxPpVvpu5wTL2myUWL",
-    senderHandle: "lender_prime",
-    text: "Hello! I saw your direct deal request. I am willing to fund 1,000 USDC at 8.2% annual rate backed by 0.05 tBTC.",
-    dealProposal: {
-      principal: "1000",
-      currency: "USDC",
-      collateralBtc: "0.05",
-      rateBps: "820",
-      months: 12,
-      side: "lender",
-      status: "proposed",
-    },
-    createdAt: Date.now() - 3600000,
-  },
-  {
-    id: "msg_seed_2",
-    conversationId: getConversationId(
-      "8mdkcgNT2CDk5G9Pes55SUf7TkMxPpVvpu5wTL2myUWL",
-      "2G2avktDrH2GTf5bodA6PnLK6zNhAp4Nxfxp4n3maCsX",
-    ),
-    senderWallet: "8mdkcgNT2CDk5G9Pes55SUf7TkMxPpVvpu5wTL2myUWL",
-    recipientWallet: "2G2avktDrH2GTf5bodA6PnLK6zNhAp4Nxfxp4n3maCsX",
-    senderHandle: "borrower_alpha",
-    text: "These terms look solid. I will deposit the 0.05 tBTC collateral right away!",
-    createdAt: Date.now() - 1800000,
-  },
-];
-
 function getStoredMessages(): DirectMessage[] {
-  if (typeof window === "undefined") return SEED_MESSAGES;
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_MESSAGES_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_MESSAGES_KEY, JSON.stringify(SEED_MESSAGES));
-      return SEED_MESSAGES;
-    }
+    if (!raw) return [];
     return JSON.parse(raw);
   } catch {
-    return SEED_MESSAGES;
+    return [];
   }
 }
 
@@ -141,12 +102,12 @@ export function useDirectMessages(myWallet: string | null | undefined) {
     [],
   );
 
-  // Conversations relevant to me
+  // Filter conversations involving me
   const myConversations = messages.filter(
     (m) => myWallet && (m.senderWallet === myWallet || m.recipientWallet === myWallet),
   );
 
-  // Group by counterparty
+  // Distinct partners
   const conversationPartners = Array.from(
     new Set(
       myConversations.map((m) => (m.senderWallet === myWallet ? m.recipientWallet : m.senderWallet)),
@@ -155,7 +116,6 @@ export function useDirectMessages(myWallet: string | null | undefined) {
 
   return {
     messages,
-    myConversations,
     conversationPartners,
     sendMessage,
     updateProposalStatus,

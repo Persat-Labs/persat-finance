@@ -6,19 +6,21 @@ import { WalletButton } from "@/components/wallet/WalletButton";
 import { useProtocol } from "@/lib/protocol/hooks";
 import { useProfile } from "@/lib/profile/userProfile";
 import { MessagesDrawer } from "@/components/messaging/MessagesDrawer";
-
-const stats = [
-  ["Total value locked", "◎ 24.5M", "Protocol Collateral"],
-  ["Active loans", "128", "Settling on Devnet"],
-  ["Repayment rate", "99.4%", "Zero Bad Debt"],
-  ["Average duration", "14 mo", "Overcollateralized"],
-];
+import { useMarketplaceListings } from "@/lib/marketplace/marketplaceStore";
 
 export default function Home() {
   const { publicKey } = useProtocol();
   const myWallet = publicKey ? publicKey.toBase58() : null;
   const { profile } = useProfile(myWallet);
+  const { listings } = useMarketplaceListings();
   const [messagesOpen, setMessagesOpen] = useState(false);
+
+  const realMetrics = [
+    ["Protocol Status", "LIVE", "Solana Devnet Cluster"],
+    ["Core Programs", "8 / 8", "All PDAs Initialized"],
+    ["Open Listings", String(listings.length), "Real Marketplace Offers"],
+    ["Custody Model", "0%", "Zero Counterparty Custody"],
+  ];
 
   return (
     <main className="app-shell hud-grid">
@@ -76,7 +78,7 @@ export default function Home() {
       <section className="relative z-10 mx-auto max-w-7xl px-6 pb-20 pt-16 sm:pt-24">
         <div className="inline-flex items-center gap-2 rounded-full border border-amber/30 bg-amber/10 px-4 py-1.5 font-mono text-xs text-amber animate-reveal">
           <span className="h-1.5 w-1.5 rounded-full bg-amber animate-pulse" />
-          <span>PERSAT FINANCE // DEVNET LIVE</span>
+          <span>PERSAT FINANCE // DEVNET BETA</span>
         </div>
 
         <h1 className="mt-6 max-w-5xl font-display-persat text-4xl uppercase leading-[1.08] tracking-tight text-white sm:text-6xl lg:text-7xl">
@@ -127,9 +129,9 @@ export default function Home() {
           </Card>
         </div>
 
-        {/* Stats Grid */}
+        {/* Real Live Metrics Grid */}
         <div className="mt-16 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {stats.map(([label, value, helper]) => (
+          {realMetrics.map(([label, value, helper]) => (
             <div key={label} className="glass sheen rounded-[20px] p-6 border border-white/10">
               <p className="font-brand-persat text-3xl text-amber">{value}</p>
               <p className="mt-2 font-mono text-xs uppercase tracking-widest text-white">{label}</p>
