@@ -160,8 +160,8 @@ jobs:
             echo "=== deploying $p ==="
             solana program deploy "target/deploy/$p.so" \
               --program-id "target/deploy/$p-keypair.json" \
-              --upgrade-authority "$PWD/keys/deployer.json" \
-              --with-compute-unit-limit 200000
+            --upgrade-authority "$PWD/keys/deployer.json" \
+            --with-compute-unit-price 200000
           done
           solana address --all | sort | uniq -c || true
 
