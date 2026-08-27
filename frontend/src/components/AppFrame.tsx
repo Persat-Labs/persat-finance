@@ -5,6 +5,7 @@ import { WalletButton } from "@/components/wallet/WalletButton";
 import { useProtocol } from "@/lib/protocol/hooks";
 import { useProfile } from "@/lib/profile/userProfile";
 import { MessagesDrawer } from "@/components/messaging/MessagesDrawer";
+import { BottomNav } from "@/components/navigation/BottomNav";
 
 export function AppFrame({
   title,
@@ -21,10 +22,10 @@ export function AppFrame({
   const [messagesOpen, setMessagesOpen] = useState(false);
 
   return (
-    <main className="app-shell hud-grid min-h-screen">
+    <main className="app-shell hud-grid min-h-screen pb-24 md:pb-12">
       {/* Floating Glass Navigation Header from waitlist/ */}
-      <header className="sticky top-0 z-40 px-4 pt-4 sm:px-8">
-        <nav className="glass mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-6 py-2.5 rounded-full border border-white/10 shadow-2xl backdrop-blur-xl">
+      <header className="sticky top-0 z-40 px-4 pt-3 sm:px-8">
+        <nav className="glass mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-6 py-2 rounded-full border border-white/10 shadow-2xl backdrop-blur-xl">
           <Link
             href="/"
             className="font-brand-persat text-xl uppercase tracking-[.24em] text-white hover:text-amber transition"
@@ -53,27 +54,25 @@ export function AppFrame({
           </div>
 
           <div className="flex items-center gap-3">
-            {myWallet && (
-              <button
-                type="button"
-                onClick={() => setMessagesOpen(true)}
-                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white transition hover:border-amber hover:bg-white/[0.08]"
-                title="Open Deal Messages"
-              >
-                <span className="text-base">💬</span>
-                <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber opacity-75" />
-                  <span className="relative inline-flex h-3 w-3 rounded-full bg-amber" />
-                </span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setMessagesOpen(true)}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white transition hover:border-amber hover:bg-white/[0.08]"
+              title="Open Deal Messages"
+            >
+              <span className="text-base">💬</span>
+              <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber opacity-75" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-amber" />
+              </span>
+            </button>
             <WalletButton />
           </div>
         </nav>
       </header>
 
       {/* Main Page Content */}
-      <section className="mx-auto max-w-7xl px-6 py-10 sm:py-12">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-8 sm:py-10">
         <p className="eyebrow">{eyebrow}</p>
         <h1 className="mt-2 font-display-persat text-3xl uppercase tracking-tight text-white sm:text-5xl">
           {title}
@@ -83,6 +82,9 @@ export function AppFrame({
 
       {/* Global In-App Messages Drawer */}
       <MessagesDrawer open={messagesOpen} onClose={() => setMessagesOpen(false)} />
+
+      {/* Mobile Sticky Bottom Navigation Bar from Reference */}
+      <BottomNav onOpenMessages={() => setMessagesOpen(true)} />
     </main>
   );
 }

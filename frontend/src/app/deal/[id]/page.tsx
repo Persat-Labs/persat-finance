@@ -77,13 +77,49 @@ export default function DealPage() {
   }
   if (!deal) {
     return (
-      <AppFrame eyebrow="Deal" title="Loading Deal…">
-        <div className="mt-6 flex items-center gap-3 font-mono text-sm text-white/60">
-          <svg className="h-5 w-5 animate-spin text-amber" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
-          <span>Fetching on-chain state from Solana Devnet…</span>
+      <AppFrame eyebrow="Deal // Loading On-Chain State" title="Fetching Immutable Terms…">
+        <div className="mt-8 grid gap-8 lg:grid-cols-2">
+          {/* Terms Card Shimmer */}
+          <div className="glass sheen rounded-[22px] p-6 sm:p-8 space-y-4">
+            <div className="flex justify-between items-center border-b border-white/5 pb-3">
+              <div className="shimmer-box h-4 w-32" />
+              <div className="shimmer-box h-6 w-20 rounded-full" />
+            </div>
+            <div className="space-y-3 pt-2">
+              <div className="flex justify-between py-2 border-b border-white/5">
+                <div className="shimmer-box h-4 w-24" />
+                <div className="shimmer-box h-4 w-28" />
+              </div>
+              <div className="flex justify-between py-2 border-b border-white/5">
+                <div className="shimmer-box h-4 w-28" />
+                <div className="shimmer-box h-4 w-24" />
+              </div>
+              <div className="flex justify-between py-2 border-b border-white/5">
+                <div className="shimmer-box h-4 w-20" />
+                <div className="shimmer-box h-4 w-16" />
+              </div>
+              <div className="flex justify-between py-2 border-b border-white/5">
+                <div className="shimmer-box h-4 w-20" />
+                <div className="shimmer-box h-4 w-20" />
+              </div>
+              <div className="flex justify-between py-2 border-b border-white/5">
+                <div className="shimmer-box h-4 w-24" />
+                <div className="shimmer-box h-4 w-32" />
+              </div>
+            </div>
+            <div className="shimmer-box h-10 w-full rounded-xl mt-4" />
+          </div>
+
+          {/* Actions Card Shimmer */}
+          <div className="glass sheen rounded-[22px] p-6 sm:p-8 space-y-5">
+            <div className="shimmer-box h-4 w-36" />
+            <div className="shimmer-box h-12 w-full rounded-full" />
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="shimmer-box h-10 w-full rounded-full" />
+              <div className="shimmer-box h-10 w-full rounded-full" />
+            </div>
+            <div className="shimmer-box h-16 w-full rounded-xl mt-4" />
+          </div>
         </div>
       </AppFrame>
     );
