@@ -27,6 +27,8 @@
 name: Deploy programs to Devnet
 
 on:
+  repository_dispatch:
+    types: [deploy-devnet]
   workflow_dispatch:
     inputs:
       skip-initialization:
