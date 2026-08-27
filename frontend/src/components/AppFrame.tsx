@@ -1,11 +1,11 @@
 "use client";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { useProtocol } from "@/lib/protocol/hooks";
 import { useProfile } from "@/lib/profile/userProfile";
-import { MessagesDrawer } from "@/components/messaging/MessagesDrawer";
 import { BottomNav } from "@/components/navigation/BottomNav";
+import { NotificationPopover } from "@/components/messaging/NotificationPopover";
 
 export function AppFrame({
   title,
@@ -19,19 +19,23 @@ export function AppFrame({
   const { publicKey } = useProtocol();
   const myWallet = publicKey ? publicKey.toBase58() : null;
   const { profile } = useProfile(myWallet);
-  const [messagesOpen, setMessagesOpen] = useState(false);
 
   return (
     <main className="app-shell hud-grid min-h-screen pb-24 md:pb-12">
       {/* Floating Glass Navigation Header from waitlist/ */}
       <header className="sticky top-0 z-40 px-4 pt-3 sm:px-8">
         <nav className="glass mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-6 py-2 rounded-full border border-white/10 shadow-2xl backdrop-blur-xl">
-          <Link
-            href="/"
-            className="font-brand-persat text-xl uppercase tracking-[.24em] text-white hover:text-amber transition"
-          >
-            persat
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="font-brand-persat text-xl uppercase tracking-[.24em] text-white hover:text-amber transition"
+            >
+              persat
+            </Link>
+            <span className="hidden sm:inline-block rounded-full border border-amber/30 bg-amber/10 px-2.5 py-0.5 font-mono text-[10px] text-amber">
+              Devnet Beta
+            </span>
+          </div>
 
           <div className="hidden items-center gap-6 font-mono text-[11px] uppercase tracking-widest text-white/70 md:flex">
             <Link href="/deal/new" className="hover:text-amber transition">
@@ -46,6 +50,9 @@ export function AppFrame({
             <Link href="/keeper" className="hover:text-amber transition">
               Keeper
             </Link>
+            <Link href="/messages" className="hover:text-amber transition">
+              Messages
+            </Link>
             {myWallet && (
               <Link href={`/profile/${myWallet}`} className="text-amber hover:text-white transition">
                 {profile?.username ? `@${profile.username}` : "Profile"}
@@ -54,18 +61,7 @@ export function AppFrame({
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setMessagesOpen(true)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white transition hover:border-amber hover:bg-white/[0.08]"
-              title="Open Deal Messages"
-            >
-              <span className="text-base">💬</span>
-              <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber opacity-75" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-amber" />
-              </span>
-            </button>
+            {myWallet && <NotificationPopover />}
             <WalletButton />
           </div>
         </nav>
@@ -80,11 +76,8 @@ export function AppFrame({
         {children}
       </section>
 
-      {/* Global In-App Messages Drawer */}
-      <MessagesDrawer open={messagesOpen} onClose={() => setMessagesOpen(false)} />
-
       {/* Mobile Sticky Bottom Navigation Bar from Reference */}
-      <BottomNav onOpenMessages={() => setMessagesOpen(true)} />
+      <BottomNav />
     </main>
   );
 }

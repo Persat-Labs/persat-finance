@@ -1,42 +1,23 @@
 "use client";
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Button, Card } from "@/lib/design-system";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { useProtocol } from "@/lib/protocol/hooks";
 import { useProfile } from "@/lib/profile/userProfile";
-import { MessagesDrawer } from "@/components/messaging/MessagesDrawer";
+import { NotificationPopover } from "@/components/messaging/NotificationPopover";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { useMarketplaceListings } from "@/lib/marketplace/marketplaceStore";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { useUserRealBalances } from "@/lib/protocol/userBalance";
 
 export default function Home() {
   const { connection, publicKey } = useProtocol();
   const myWallet = publicKey ? publicKey.toBase58() : null;
   const { profile } = useProfile(myWallet);
   const { listings } = useMarketplaceListings();
+  const userBalances = useUserRealBalances(connection, publicKey);
 
-  const [messagesOpen, setMessagesOpen] = useState(false);
   const [balanceVisible, setBalanceVisible] = useState(true);
-  const [solBalance, setSolBalance] = useState<number | null>(null);
-
-  // Fetch real devnet balance
-  const fetchBalance = useCallback(async () => {
-    if (!publicKey) {
-      setSolBalance(null);
-      return;
-    }
-    try {
-      const lamports = await connection.getBalance(publicKey, "confirmed");
-      setSolBalance(lamports / LAMPORTS_PER_SOL);
-    } catch {
-      //
-    }
-  }, [connection, publicKey]);
-
-  useEffect(() => {
-    void fetchBalance();
-  }, [fetchBalance]);
 
   const userDisplayName = profile?.displayName
     ? profile.displayName
@@ -74,6 +55,9 @@ export default function Home() {
             <Link href="/keeper" className="hover:text-amber transition">
               Keeper
             </Link>
+            <Link href="/messages" className="hover:text-amber transition">
+              Messages
+            </Link>
             {myWallet && (
               <Link href={`/profile/${myWallet}`} className="text-amber hover:text-white transition">
                 {profile?.username ? `@${profile.username}` : "Profile"}
@@ -82,24 +66,13 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setMessagesOpen(true)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white transition hover:border-amber hover:bg-white/[0.08]"
-              title="Open Deal Messages"
-            >
-              <span className="text-base">💬</span>
-              <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber opacity-75" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-amber" />
-              </span>
-            </button>
+            {myWallet && <NotificationPopover />}
             <WalletButton />
           </div>
         </nav>
       </header>
 
-      {/* Main Dashboard Workspace (Designed from Reference Layout) */}
+      {/* Main Dashboard Workspace (Derived from Reference Design Layout) */}
       <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-8 sm:pt-8 space-y-8 animate-reveal">
         {/* User Greeting Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -114,7 +87,7 @@ export default function Home() {
               <p className="font-mono text-xs text-white/50">
                 {publicKey
                   ? `Wallet: ${publicKey.toBase58().slice(0, 6)}…${publicKey.toBase58().slice(-4)}`
-                  : "Connect wallet to access on-chain balances"}
+                  : "Connect your wallet to view live balances & portfolio"}
               </p>
             </div>
           </div>
@@ -122,7 +95,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <Link href="/faucet">
               <Button variant="secondary" className="text-xs px-4 py-2">
-                ⚡ Claim Test Tokens
+                ⚡ Claim Test Pack
               </Button>
             </Link>
           </div>
@@ -130,50 +103,68 @@ export default function Home() {
 
         {/* Hero Section: Orange Gradient Fintech Card + Quick Actions */}
         <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
-          {/* Card: Orange Gradient Balance Card from Left Phone Reference */}
+          {/* Card: Orange Gradient User Balance Card from Reference Screen */}
           <div className="fintech-card-orange relative overflow-hidden p-6 sm:p-8 text-white">
             <div className="relative z-10 flex items-start justify-between">
               <div>
                 <p className="font-mono text-xs uppercase tracking-widest text-white/80">
-                  Total Protocol Liquidity
+                  Total Balance
                 </p>
                 <div className="mt-2 flex items-baseline gap-3">
-                  <span className="font-brand-persat text-3xl sm:text-4xl tracking-tight">
-                    {balanceVisible
-                      ? solBalance !== null
-                        ? `◎ ${(solBalance * 150 + 5000).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-                        : "◎ 5,000.00"
-                      : "••••••••"}
+                  <span className="font-finance-persat text-3xl sm:text-4xl tracking-tight">
+                    {publicKey ? (
+                      balanceVisible ? (
+                        `$${userBalances.totalUsdValue.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`
+                      ) : (
+                        "••••••••"
+                      )
+                    ) : (
+                      "$0.00"
+                    )}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setBalanceVisible(!balanceVisible)}
-                    className="text-white/70 hover:text-white transition"
-                    title="Toggle balance visibility"
-                  >
-                    {balanceVisible ? "👁️" : "🙈"}
-                  </button>
+                  {publicKey && (
+                    <button
+                      type="button"
+                      onClick={() => setBalanceVisible(!balanceVisible)}
+                      className="text-white/70 hover:text-white transition"
+                      title="Toggle balance visibility"
+                    >
+                      {balanceVisible ? "👁️" : "🙈"}
+                    </button>
+                  )}
                 </div>
+                {!publicKey && (
+                  <p className="mt-1 font-mono text-[11px] text-white/70">
+                    Connect wallet to display real balances
+                  </p>
+                )}
               </div>
 
-              {/* Solana Badge */}
+              {/* Solana Network Badge */}
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 backdrop-blur-md">
                 <span className="font-brand-persat text-xs tracking-wider">SOL</span>
               </div>
             </div>
 
-            {/* Available Balance Breakdown */}
+            {/* Real User Balances Breakdown */}
             <div className="relative z-10 mt-8 pt-4 border-t border-white/20 flex flex-wrap items-baseline justify-between gap-4">
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-wider text-white/70">
-                  Available Wallet Gas
+                  Available Gas
                 </p>
                 <p className="font-mono text-base font-semibold">
-                  {balanceVisible
-                    ? solBalance !== null
-                      ? `${solBalance.toFixed(3)} SOL`
-                      : "0.000 SOL"
-                    : "••••"}
+                  {publicKey ? (
+                    balanceVisible ? (
+                      `${userBalances.solBalance.toFixed(4)} SOL`
+                    ) : (
+                      "••••"
+                    )
+                  ) : (
+                    "0.0000 SOL"
+                  )}
                 </p>
               </div>
 
@@ -182,12 +173,20 @@ export default function Home() {
                   Collateral Escrow
                 </p>
                 <p className="font-mono text-base font-semibold">
-                  {balanceVisible ? "0.05 tBTC Locked" : "••••"}
+                  {publicKey ? (
+                    balanceVisible ? (
+                      `${userBalances.lockedCollateralBtc.toFixed(4)} tBTC Locked`
+                    ) : (
+                      "••••"
+                    )
+                  ) : (
+                    "0.0000 tBTC"
+                  )}
                 </p>
               </div>
             </div>
 
-            {/* Decorative SVG Trend Wave line from reference image */}
+            {/* Decorative Trend Curve Line */}
             <svg
               className="absolute -bottom-2 right-0 w-3/4 opacity-25 pointer-events-none"
               viewBox="0 0 300 100"
@@ -277,11 +276,11 @@ export default function Home() {
             </div>
 
             <div className="mt-5 flex items-baseline gap-3">
-              <span className="font-brand-persat text-3xl sm:text-4xl text-white">
-                $48,650.00
+              <span className="font-finance-persat text-3xl sm:text-4xl text-white">
+                ${userBalances.totalUsdValue > 0 ? userBalances.totalUsdValue.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 font-mono text-xs text-emerald-400 border border-emerald-500/30">
-                ↑ 24.5% vs devnet v0
+                100% Non-Custodial
               </span>
             </div>
 
@@ -330,7 +329,7 @@ export default function Home() {
               </h2>
 
               <div className="mt-6 flex flex-col items-center sm:flex-row sm:justify-around gap-6">
-                {/* Donut Ring Chart with Total in Center */}
+                {/* Donut Ring Chart */}
                 <div className="relative flex h-36 w-36 items-center justify-center">
                   <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
                     <circle
@@ -341,7 +340,6 @@ export default function Home() {
                       stroke="rgba(255,255,255,0.06)"
                       strokeWidth="12"
                     />
-                    {/* Ring segments */}
                     <circle
                       cx="50"
                       cy="50"
@@ -375,26 +373,26 @@ export default function Home() {
                 <div className="space-y-3 font-mono text-xs">
                   <div className="flex items-center gap-2.5">
                     <span className="h-2.5 w-2.5 rounded-full bg-[#ff8a00]" />
-                    <span className="text-white/80">Proposed Deals (38%)</span>
+                    <span className="text-white/80">Proposed Deals</span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <span className="h-2.5 w-2.5 rounded-full bg-[#ffaa45]" />
-                    <span className="text-white/80">Vault Escrow (25%)</span>
+                    <span className="text-white/80">Vault Escrow</span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <span className="h-2.5 w-2.5 rounded-full bg-[#34d399]" />
-                    <span className="text-white/80">Active Loans (22%)</span>
+                    <span className="text-white/80">Active Loans</span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <span className="h-2.5 w-2.5 rounded-full bg-white/40" />
-                    <span className="text-white/80">Settled Clean (15%)</span>
+                    <span className="text-white/80">Settled Clean</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <p className="mt-6 text-center font-mono text-[11px] text-white/40 border-t border-white/10 pt-4">
-              Real-time state transitions verified by Solana Anchor contracts.
+              Real-time state transitions verified on Solana Devnet.
             </p>
           </Card>
         </div>
@@ -455,11 +453,8 @@ export default function Home() {
         </Card>
       </section>
 
-      {/* Global In-App Messages Drawer */}
-      <MessagesDrawer open={messagesOpen} onClose={() => setMessagesOpen(false)} />
-
-      {/* Mobile Sticky Bottom Navigation Bar from Reference */}
-      <BottomNav onOpenMessages={() => setMessagesOpen(true)} />
+      {/* Mobile Sticky Bottom Navigation Bar */}
+      <BottomNav />
     </main>
   );
 }

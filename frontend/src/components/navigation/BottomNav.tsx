@@ -2,11 +2,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useProtocol } from "@/lib/protocol/hooks";
+import { useDirectMessages } from "@/lib/messages/messagesStore";
 
-export function BottomNav({ onOpenMessages }: { onOpenMessages: () => void }) {
+export function BottomNav() {
   const pathname = usePathname();
   const { publicKey } = useProtocol();
   const myWallet = publicKey ? publicKey.toBase58() : null;
+  const { unreadCount } = useDirectMessages(myWallet);
 
   const profileHref = myWallet ? `/profile/${myWallet}` : "/profile/satoshi";
 
@@ -66,7 +68,7 @@ export function BottomNav({ onOpenMessages }: { onOpenMessages: () => void }) {
     },
     {
       label: "Messages",
-      action: onOpenMessages,
+      href: "/messages",
       icon: (active: boolean) => (
         <div className="relative">
           <svg
@@ -78,10 +80,16 @@ export function BottomNav({ onOpenMessages }: { onOpenMessages: () => void }) {
           >
             <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
           </svg>
-          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber shadow-[0_0_6px_#ffab00]" />
+          {/* Glowing dot ONLY appears if there is an unread message */}
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber shadow-[0_0_6px_#ffab00]" />
+            </span>
+          )}
         </div>
       ),
-      active: false,
+      active: pathname.startsWith("/messages"),
     },
     {
       label: "Profile",
@@ -105,34 +113,18 @@ export function BottomNav({ onOpenMessages }: { onOpenMessages: () => void }) {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-3 pb-3 pt-1">
       <div className="glass mx-auto flex max-w-md items-center justify-around rounded-full border border-white/15 bg-black/85 py-2.5 shadow-2xl backdrop-blur-2xl">
-        {navItems.map((item) => {
-          if (item.action) {
-            return (
-              <button
-                key={item.label}
-                type="button"
-                onClick={item.action}
-                className="flex flex-col items-center gap-1 px-3 py-1 font-mono text-[10px] tracking-wider text-white/50 hover:text-amber transition active:scale-95"
-              >
-                {item.icon(item.active)}
-                <span>{item.label}</span>
-              </button>
-            );
-          }
-
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`flex flex-col items-center gap-1 px-3 py-1 font-mono text-[10px] tracking-wider transition active:scale-95 ${
-                item.active ? "text-amber font-semibold" : "text-white/50 hover:text-white"
-              }`}
-            >
-              {item.icon(item.active)}
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+        {navItems.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            className={`flex flex-col items-center gap-1 px-3 py-1 font-mono text-[10px] tracking-wider transition active:scale-95 ${
+              item.active ? "text-amber font-semibold" : "text-white/50 hover:text-white"
+            }`}
+          >
+            {item.icon(item.active)}
+            <span>{item.label}</span>
+          </Link>
+        ))}
       </div>
     </nav>
   );

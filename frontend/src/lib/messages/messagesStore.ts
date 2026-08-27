@@ -22,9 +22,10 @@ export interface DirectMessage {
   text: string;
   dealProposal?: DealProposalAttachment;
   createdAt: number;
+  read: boolean;
 }
 
-const STORAGE_MESSAGES_KEY = "persat_direct_messages_live_v1";
+const STORAGE_MESSAGES_KEY = "persat_direct_messages_live_v2";
 
 function getConversationId(walletA: string, walletB: string): string {
   return [walletA, walletB].sort().join("::");
@@ -55,7 +56,6 @@ export function useDirectMessages(myWallet: string | null | undefined) {
   const sendMessage = useCallback(
     (recipientInput: string, text: string, proposal?: DealProposalAttachment) => {
       if (!myWallet) return null;
-      // Resolve recipient wallet from handle or address
       const targetProfile = getProfileByWalletOrUsername(recipientInput);
       const recipientWallet = targetProfile ? targetProfile.wallet : recipientInput.trim();
 
@@ -72,12 +72,28 @@ export function useDirectMessages(myWallet: string | null | undefined) {
         text,
         dealProposal: proposal,
         createdAt: Date.now(),
+        read: false,
       };
 
       const all = [...getStoredMessages(), newMsg];
       localStorage.setItem(STORAGE_MESSAGES_KEY, JSON.stringify(all));
       setMessages(all);
       return newMsg;
+    },
+    [myWallet],
+  );
+
+  const markAsRead = useCallback(
+    (partnerWallet: string) => {
+      if (!myWallet) return;
+      const all = getStoredMessages().map((m) => {
+        if (m.senderWallet === partnerWallet && m.recipientWallet === myWallet) {
+          return { ...m, read: true };
+        }
+        return m;
+      });
+      localStorage.setItem(STORAGE_MESSAGES_KEY, JSON.stringify(all));
+      setMessages(all);
     },
     [myWallet],
   );
@@ -102,12 +118,18 @@ export function useDirectMessages(myWallet: string | null | undefined) {
     [],
   );
 
-  // Filter conversations involving me
+  // Messages relevant to my wallet
   const myConversations = messages.filter(
     (m) => myWallet && (m.senderWallet === myWallet || m.recipientWallet === myWallet),
   );
 
-  // Distinct partners
+  // Unread messages where I am the recipient
+  const unreadMessages = myConversations.filter(
+    (m) => m.recipientWallet === myWallet && !m.read,
+  );
+  const unreadCount = unreadMessages.length;
+
+  // Distinct conversation partners
   const conversationPartners = Array.from(
     new Set(
       myConversations.map((m) => (m.senderWallet === myWallet ? m.recipientWallet : m.senderWallet)),
@@ -116,8 +138,12 @@ export function useDirectMessages(myWallet: string | null | undefined) {
 
   return {
     messages,
+    myConversations,
+    unreadMessages,
+    unreadCount,
     conversationPartners,
     sendMessage,
+    markAsRead,
     updateProposalStatus,
     reloadMessages: load,
   };
