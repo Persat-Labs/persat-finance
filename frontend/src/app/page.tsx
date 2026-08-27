@@ -46,8 +46,8 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Clean Core Navigation (Faucet & Keeper removed) */}
-          <div className="hidden items-center gap-7 font-ui-persat text-xs uppercase tracking-wider text-white/70 md:flex">
+          {/* Clean Core Navigation */}
+          <div className="hidden items-center gap-7 font-ui text-xs uppercase tracking-wider text-white/70 md:flex">
             <Link href="/deal/new" className="hover:text-amber transition">
               Direct Deal
             </Link>
@@ -69,7 +69,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setFundingOpen(true)}
-                className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-amber/40 bg-amber/10 px-3.5 py-1.5 font-ui-persat text-[11px] uppercase tracking-wider text-amber hover:bg-amber/20 transition"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-amber/40 bg-amber/10 px-3.5 py-1.5 font-ui text-[11px] uppercase tracking-wider text-amber hover:bg-amber/20 transition"
                 title="Fund testnet tokens"
               >
                 <span>⚡</span>
@@ -87,11 +87,11 @@ export default function Home() {
         {/* User Greeting Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-amber/40 bg-gradient-to-br from-amber/20 to-orange/30 font-display text-lg text-white shadow-[0_0_15px_rgba(255,171,0,0.25)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-amber/40 bg-gradient-to-br from-amber/20 to-orange/30 font-bold text-lg text-white shadow-[0_0_15px_rgba(255,171,0,0.25)]">
               {userDisplayName.slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <h1 className="font-display text-xl uppercase tracking-wide text-white sm:text-2xl">
+              <h1 className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
                 Hello, {userDisplayName} 👋
               </h1>
               <p className="font-mono text-xs text-white/50">
@@ -113,25 +113,25 @@ export default function Home() {
             <button
               type="button"
               onClick={openOnboarding}
-              className="font-ui-persat text-xs uppercase tracking-wider text-white/40 hover:text-amber px-2 transition"
+              className="font-ui text-xs uppercase tracking-wider text-white/40 hover:text-amber px-2 transition"
               title="View Onboarding Walkthrough"
             >
-              Guide ℹ
+              Guide *
             </button>
           </div>
         </div>
 
-        {/* Hero Section: Orange Gradient Fintech Card + Quick Actions */}
+        {/* Hero Section: Orange Gradient User Balance Card + Quick Actions */}
         <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
-          {/* Card: Orange Gradient User Balance Card from Reference Screen */}
+          {/* Card: Orange Gradient User Balance Card with Crisp Fonts & SVGs */}
           <div className="fintech-card-orange relative overflow-hidden p-6 sm:p-8 text-white">
             <div className="relative z-10 flex items-start justify-between">
               <div>
-                <p className="font-ui-persat text-xs uppercase tracking-widest text-white/80">
+                <p className="font-ui text-xs uppercase tracking-widest text-white/80 font-semibold">
                   Total Balance
                 </p>
                 <div className="mt-2 flex items-baseline gap-3">
-                  <span className="font-finance text-3xl sm:text-4xl tracking-tight">
+                  <span className="font-mono text-3xl sm:text-4xl font-bold tracking-tight text-white">
                     {publicKey ? (
                       balanceVisible ? (
                         `$${userBalances.totalUsdValue.toLocaleString(undefined, {
@@ -149,7 +149,7 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => setBalanceVisible(!balanceVisible)}
-                      className="p-1 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition"
+                      className="p-1 rounded-full text-white/80 hover:text-white hover:bg-white/15 transition"
                       title={balanceVisible ? "Hide balance (show asterisks)" : "Show balance"}
                     >
                       {balanceVisible ? (
@@ -177,17 +177,17 @@ export default function Home() {
 
               {/* Solana Network Badge */}
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 backdrop-blur-md">
-                <span className="font-brand-persat text-xs tracking-wider">SOL</span>
+                <span className="font-mono text-xs font-bold tracking-wider">SOL</span>
               </div>
             </div>
 
             {/* Real User Balances Breakdown */}
             <div className="relative z-10 mt-8 pt-4 border-t border-white/20 flex flex-wrap items-baseline justify-between gap-4">
               <div>
-                <p className="font-ui-persat text-[11px] uppercase tracking-wider text-white/70">
+                <p className="font-ui text-[11px] uppercase tracking-wider text-white/70">
                   Available Gas
                 </p>
-                <p className="font-finance text-base font-semibold">
+                <p className="font-mono text-base font-semibold">
                   {publicKey ? (
                     balanceVisible ? (
                       `${userBalances.solBalance.toFixed(4)} SOL`
@@ -201,10 +201,10 @@ export default function Home() {
               </div>
 
               <div>
-                <p className="font-ui-persat text-[11px] uppercase tracking-wider text-white/70">
+                <p className="font-ui text-[11px] uppercase tracking-wider text-white/70">
                   Collateral Escrow
                 </p>
-                <p className="font-finance text-base font-semibold">
+                <p className="font-mono text-base font-semibold">
                   {publicKey ? (
                     balanceVisible ? (
                       `${userBalances.lockedCollateralBtc.toFixed(4)} tBTC Locked`
@@ -212,7 +212,7 @@ export default function Home() {
                       "**** tBTC"
                     )
                   ) : (
-                    "0.0000 tBTC"
+                    "0.0000 tBTC Locked"
                   )}
                 </p>
               </div>
@@ -249,7 +249,7 @@ export default function Home() {
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber/15 text-amber text-lg">
                     ⚡
                   </span>
-                  <span className="font-ui-persat text-xs uppercase tracking-wider text-white">Direct Deal</span>
+                  <span className="font-ui text-xs uppercase tracking-wider text-white">Direct Deal</span>
                 </Link>
 
                 <Link
@@ -259,7 +259,7 @@ export default function Home() {
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/15 text-sky-400 text-lg">
                     🛒
                   </span>
-                  <span className="font-ui-persat text-xs uppercase tracking-wider text-white">Marketplace</span>
+                  <span className="font-ui text-xs uppercase tracking-wider text-white">Marketplace</span>
                 </Link>
 
                 <Link
@@ -269,7 +269,7 @@ export default function Home() {
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400 text-lg">
                     💬
                   </span>
-                  <span className="font-ui-persat text-xs uppercase tracking-wider text-white">Messages</span>
+                  <span className="font-ui text-xs uppercase tracking-wider text-white">Messages</span>
                 </Link>
 
                 <button
@@ -280,26 +280,26 @@ export default function Home() {
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-500/15 text-purple-400 text-lg">
                     ⚡
                   </span>
-                  <span className="font-ui-persat text-xs uppercase tracking-wider text-white">Test Funds</span>
+                  <span className="font-ui text-xs uppercase tracking-wider text-white">Test Funds</span>
                 </button>
               </div>
             </div>
 
             <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.02] p-3 font-mono text-[11px] text-white/50 flex items-center justify-between">
               <span>Solana Cluster: Devnet</span>
-              <span className="text-emerald-400">● Live 100% Non-Custodial</span>
+              <span className="text-emerald-400 font-semibold">● Non-Custodial Protocol</span>
             </div>
           </Card>
         </div>
 
         {/* Analytics & Pipeline Section */}
         <div className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
-          {/* Chart Card: Smooth Orange Glowing Wave Chart */}
+          {/* Chart Card */}
           <Card className="p-6 sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-4">
               <div>
                 <p className="eyebrow">Protocol Overview</p>
-                <h2 className="mt-1 font-display text-2xl uppercase text-white">
+                <h2 className="mt-1 font-display text-2xl font-bold uppercase text-white">
                   Lending Volume &amp; Liquidity
                 </h2>
               </div>
@@ -309,7 +309,7 @@ export default function Home() {
             </div>
 
             <div className="mt-5 flex items-baseline gap-3">
-              <span className="font-finance text-3xl sm:text-4xl text-white">
+              <span className="font-mono text-3xl sm:text-4xl font-bold text-white">
                 ${userBalances.totalUsdValue > 0 ? userBalances.totalUsdValue.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 font-mono text-xs text-emerald-400 border border-emerald-500/30">
@@ -354,7 +354,7 @@ export default function Home() {
           <Card className="p-6 sm:p-8 flex flex-col justify-between">
             <div>
               <p className="eyebrow">Protocol Health</p>
-              <h2 className="mt-1 font-display text-2xl uppercase text-white">
+              <h2 className="mt-1 font-display text-2xl font-bold uppercase text-white">
                 Loan Lifecycle Pipeline
               </h2>
 
@@ -394,7 +394,7 @@ export default function Home() {
                   </svg>
                   <div className="absolute text-center">
                     <p className="font-mono text-[10px] text-white/50 uppercase">Total</p>
-                    <p className="font-brand-persat text-2xl text-white">100%</p>
+                    <p className="font-mono text-2xl font-bold text-white">100%</p>
                   </div>
                 </div>
 
@@ -430,7 +430,7 @@ export default function Home() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
             <div>
               <p className="eyebrow">Activity Stream</p>
-              <h2 className="mt-1 font-display text-2xl uppercase text-white">
+              <h2 className="mt-1 font-display text-2xl font-bold uppercase text-white">
                 Live Deals on Devnet
               </h2>
             </div>
