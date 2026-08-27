@@ -22,15 +22,16 @@ export function Modal({
     >
       <div className="glass sheen w-full max-w-lg rounded-[24px] border border-white/15 p-6 sm:p-8 shadow-2xl">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="font-display-persat text-2xl uppercase tracking-wide text-white">
+          <h2 className="font-display text-2xl uppercase tracking-wide text-white">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/70 hover:border-amber hover:text-white transition"
-            aria-label="Close"
+            className="flex h-8 w-8 items-center justify-center font-mono text-lg text-white/50 hover:text-amber transition"
+            aria-label="Dismiss"
+            title="Dismiss"
           >
-            ✕
+            *
           </button>
         </div>
         {children}

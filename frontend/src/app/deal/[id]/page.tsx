@@ -14,6 +14,7 @@ import { MINTS, TREASURY } from "@/lib/protocol/config";
 import type { PublicKey } from "@solana/web3.js";
 import { DealShareModal } from "@/components/deal/DealShareModal";
 import { Modal } from "@/lib/design-system";
+import { FundWalletModal } from "@/components/wallet/FundWalletModal";
 
 function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
@@ -35,6 +36,7 @@ export default function DealPage() {
   const [error, setError] = useState("");
   const [shareOpen, setShareOpen] = useState(false);
   const [counterOpen, setCounterOpen] = useState(false);
+  const [fundingOpen, setFundingOpen] = useState(false);
   const [counterRate, setCounterRate] = useState("750");
   const [counterDuration, setCounterDuration] = useState("12");
 
@@ -414,9 +416,16 @@ export default function DealPage() {
             )}
 
             {pending.result && !pending.result.ok && (
-              <p role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-orange-50">
-                {pending.result.failure.message}
-              </p>
+              <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3.5 space-y-2 text-xs text-orange-50">
+                <p>{pending.result.failure.message}</p>
+                <button
+                  type="button"
+                  onClick={() => setFundingOpen(true)}
+                  className="rounded-full border border-amber/50 bg-amber/15 px-3 py-1 font-mono text-[11px] text-amber hover:bg-amber/25 transition"
+                >
+                  ⚡ Need Test Funds or Gas? Click to Dispense SOL + Tokens
+                </button>
+              </div>
             )}
 
             {pending.result?.ok && (
@@ -491,6 +500,13 @@ export default function DealPage() {
           </Button>
         </div>
       </Modal>
+
+      {/* In-Flow Fund Wallet Modal */}
+      <FundWalletModal
+        open={fundingOpen}
+        onClose={() => setFundingOpen(false)}
+        reason="Fund your connected wallet with Devnet SOL and test tokens to fulfill this transaction on-chain."
+      />
     </AppFrame>
   );
 }

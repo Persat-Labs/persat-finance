@@ -10,6 +10,7 @@ import { PublicKey } from "@solana/web3.js";
 import { DealShareModal } from "@/components/deal/DealShareModal";
 import { saveListing } from "@/lib/marketplace/marketplaceStore";
 import { getProfileByWalletOrUsername } from "@/lib/profile/userProfile";
+import { FundWalletModal } from "@/components/wallet/FundWalletModal";
 
 export default function NewDealPage() {
   const { publicKey, send, pending } = useProtocol();
@@ -22,6 +23,7 @@ export default function NewDealPage() {
   const [collateralBtc, setCollateralBtc] = useState("0.05");
   const [counterparty, setCounterparty] = useState("");
   const [createdDeal, setCreatedDeal] = useState<{ dealUrlId: string; signature?: string } | null>(null);
+  const [fundingOpen, setFundingOpen] = useState(false);
 
   const months = durationChoice === "custom" ? Math.max(1, Number(customMonths) || 1) : Number(durationChoice);
 
@@ -250,9 +252,16 @@ export default function NewDealPage() {
             )}
 
             {pending.result && !pending.result.ok && (
-              <p role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-orange-50">
-                {pending.result.failure.message}
-              </p>
+              <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3.5 space-y-2 text-xs text-orange-50">
+                <p>{pending.result.failure.message}</p>
+                <button
+                  type="button"
+                  onClick={() => setFundingOpen(true)}
+                  className="rounded-full border border-amber/50 bg-amber/15 px-3 py-1 font-mono text-[11px] text-amber hover:bg-amber/25 transition"
+                >
+                  ⚡ Need Test Funds? Click to Dispense SOL + Tokens
+                </button>
+              </div>
             )}
 
             <Button
@@ -326,6 +335,13 @@ export default function NewDealPage() {
           txSignature={pending.result?.ok ? pending.result.signature : undefined}
         />
       )}
+
+      {/* In-Flow Fund Wallet Modal */}
+      <FundWalletModal
+        open={fundingOpen}
+        onClose={() => setFundingOpen(false)}
+        reason="Fund your connected wallet with Devnet SOL and test tokens to propose this deal on-chain."
+      />
     </AppFrame>
   );
 }

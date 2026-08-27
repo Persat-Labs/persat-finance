@@ -90,9 +90,10 @@ export function MessagesDrawer({
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/70 hover:text-white"
+            className="flex h-8 w-8 items-center justify-center font-mono text-lg text-white/50 hover:text-amber transition"
+            title="Dismiss"
           >
-            ✕
+            *
           </button>
         </div>
 

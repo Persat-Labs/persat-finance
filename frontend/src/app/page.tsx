@@ -9,6 +9,8 @@ import { NotificationPopover } from "@/components/messaging/NotificationPopover"
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { useMarketplaceListings } from "@/lib/marketplace/marketplaceStore";
 import { useUserRealBalances } from "@/lib/protocol/userBalance";
+import { OnboardingFlow, useOnboarding } from "@/components/onboarding/OnboardingFlow";
+import { FundWalletModal } from "@/components/wallet/FundWalletModal";
 
 export default function Home() {
   const { connection, publicKey } = useProtocol();
@@ -17,6 +19,8 @@ export default function Home() {
   const { listings } = useMarketplaceListings();
   const userBalances = useUserRealBalances(connection, publicKey);
 
+  const { showOnboarding, openOnboarding, closeOnboarding } = useOnboarding();
+  const [fundingOpen, setFundingOpen] = useState(false);
   const [balanceVisible, setBalanceVisible] = useState(true);
 
   const userDisplayName = profile?.displayName
@@ -42,18 +46,13 @@ export default function Home() {
             </span>
           </div>
 
-          <div className="hidden items-center gap-6 font-mono text-xs uppercase tracking-widest text-white/70 md:flex">
+          {/* Clean Core Navigation (Faucet & Keeper removed) */}
+          <div className="hidden items-center gap-7 font-ui-persat text-xs uppercase tracking-wider text-white/70 md:flex">
             <Link href="/deal/new" className="hover:text-amber transition">
               Direct Deal
             </Link>
             <Link href="/marketplace" className="hover:text-amber transition">
               Marketplace
-            </Link>
-            <Link href="/faucet" className="hover:text-amber transition">
-              Faucet
-            </Link>
-            <Link href="/keeper" className="hover:text-amber transition">
-              Keeper
             </Link>
             <Link href="/messages" className="hover:text-amber transition">
               Messages
@@ -66,38 +65,59 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
+            {myWallet && (
+              <button
+                type="button"
+                onClick={() => setFundingOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-amber/40 bg-amber/10 px-3.5 py-1.5 font-ui-persat text-[11px] uppercase tracking-wider text-amber hover:bg-amber/20 transition"
+                title="Fund testnet tokens"
+              >
+                <span>⚡</span>
+                <span>Test Funds</span>
+              </button>
+            )}
             {myWallet && <NotificationPopover />}
             <WalletButton />
           </div>
         </nav>
       </header>
 
-      {/* Main Dashboard Workspace (Derived from Reference Design Layout) */}
+      {/* Main Dashboard Workspace */}
       <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-8 sm:pt-8 space-y-8 animate-reveal">
         {/* User Greeting Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-amber/40 bg-gradient-to-br from-amber/20 to-orange/30 font-display-persat text-lg text-white shadow-[0_0_15px_rgba(255,171,0,0.25)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-amber/40 bg-gradient-to-br from-amber/20 to-orange/30 font-display text-lg text-white shadow-[0_0_15px_rgba(255,171,0,0.25)]">
               {userDisplayName.slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <h1 className="font-display-persat text-xl uppercase tracking-wide text-white sm:text-2xl">
+              <h1 className="font-display text-xl uppercase tracking-wide text-white sm:text-2xl">
                 Hello, {userDisplayName} 👋
               </h1>
               <p className="font-mono text-xs text-white/50">
                 {publicKey
                   ? `Wallet: ${publicKey.toBase58().slice(0, 6)}…${publicKey.toBase58().slice(-4)}`
-                  : "Connect your wallet to view live balances & portfolio"}
+                  : "Connect your wallet to view real on-chain balances & portfolio"}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Link href="/faucet">
-              <Button variant="secondary" className="text-xs px-4 py-2">
-                ⚡ Claim Test Pack
-              </Button>
-            </Link>
+            <Button
+              variant="secondary"
+              onClick={() => setFundingOpen(true)}
+              className="text-xs px-4 py-2"
+            >
+              ⚡ Request Test Funds
+            </Button>
+            <button
+              type="button"
+              onClick={openOnboarding}
+              className="font-ui-persat text-xs uppercase tracking-wider text-white/40 hover:text-amber px-2 transition"
+              title="View Onboarding Walkthrough"
+            >
+              Guide ℹ
+            </button>
           </div>
         </div>
 
@@ -107,11 +127,11 @@ export default function Home() {
           <div className="fintech-card-orange relative overflow-hidden p-6 sm:p-8 text-white">
             <div className="relative z-10 flex items-start justify-between">
               <div>
-                <p className="font-mono text-xs uppercase tracking-widest text-white/80">
+                <p className="font-ui-persat text-xs uppercase tracking-widest text-white/80">
                   Total Balance
                 </p>
                 <div className="mt-2 flex items-baseline gap-3">
-                  <span className="font-finance-persat text-3xl sm:text-4xl tracking-tight">
+                  <span className="font-finance text-3xl sm:text-4xl tracking-tight">
                     {publicKey ? (
                       balanceVisible ? (
                         `$${userBalances.totalUsdValue.toLocaleString(undefined, {
@@ -152,10 +172,10 @@ export default function Home() {
             {/* Real User Balances Breakdown */}
             <div className="relative z-10 mt-8 pt-4 border-t border-white/20 flex flex-wrap items-baseline justify-between gap-4">
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-wider text-white/70">
+                <p className="font-ui-persat text-[11px] uppercase tracking-wider text-white/70">
                   Available Gas
                 </p>
-                <p className="font-mono text-base font-semibold">
+                <p className="font-finance text-base font-semibold">
                   {publicKey ? (
                     balanceVisible ? (
                       `${userBalances.solBalance.toFixed(4)} SOL`
@@ -169,10 +189,10 @@ export default function Home() {
               </div>
 
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-wider text-white/70">
+                <p className="font-ui-persat text-[11px] uppercase tracking-wider text-white/70">
                   Collateral Escrow
                 </p>
-                <p className="font-mono text-base font-semibold">
+                <p className="font-finance text-base font-semibold">
                   {publicKey ? (
                     balanceVisible ? (
                       `${userBalances.lockedCollateralBtc.toFixed(4)} tBTC Locked`
@@ -201,7 +221,7 @@ export default function Home() {
             </svg>
           </div>
 
-          {/* Quick Actions Panel from Reference */}
+          {/* Quick Actions Panel */}
           <Card className="p-6 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -217,7 +237,7 @@ export default function Home() {
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber/15 text-amber text-lg">
                     ⚡
                   </span>
-                  <span className="font-mono text-xs uppercase tracking-wider text-white">Direct Deal</span>
+                  <span className="font-ui-persat text-xs uppercase tracking-wider text-white">Direct Deal</span>
                 </Link>
 
                 <Link
@@ -227,28 +247,29 @@ export default function Home() {
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/15 text-sky-400 text-lg">
                     🛒
                   </span>
-                  <span className="font-mono text-xs uppercase tracking-wider text-white">Marketplace</span>
+                  <span className="font-ui-persat text-xs uppercase tracking-wider text-white">Marketplace</span>
                 </Link>
 
                 <Link
-                  href="/faucet"
+                  href="/messages"
                   className="flex flex-col items-center justify-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-center transition hover:border-amber hover:bg-white/[0.06] active:scale-95"
                 >
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400 text-lg">
-                    🚰
+                    💬
                   </span>
-                  <span className="font-mono text-xs uppercase tracking-wider text-white">Test Faucet</span>
+                  <span className="font-ui-persat text-xs uppercase tracking-wider text-white">Messages</span>
                 </Link>
 
-                <Link
-                  href="/keeper"
+                <button
+                  type="button"
+                  onClick={() => setFundingOpen(true)}
                   className="flex flex-col items-center justify-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-center transition hover:border-amber hover:bg-white/[0.06] active:scale-95"
                 >
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-500/15 text-purple-400 text-lg">
-                    ⚙️
+                    ⚡
                   </span>
-                  <span className="font-mono text-xs uppercase tracking-wider text-white">Keeper Bot</span>
-                </Link>
+                  <span className="font-ui-persat text-xs uppercase tracking-wider text-white">Test Funds</span>
+                </button>
               </div>
             </div>
 
@@ -259,14 +280,14 @@ export default function Home() {
           </Card>
         </div>
 
-        {/* Analytics & Pipeline Section (From Right Phone Reference Image) */}
+        {/* Analytics & Pipeline Section */}
         <div className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
           {/* Chart Card: Smooth Orange Glowing Wave Chart */}
           <Card className="p-6 sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-4">
               <div>
                 <p className="eyebrow">Protocol Overview</p>
-                <h2 className="mt-1 font-display-persat text-2xl uppercase text-white">
+                <h2 className="mt-1 font-display text-2xl uppercase text-white">
                   Lending Volume &amp; Liquidity
                 </h2>
               </div>
@@ -276,7 +297,7 @@ export default function Home() {
             </div>
 
             <div className="mt-5 flex items-baseline gap-3">
-              <span className="font-finance-persat text-3xl sm:text-4xl text-white">
+              <span className="font-finance text-3xl sm:text-4xl text-white">
                 ${userBalances.totalUsdValue > 0 ? userBalances.totalUsdValue.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 font-mono text-xs text-emerald-400 border border-emerald-500/30">
@@ -284,7 +305,7 @@ export default function Home() {
               </span>
             </div>
 
-            {/* Glowing SVG Wave Chart from Reference */}
+            {/* Glowing SVG Wave Chart */}
             <div className="mt-6 h-48 w-full relative">
               <svg className="h-full w-full overflow-visible" viewBox="0 0 500 150" preserveAspectRatio="none">
                 <defs>
@@ -293,12 +314,10 @@ export default function Home() {
                     <stop offset="100%" stopColor="#ff8a00" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
-                {/* Area fill */}
                 <path
                   d="M 0 130 Q 80 80, 160 110 T 320 60 T 440 20 L 500 40 L 500 150 L 0 150 Z"
                   fill="url(#chartGradient)"
                 />
-                {/* Stroke line */}
                 <path
                   d="M 0 130 Q 80 80, 160 110 T 320 60 T 440 20 L 500 40"
                   fill="none"
@@ -306,7 +325,6 @@ export default function Home() {
                   strokeWidth="3.5"
                   strokeLinecap="round"
                 />
-                {/* Peak point indicator dot */}
                 <circle cx="440" cy="20" r="6" fill="#ffffff" stroke="#ff8a00" strokeWidth="4" />
               </svg>
             </div>
@@ -320,16 +338,15 @@ export default function Home() {
             </div>
           </Card>
 
-          {/* Donut Pipeline Status Card from Right Phone Reference */}
+          {/* Donut Pipeline Status Card */}
           <Card className="p-6 sm:p-8 flex flex-col justify-between">
             <div>
               <p className="eyebrow">Protocol Health</p>
-              <h2 className="mt-1 font-display-persat text-2xl uppercase text-white">
+              <h2 className="mt-1 font-display text-2xl uppercase text-white">
                 Loan Lifecycle Pipeline
               </h2>
 
               <div className="mt-6 flex flex-col items-center sm:flex-row sm:justify-around gap-6">
-                {/* Donut Ring Chart */}
                 <div className="relative flex h-36 w-36 items-center justify-center">
                   <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
                     <circle
@@ -369,7 +386,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Pipeline Breakdown Legend */}
                 <div className="space-y-3 font-mono text-xs">
                   <div className="flex items-center gap-2.5">
                     <span className="h-2.5 w-2.5 rounded-full bg-[#ff8a00]" />
@@ -402,7 +418,7 @@ export default function Home() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
             <div>
               <p className="eyebrow">Activity Stream</p>
-              <h2 className="mt-1 font-display-persat text-2xl uppercase text-white">
+              <h2 className="mt-1 font-display text-2xl uppercase text-white">
                 Live Deals on Devnet
               </h2>
             </div>
@@ -455,6 +471,17 @@ export default function Home() {
 
       {/* Mobile Sticky Bottom Navigation Bar */}
       <BottomNav />
+
+      {/* Onboarding Flow Carousel & Welcome */}
+      {showOnboarding && (
+        <OnboardingFlow
+          onComplete={closeOnboarding}
+          onOpenFunding={() => setFundingOpen(true)}
+        />
+      )}
+
+      {/* In-Flow Fund Wallet Modal */}
+      <FundWalletModal open={fundingOpen} onClose={() => setFundingOpen(false)} />
     </main>
   );
 }

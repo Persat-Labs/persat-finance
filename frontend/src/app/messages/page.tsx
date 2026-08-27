@@ -287,7 +287,7 @@ export default function MessagesPage() {
                 <div className="mb-3 rounded-xl border border-amber/40 bg-black/80 p-4 font-mono text-xs space-y-3 animate-reveal">
                   <div className="flex items-center justify-between text-amber font-semibold">
                     <span>Attach Loan Offer</span>
-                    <button onClick={() => setShowProposeCard(false)} className="text-white/50 hover:text-white">✕</button>
+                    <button onClick={() => setShowProposeCard(false)} className="font-mono text-sm text-white/50 hover:text-amber" title="Dismiss">*</button>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>

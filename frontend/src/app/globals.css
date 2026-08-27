@@ -52,9 +52,9 @@
   --card-2: rgba(255, 255, 255, 0.028);
   --stroke: rgba(255, 255, 255, 0.09);
   --stroke-soft: rgba(255, 255, 255, 0.055);
-  --font-display: "Persat Sogea", "Arial Narrow", sans-serif;
+  --font-display: "Persat Cuaniex", "Plus Jakarta Sans", "Segoe UI", sans-serif;
   --font-finance: "Persat Cuaniex", "Segoe UI", sans-serif;
-  --font-panel: "Persat Rigter", "Arial Narrow", sans-serif;
+  --font-panel: "Persat Cuaniex", "Plus Jakarta Sans", sans-serif;
   --font-ui: "Persat Detra", "Arial Narrow", sans-serif;
   --font-brand: "Persat Gafter", "Segoe UI", sans-serif;
 }
