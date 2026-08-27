@@ -157,6 +157,19 @@ if (balance < 0.5) {
   process.exit(1);
 }
 
+/* AddAssetType inits the asset record with `payer = governance`, so the
+ * governance signer must hold rent for four records (~0.0017 SOL each) plus
+ * fees. Nobody funds it by default, so the deployer tops it up here once. */
+const GOV_TOPUP_LAMPORTS = 100_000_000; // 0.1 SOL
+const govBalance = await connection.getBalance(govSigner1.publicKey) / LAMPORTS_PER_SOL;
+if (govBalance < 0.05) {
+  console.log(`Governance signer 1 holds ${govBalance} SOL — topping up 0.1 SOL from the deployer for asset-record rent…`);
+  await send("fund_governance_signer_1", () =>
+    SystemProgram.transfer({ fromPubkey: deployer.publicKey, toPubkey: govSigner1.publicKey, lamports: GOV_TOPUP_LAMPORTS }));
+} else {
+  console.log(`Governance signer 1 balance: ${govBalance} SOL`);
+}
+
 /* PDAs */
 const governancePda = pda(["governance"], ids.governance);
 const oraclePda = pda(["oracle"], ids.price_oracle);
