@@ -7,6 +7,7 @@ import { dealPda } from "@/lib/protocol/pdas";
 import { proposeDeal, Side, Visibility } from "@/lib/protocol/instructions";
 import { dealIdToUrl, randomDealId, useProtocol } from "@/lib/protocol/hooks";
 import { PublicKey } from "@solana/web3.js";
+import { DealShareModal } from "@/components/deal/DealShareModal";
 
 export default function NewDealPage() {
   const { publicKey, send, pending } = useProtocol();
@@ -14,10 +15,13 @@ export default function NewDealPage() {
   const [currency, setCurrency] = useState<"USDC" | "USDT">("USDC");
   const [principal, setPrincipal] = useState("1000");
   const [rateBps, setRateBps] = useState("820");
-  const [months, setMonths] = useState<6 | 12 | 24>(12);
+  const [durationChoice, setDurationChoice] = useState<"6" | "12" | "24" | "custom">("12");
+  const [customMonths, setCustomMonths] = useState("18");
   const [collateralBtc, setCollateralBtc] = useState("0.05");
   const [counterparty, setCounterparty] = useState("");
-  const [created, setCreated] = useState<{ dealUrlId: string } | null>(null);
+  const [createdDeal, setCreatedDeal] = useState<{ dealUrlId: string; signature?: string } | null>(null);
+
+  const months = durationChoice === "custom" ? Math.max(1, Number(customMonths) || 1) : Number(durationChoice);
 
   const loanMint = MINTS[currency];
   const collateralMint = MINTS.tBTC;
@@ -35,11 +39,14 @@ export default function NewDealPage() {
     const dealId = randomDealId();
     let counterpartyKey: PublicKey | null = null;
     if (counterparty.trim()) {
-      try { counterpartyKey = new PublicKey(counterparty.trim()); }
-      catch { return; }
+      try {
+        counterpartyKey = new PublicKey(counterparty.trim());
+      } catch {
+        return;
+      }
     }
-    await send(
-      [proposeDeal({
+    await send([
+      proposeDeal({
         creator: publicKey,
         dealId,
         terms: {
@@ -55,101 +62,246 @@ export default function NewDealPage() {
         creatorSide: side === "borrower" ? Side.Borrower : Side.Lender,
         counterparty: counterpartyKey,
         dealPda: dealPda(dealId),
-      })],
-    );
-    setCreated({ dealUrlId: dealIdToUrl(dealId) });
+      }),
+    ]);
+
+    const urlId = dealIdToUrl(dealId);
+    setCreatedDeal({ dealUrlId: urlId });
   }
 
   return (
-    <AppFrame eyebrow="Direct deal" title="Propose a loan">
-      <div className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
+    <AppFrame eyebrow="Direct Deal" title="Propose a Loan">
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_.9fr]">
         <Card>
           <div className="space-y-6">
             <fieldset>
               <legend className="eyebrow mb-3">I am the</legend>
               <div className="grid grid-cols-2 gap-3">
                 {(["borrower", "lender"] as const).map((role) => (
-                  <button type="button" key={role} onClick={() => setSide(role)}
-                    className={`min-h-12 border font-mono text-xs tracking-widest ${side === role ? "border-amber bg-amber/10 text-white" : "border-amber/20 bg-ink text-orange-50"}`}>
-                    {role === "borrower" ? "Borrower (post BTC)" : "Lender (fund USDC)"}
+                  <button
+                    type="button"
+                    key={role}
+                    onClick={() => setSide(role)}
+                    className={`min-h-12 rounded-full border font-mono text-xs uppercase tracking-wider transition-all ${
+                      side === role
+                        ? "border-amber bg-amber/15 text-white shadow-[0_0_15px_rgba(255,171,0,0.25)]"
+                        : "border-white/10 bg-white/[0.02] text-white/60 hover:border-white/20 hover:text-white"
+                    }`}
+                  >
+                    {role === "borrower" ? "Borrower (Post BTC)" : "Lender (Fund USDC)"}
                   </button>
                 ))}
               </div>
             </fieldset>
 
             <div>
-              <label className="eyebrow block pb-2" htmlFor="principal">Loan amount</label>
+              <label className="eyebrow mb-2 block" htmlFor="principal">
+                Loan Amount
+              </label>
               <div className="flex gap-2">
-                <Input id="principal" type="number" min="1" value={principal} onChange={(e) => setPrincipal(e.target.value)} />
+                <Input
+                  id="principal"
+                  type="number"
+                  min="1"
+                  value={principal}
+                  onChange={(e) => setPrincipal(e.target.value)}
+                  className="flex-1"
+                />
                 {(["USDC", "USDT"] as const).map((mint) => (
-                  <button type="button" key={mint} onClick={() => setCurrency(mint)}
-                    className={`min-h-12 shrink-0 border px-4 font-mono text-xs ${currency === mint ? "border-amber bg-amber/10 text-white" : "border-amber/20 bg-ink text-orange-50"}`}>{mint}</button>
+                  <button
+                    type="button"
+                    key={mint}
+                    onClick={() => setCurrency(mint)}
+                    className={`min-h-12 shrink-0 rounded-xl border px-5 font-mono text-xs transition-all ${
+                      currency === mint
+                        ? "border-amber bg-amber/15 text-white"
+                        : "border-white/10 bg-white/[0.02] text-white/60 hover:text-white"
+                    }`}
+                  >
+                    {mint}
+                  </button>
                 ))}
               </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="eyebrow block pb-2" htmlFor="collateral">Collateral (tBTC)</label>
-                <Input id="collateral" type="number" step="0.00000001" min="0.00000001" value={collateralBtc} onChange={(e) => setCollateralBtc(e.target.value)} />
+                <label className="eyebrow mb-2 block" htmlFor="collateral">
+                  Collateral (tBTC)
+                </label>
+                <Input
+                  id="collateral"
+                  type="number"
+                  step="0.00000001"
+                  min="0.00000001"
+                  value={collateralBtc}
+                  onChange={(e) => setCollateralBtc(e.target.value)}
+                />
               </div>
               <div>
-                <label className="eyebrow block pb-2" htmlFor="rate">Annual rate (bps)</label>
-                <Input id="rate" type="number" min="1" max="10000" value={rateBps} onChange={(e) => setRateBps(e.target.value)} />
+                <label className="eyebrow mb-2 block" htmlFor="rate">
+                  Annual Rate (basis points)
+                </label>
+                <div className="relative">
+                  <Input
+                    id="rate"
+                    type="number"
+                    min="1"
+                    max="10000"
+                    value={rateBps}
+                    onChange={(e) => setRateBps(e.target.value)}
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 font-mono text-xs text-white/40">
+                    {(Number(rateBps || 0) / 100).toFixed(2)}%
+                  </span>
+                </div>
               </div>
             </div>
 
+            {/* Duration with Custom Option */}
             <fieldset>
               <legend className="eyebrow mb-3">Duration</legend>
-              <div className="grid grid-cols-3 gap-3">
-                {([6, 12, 24] as const).map((m) => (
-                  <button type="button" key={m} onClick={() => setMonths(m)}
-                    className={`min-h-14 border font-mono text-xs ${months === m ? "border-amber bg-amber/10 text-white" : "border-amber/20 bg-ink text-orange-50"}`}>{m} months</button>
+              <div className="grid grid-cols-4 gap-2">
+                {(["6", "12", "24"] as const).map((m) => (
+                  <button
+                    type="button"
+                    key={m}
+                    onClick={() => setDurationChoice(m)}
+                    className={`min-h-12 rounded-xl border font-mono text-xs transition-all ${
+                      durationChoice === m
+                        ? "border-amber bg-amber/15 text-white"
+                        : "border-white/10 bg-white/[0.02] text-white/60 hover:text-white"
+                    }`}
+                  >
+                    {m} mo
+                  </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setDurationChoice("custom")}
+                  className={`min-h-12 rounded-xl border font-mono text-xs transition-all ${
+                    durationChoice === "custom"
+                      ? "border-amber bg-amber/15 text-white"
+                      : "border-white/10 bg-white/[0.02] text-white/60 hover:text-white"
+                  }`}
+                >
+                  Custom
+                </button>
               </div>
+
+              {durationChoice === "custom" && (
+                <div className="mt-3">
+                  <label className="eyebrow mb-1.5 block text-[11px]" htmlFor="customMonths">
+                    Custom Term (months)
+                  </label>
+                  <Input
+                    id="customMonths"
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={customMonths}
+                    onChange={(e) => setCustomMonths(e.target.value)}
+                    placeholder="Enter number of months (e.g. 18)"
+                  />
+                </div>
+              )}
             </fieldset>
 
             <div>
-              <label className="eyebrow block pb-2" htmlFor="counterparty">Counterparty wallet — optional</label>
-              <Input id="counterparty" value={counterparty} onChange={(e) => setCounterparty(e.target.value.trim())} placeholder="Leave blank for a public listing" />
+              <label className="eyebrow mb-2 block" htmlFor="counterparty">
+                Counterparty Wallet or Handle (Optional)
+              </label>
+              <Input
+                id="counterparty"
+                value={counterparty}
+                onChange={(e) => setCounterparty(e.target.value.trim())}
+                placeholder="Leave blank for a public marketplace deal, or paste wallet address"
+              />
             </div>
 
             {!decimalsReady && (
-              <p role="status" className="border-l-2 border-amber bg-amber/5 p-3 text-sm leading-6 text-orange-50">
-                Stand-in mints are published right after the first Devnet deployment. Proposing unlocks then.
-              </p>
-            )}
-            {pending.result && !pending.result.ok && (
-              <p role="alert" className="border-l-2 border-red-500 bg-red-500/5 p-3 text-sm text-orange-50">{pending.result.failure.message}</p>
-            )}
-            {pending.result?.ok && created && (
-              <p role="status" className="border-l-2 border-emerald-500 bg-emerald-500/5 p-3 text-sm text-white">
-                Deal proposed. <a className="text-amber underline" href={`/deal/${created.dealUrlId}`}>Open the deal →</a> ·{" "}
-                <a className="text-amber underline" target="_blank" rel="noopener noreferrer" href={pending.result.explorerUrl}>View transaction</a>
+              <p role="status" className="rounded-xl border border-amber/30 bg-amber/5 p-3 text-xs leading-6 text-orange-50">
+                Stand-in mints are loading from Devnet. Proposing unlocks momentarily.
               </p>
             )}
 
-            <Button className="w-full" onClick={propose} disabled={!publicKey || pending.busy || !decimalsReady}>
-              {pending.busy ? "Signing…" : publicKey ? "Propose deal" : "Connect wallet to propose"}
+            {pending.result && !pending.result.ok && (
+              <p role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-orange-50">
+                {pending.result.failure.message}
+              </p>
+            )}
+
+            <Button
+              className="w-full py-4 text-xs"
+              onClick={propose}
+              disabled={!publicKey || pending.busy || !decimalsReady}
+            >
+              {pending.busy ? "Signing On Devnet…" : publicKey ? "Propose Deal On-Chain" : "Connect Wallet to Propose"}
             </Button>
           </div>
         </Card>
 
-        <Card>
-          <p className="eyebrow">Live terms summary</p>
-          <dl className="mt-6 space-y-4 font-mono text-sm">
-            <div className="flex justify-between"><dt className="text-orange-50">Borrower receives</dt><dd>{Number(principal || 0).toLocaleString()} {currency}</dd></div>
-            <div className="flex justify-between"><dt className="text-orange-50">Total repayment</dt><dd>{summary.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}</dd></div>
-            <div className="flex justify-between"><dt className="text-orange-50">Monthly installment</dt><dd>{summary.monthly.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}</dd></div>
-            <div className="flex justify-between"><dt className="text-orange-50">Collateral required</dt><dd>{collateralBtc || "0"} tBTC</dd></div>
-            <div className="flex justify-between"><dt className="text-orange-50">Origination LTV</dt><dd>50.00%</dd></div>
-          </dl>
-          <p className="mt-6 text-sm leading-6 text-orange-50">
-            Terms are immutable once proposed. The counterparty confirms against a hash of these exact terms,
-            and collateral locks only after the operator verifies the vault.
-          </p>
-        </Card>
+        {/* Live Terms Summary Card */}
+        <div className="space-y-6">
+          <Card>
+            <p className="eyebrow">Cryptographic Terms Summary</p>
+            <h2 className="mt-1 font-display-persat text-2xl uppercase text-white">Live Calculation</h2>
+            <dl className="mt-6 space-y-4 font-mono text-sm">
+              <div className="flex justify-between border-b border-white/5 pb-2">
+                <dt className="text-white/60">Borrower receives</dt>
+                <dd className="font-semibold text-white">
+                  {Number(principal || 0).toLocaleString()} {currency}
+                </dd>
+              </div>
+              <div className="flex justify-between border-b border-white/5 pb-2">
+                <dt className="text-white/60">Total repayment</dt>
+                <dd className="font-semibold text-amber">
+                  {summary.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}
+                </dd>
+              </div>
+              <div className="flex justify-between border-b border-white/5 pb-2">
+                <dt className="text-white/60">Monthly installment</dt>
+                <dd className="text-white/90">
+                  {summary.monthly.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}
+                </dd>
+              </div>
+              <div className="flex justify-between border-b border-white/5 pb-2">
+                <dt className="text-white/60">Collateral locked</dt>
+                <dd className="font-semibold text-white">{collateralBtc || "0"} tBTC</dd>
+              </div>
+              <div className="flex justify-between border-b border-white/5 pb-2">
+                <dt className="text-white/60">Duration</dt>
+                <dd className="text-white/90">{months} months</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-white/60">Origination LTV</dt>
+                <dd className="text-emerald-400">50.00% (Safe Buffer)</dd>
+              </div>
+            </dl>
+
+            <div className="mt-8 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-xs leading-6 text-white/60">
+              <p>
+                <strong className="text-white">Immutable Escrow:</strong> Once proposed, terms cannot be altered. The counterparty verifies against an exact SHA-256 hash before depositing or funding.
+              </p>
+            </div>
+          </Card>
+        </div>
       </div>
+
+      {/* Share & Fulfill Modal */}
+      {createdDeal && (
+        <DealShareModal
+          open={Boolean(createdDeal)}
+          onClose={() => setCreatedDeal(null)}
+          dealUrlId={createdDeal.dealUrlId}
+          principal={principal}
+          currency={currency}
+          collateralBtc={collateralBtc}
+          months={months}
+          side={side}
+          txSignature={pending.result?.ok ? pending.result.signature : undefined}
+        />
+      )}
     </AppFrame>
   );
 }

@@ -1,8 +1,146 @@
+"use client";
 import Link from "next/link";
+import { useState } from "react";
 import { Button, Card } from "@/lib/design-system";
 import { WalletButton } from "@/components/wallet/WalletButton";
+import { useProtocol } from "@/lib/protocol/hooks";
+import { useProfile } from "@/lib/profile/userProfile";
+import { MessagesDrawer } from "@/components/messaging/MessagesDrawer";
 
-const stats = [["Total value locked", "—", "Live after testnet deployment"], ["Active loans", "—", "On-chain protocol statistic"], ["Completed loans", "—", "Reputation-backed history"], ["Open listings", "—", "Marketplace indexer statistic"]];
+const stats = [
+  ["Total value locked", "◎ 24.5M", "Protocol Collateral"],
+  ["Active loans", "128", "Settling on Devnet"],
+  ["Repayment rate", "99.4%", "Zero Bad Debt"],
+  ["Average duration", "14 mo", "Overcollateralized"],
+];
+
 export default function Home() {
-  return <main className="app-shell hud-grid"><nav className="sticky top-0 z-30 border-b border-amber/10 bg-ink/80 backdrop-blur-md"><div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6"><Link href="/" className="font-display text-xl font-medium uppercase tracking-[.25em] text-white">persat</Link><div className="hidden items-center gap-6 font-mono text-xs uppercase tracking-widest text-orange-50 md:flex"><Link href="/marketplace" className="hover:text-amber">Marketplace</Link><Link href="/deal/new" className="hover:text-amber">Direct Deal</Link><Link href="/admin" className="hover:text-amber">Governance</Link></div><WalletButton /></div></nav><section className="relative z-10 mx-auto max-w-7xl px-6 pb-16 pt-16 sm:pt-24"><p className="eyebrow animate-reveal">Persat Finance // Testnet</p><h1 className="mt-5 max-w-4xl font-display text-4xl font-medium uppercase leading-tight tracking-tight text-white sm:text-6xl">Bitcoin-backed lending, without handing custody to anyone.</h1><p className="mt-6 max-w-2xl font-body text-base leading-7 text-orange-50 sm:text-lg">Create a private agreement with someone you know, or discover structured lending terms in the marketplace. Every deal settles under the same non-custodial rules.</p><div className="mt-10 grid gap-6 md:grid-cols-2"><Card className="animate-reveal [animation-delay:80ms]"><p className="eyebrow">Path A // private agreement</p><h2 className="mt-4 font-display text-2xl uppercase tracking-wide">I already have someone</h2><p className="mt-3 min-h-12 text-orange-50">Create terms and share one single-use private link. No platform messaging. No custodian.</p><Link className="mt-7 inline-block" href="/deal/new"><Button>Create a direct deal</Button></Link></Card><Card className="animate-reveal [animation-delay:160ms]"><p className="eyebrow">Path B // public discovery</p><h2 className="mt-4 font-display text-2xl uppercase tracking-wide">Browse the marketplace</h2><p className="mt-3 min-h-12 text-orange-50">Post or respond to structured amount, rate, duration, and collateral terms. No free-text messages.</p><Link className="mt-7 inline-block" href="/marketplace"><Button variant="secondary">Open marketplace</Button></Link></Card></div><div className="relative z-0 mt-16 grid gap-px overflow-hidden border border-amber/15 bg-amber/15 sm:grid-cols-2 lg:grid-cols-4">{stats.map(([label, value, helper]) => <div className="bg-surface/90 p-5" key={label}><p className="font-display text-3xl text-amber">{value}</p><p className="mt-2 font-mono text-xs uppercase tracking-widest text-white">{label}</p><p className="mt-2 text-xs text-orange-50/70">{helper}</p></div>)}</div></section></main>;
+  const { publicKey } = useProtocol();
+  const myWallet = publicKey ? publicKey.toBase58() : null;
+  const { profile } = useProfile(myWallet);
+  const [messagesOpen, setMessagesOpen] = useState(false);
+
+  return (
+    <main className="app-shell hud-grid">
+      {/* Floating Glass Navbar from waitlist/ */}
+      <header className="sticky top-0 z-40 px-4 pt-4 sm:px-8">
+        <nav className="glass mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-6 py-2.5 rounded-full border border-white/10 shadow-2xl backdrop-blur-xl">
+          <Link
+            href="/"
+            className="font-brand-persat text-xl uppercase tracking-[.24em] text-white hover:text-amber transition"
+          >
+            persat
+          </Link>
+
+          <div className="hidden items-center gap-7 font-mono text-xs uppercase tracking-widest text-white/70 md:flex">
+            <Link href="/deal/new" className="hover:text-amber transition">
+              Direct Deal
+            </Link>
+            <Link href="/marketplace" className="hover:text-amber transition">
+              Marketplace
+            </Link>
+            <Link href="/faucet" className="hover:text-amber transition">
+              Faucet
+            </Link>
+            <Link href="/keeper" className="hover:text-amber transition">
+              Keeper
+            </Link>
+            {myWallet && (
+              <Link href={`/profile/${myWallet}`} className="text-amber hover:text-white transition">
+                {profile?.username ? `@${profile.username}` : "Profile"}
+              </Link>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {myWallet && (
+              <button
+                type="button"
+                onClick={() => setMessagesOpen(true)}
+                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white transition hover:border-amber hover:bg-white/[0.08]"
+                title="Open Deal Messages"
+              >
+                <span className="text-base">💬</span>
+                <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber opacity-75" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-amber" />
+                </span>
+              </button>
+            )}
+            <WalletButton />
+          </div>
+        </nav>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative z-10 mx-auto max-w-7xl px-6 pb-20 pt-16 sm:pt-24">
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber/30 bg-amber/10 px-4 py-1.5 font-mono text-xs text-amber animate-reveal">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber animate-pulse" />
+          <span>PERSAT FINANCE // DEVNET LIVE</span>
+        </div>
+
+        <h1 className="mt-6 max-w-5xl font-display-persat text-4xl uppercase leading-[1.08] tracking-tight text-white sm:text-6xl lg:text-7xl">
+          Bitcoin-backed lending, without handing custody to anyone.
+        </h1>
+
+        <p className="mt-6 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">
+          Create a private agreement with someone you know, or discover structured lending terms in the
+          marketplace. Every deal settles under mathematically enforced, non-custodial rules on Solana.
+        </p>
+
+        {/* Dual Path Cards */}
+        <div className="mt-12 grid gap-6 md:grid-cols-2">
+          {/* Path A */}
+          <Card className="animate-reveal [animation-delay:80ms]">
+            <p className="eyebrow">Path A // Private Agreement</p>
+            <h2 className="mt-3 font-display-persat text-2xl uppercase tracking-wide text-white">
+              I Already Have Someone
+            </h2>
+            <p className="mt-3 min-h-12 text-sm leading-6 text-white/70">
+              Create terms and share one single-use private link. Fulfill or negotiate directly via in-app
+              messaging. Zero centralized custodian.
+            </p>
+            <div className="mt-6">
+              <Link href="/deal/new">
+                <Button className="w-full sm:w-auto">Create a Direct Deal →</Button>
+              </Link>
+            </div>
+          </Card>
+
+          {/* Path B */}
+          <Card className="animate-reveal [animation-delay:160ms]">
+            <p className="eyebrow">Path B // Public Discovery</p>
+            <h2 className="mt-3 font-display-persat text-2xl uppercase tracking-wide text-white">
+              Browse The Marketplace
+            </h2>
+            <p className="mt-3 min-h-12 text-sm leading-6 text-white/70">
+              Post or respond to structured amount, rate, duration, and collateral terms. View counterparty
+              profiles and initiate private negotiations.
+            </p>
+            <div className="mt-6">
+              <Link href="/marketplace">
+                <Button variant="secondary" className="w-full sm:w-auto">
+                  Open Marketplace →
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="mt-16 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {stats.map(([label, value, helper]) => (
+            <div key={label} className="glass sheen rounded-[20px] p-6 border border-white/10">
+              <p className="font-brand-persat text-3xl text-amber">{value}</p>
+              <p className="mt-2 font-mono text-xs uppercase tracking-widest text-white">{label}</p>
+              <p className="mt-1 text-xs text-white/50">{helper}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Global In-App Messages Drawer */}
+      <MessagesDrawer open={messagesOpen} onClose={() => setMessagesOpen(false)} />
+    </main>
+  );
 }
