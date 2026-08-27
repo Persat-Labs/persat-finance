@@ -119,17 +119,46 @@ if (signersConfig.some((s) => String(s).includes("PLACEHOLDER"))) {
   process.exit(1);
 }
 
-async function send(name, buildInstruction) {
-  const ix = buildInstruction();
-  const tx = new Transaction().add(ix);
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
-  tx.recentBlockhash = blockhash;
-  tx.feePayer = deployer.publicKey;
-  tx.partialSign(...ix.keys.some((k) => k.pubkey.equals(govSigner1.publicKey) && k.isSigner) ? [deployer, govSigner1] : [deployer]);
-  const signature = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false, maxRetries: 3 });
-  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
-  manifest.signatures[name] = signature;
-  console.log(`  ✓ ${name}: ${signature}`);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const transient = (err) =>
+  /Blockhash not found|429|Too Many Requests|Timed out|NetworkError|Failed to fetch/i.test(
+    String(err && err.message ? err.message : err),
+  );
+
+async function send(name, buildInstruction, attempts = 5) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const ix = buildInstruction();
+      const tx = new Transaction().add(ix);
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+      tx.recentBlockhash = blockhash;
+      tx.feePayer = deployer.publicKey;
+      tx.partialSign(...ix.keys.some((k) => k.pubkey.equals(govSigner1.publicKey) && k.isSigner) ? [deployer, govSigner1] : [deployer]);
+      const signature = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false, maxRetries: 3 });
+      await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
+      manifest.signatures[name] = signature;
+      console.log(`  ✓ ${name}: ${signature}`);
+      return signature;
+    } catch (err) {
+      // The public devnet RPC is heavily rate-limited (429); a delayed send can
+      // outlive its blockhash. Rebuild and re-sign with a fresh one.
+      if (attempt >= attempts || !transient(err)) throw err;
+      console.log(`  … ${name}: ${String(err && err.message ? err.message : err).slice(0, 90)} — retry ${attempt}/${attempts - 1}`);
+      await sleep(750 * attempt);
+    }
+  }
+}
+
+async function createMintRetry(attempts = 5, ...args) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await createMint(...args);
+    } catch (err) {
+      if (attempt >= attempts || !transient(err)) throw err;
+      console.log(`  … mint creation: ${String(err && err.message ? err.message : err).slice(0, 90)} — retry ${attempt}/${attempts - 1}`);
+      await sleep(750 * attempt);
+    }
+  }
 }
 
 const exists = async (address) => (await connection.getAccountInfo(address)) !== null;
@@ -289,13 +318,18 @@ const assetPlans = [
 manifest.assetPlans = assetPlans.map((a) => ({ symbol: a.symbol, kind: a.kind, decimals: a.decimals, risk: a.riskParameters }));
 
 for (const asset of assetPlans) {
+  await sleep(300); // gentle pacing: the public RPC budget is 100 req / 10 s
   const existing = manifest.mints?.[asset.symbol];
   let mint;
-  if (existing && (await exists(new PublicKey(existing)))) {
+  const configured = String(asset.mint || "");
+  if (!configured.includes("PLACEHOLDER") && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(configured)) {
+    mint = new PublicKey(configured);
+    console.log(`  = ${asset.symbol}: reusing mint configured in devnet.json (${mint.toBase58()})`);
+  } else if (existing && (await exists(new PublicKey(existing)))) {
     mint = new PublicKey(existing);
     console.log(`  = ${asset.symbol}: mint exists, reusing ${mint.toBase58()}`);
   } else {
-    mint = await createMint(connection, deployer, deployer.publicKey, null, asset.decimals);
+    mint = await createMintRetry(5, connection, deployer, deployer.publicKey, null, asset.decimals);
     console.log(`  ✓ ${asset.symbol} mint (${asset.decimals} dp): ${mint.toBase58()}`);
   }
   manifest.mints[asset.symbol] = mint.toBase58();
