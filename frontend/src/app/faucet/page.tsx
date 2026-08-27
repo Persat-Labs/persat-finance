@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { AppFrame } from "@/components/AppFrame";
 import { Button, Card } from "@/lib/design-system";
 import { useProtocol } from "@/lib/protocol/hooks";
@@ -8,6 +9,7 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 export default function Faucet() {
   const { connection, publicKey } = useProtocol();
+  const { setVisible } = useWalletModal();
   const [airdropState, setAirdropState] = useState<{ status: "idle" | "busy" | "ok" | "err"; message: string }>({ status: "idle", message: "" });
 
   async function claimSol() {
@@ -31,7 +33,11 @@ export default function Faucet() {
           <p className="eyebrow">Network fees</p>
           <h2 className="mt-3 font-display text-2xl uppercase">Devnet SOL</h2>
           <p className="mt-3 text-sm leading-6 text-orange-50">Every on-chain action needs a little SOL for fees. Claim 1 Devnet SOL to the connected wallet (public faucet, rate-limited).</p>
-          <Button className="mt-7 w-full" disabled={!publicKey || airdropState.status === "busy"} onClick={claimSol}>
+          <Button
+            className="mt-7 w-full"
+            disabled={airdropState.status === "busy"}
+            onClick={publicKey ? claimSol : () => setVisible(true)}
+          >
             {airdropState.status === "busy" ? "Claiming…" : publicKey ? "Claim 1 Devnet SOL" : "Connect wallet to claim"}
           </Button>
           {airdropState.status !== "idle" && (
