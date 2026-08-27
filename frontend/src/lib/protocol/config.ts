@@ -43,10 +43,10 @@ export const TREASURY = OPERATOR;
 
 /** Stand-in mint addresses, filled from devnet-deployed.json after first deploy. */
 export const MINTS: Record<"tBTC" | "zBTC" | "USDC" | "USDT", PublicKey | null> = {
-  tBTC: null,
-  zBTC: null,
-  USDC: null,
-  USDT: null,
+  tBTC: new PublicKey("79ALd5ZPZNRLSwaWgFKbtffSSNFDS3TZh3faVbgdNhDg"),
+  zBTC: new PublicKey("DqQ1yzTPsfpuMMyuV6mVBvusxpq9mqmTTJZ4yMUQwQEt"),
+  USDC: new PublicKey("FsSPdkdWnb8R7oziaiYFvhMbhHT7Sd9Uq55t88B7Muqe"),
+  USDT: new PublicKey("8zdnnnuNJPNDkGTCxREnTyKnRo494By7MrDSTYtRx1aJ"),
 };
 
 /** Pyth pull-oracle constants (identical on every cluster). */

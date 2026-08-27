@@ -1,0 +1,45 @@
+{
+  "$source": "Run 33056824911 (Deploy programs to Devnet), 2026-08-27. Authoritative copy: the run's devnet-deployment artifact. Public data only.",
+  "cluster": "devnet",
+  "rpcUrl": "https://api.devnet.solana.com",
+  "deployedAt": "2026-08-27T09:09:22Z",
+  "programs": {
+    "governance": "gSCWC42bnn8XbRNXt7FdoGPGqG5dkfMihqYj8xhGwuj",
+    "price_oracle": "8udyx5YywfH7KTk6WyaECzaqenyni4JQrWpF5y774qgc",
+    "asset_whitelist": "F9m5MaeNeLurf1A3fuwL9EEP6ZNJ6e46UqnW26LvjqSe",
+    "deal_registry": "2jGypEsuyB31ZFUfgLvLLEEAJHdWdMoVimeWWTrzGks2",
+    "escrow_vault": "ETZyNBxrn43GApFkiAwfEimzWC93P7nEdSQMcT8Snmy3",
+    "loan_lifecycle": "HLsDiU1oABybsQhXxnodvoG9tngwTDZGeKwMG5i9Lo3p",
+    "liquidation_engine": "C2nL9d8EyyeEz5XQiJVLACMjN9S8GVBvxV9FQ65VTtUx",
+    "fee_treasury": "Gnq8qb2Rmnua296VcQ7KHZsuav5ZnWTsP39xCYv8aK5V"
+  },
+  "mints": {
+    "tBTC": "79ALd5ZPZNRLSwaWgFKbtffSSNFDS3TZh3faVbgdNhDg",
+    "zBTC": "DqQ1yzTPsfpuMMyuV6mVBvusxpq9mqmTTJZ4yMUQwQEt",
+    "USDC": "FsSPdkdWnb8R7oziaiYFvhMbhHT7Sd9Uq55t88B7Muqe",
+    "USDT": "8zdnnnuNJPNDkGTCxREnTyKnRo494By7MrDSTYtRx1aJ"
+  },
+  "governance": {
+    "signers": [
+      "99QGZmjKBsm9Bcnw21jn61Qe9SLAKS5ZAFoKLZDu3aAD",
+      "9Az4yhFKRoGhCiJLY5ubS3ybLL9F4hvgKj4SQSnbURv2",
+      "F4rJY7TBP3eG381MTm5SwzehwPKYG5XA8T2etMD67Mki"
+    ],
+    "treasury": "99QGZmjKBsm9Bcnw21jn61Qe9SLAKS5ZAFoKLZDu3aAD"
+  },
+  "operator": {
+    "pubkey": "99QGZmjKBsm9Bcnw21jn61Qe9SLAKS5ZAFoKLZDu3aAD",
+    "note": "Governance signer 1 doubles as the devnet operator/keeper. Signs lock_vault, begin_funding, mark_active, close_deal, release_collateral, seize_collateral, mark_liquidated, record_origination_fee."
+  },
+  "signatures": {
+    "initialize_governance": "5LBxKXMdmAc34cfqdCyuArwuVdp8rxUSgv685y4cPRFhcW3AeLjXqfHNKbDBQZpLL11no6rYeuL5zThi3BkDv93L",
+    "initialize_oracle": "2mcKrEjtT1CHDzovFHgqhvAX2VNnpk43uhg14zsAMtcWcfF2H91gYKq4xshTduZNYzV7VxNvjA6Ub1MgB7dvg4Ac",
+    "initialize_asset_registry": "3mreSN3z4prqgbo6gS1ZR4jpuFHFtkPH5marPxpwFTV5RXhFm2LshVKsTfZ9JnHZYjbtkmQihD943hKQGYtJvLNX",
+    "initialize_deal_registry": "2GiP9o99UfTsCne7eg8L5UUVQYeETBeyiGKcj9yAvdFej5Yq3ayruKDbFZddbM8UTVnKhJ3XBHyAKFXoHx7WStjR",
+    "initialize_loan_config": "DkZr7AjF8vQFaf6xazPD9DoHCYr7dbJbcAffPBB6n43NrZWxEbZRNLF25hncHo2vam4npcKQ6nHWkGkik8JbjPf",
+    "initialize_engine": "2KZDyDapBVxWEjHiayZjQk5FKT9NSKsitTvNzi7zuFrREzS8pqz9v2rvwZE37hB3n5zFYhPF5MFawypjSbdVcXm",
+    "initialize_treasury": "8m7BaSMJFdEhWaCCgFJTASbsHyK1CPahiRNWJqX9h4Hk9wgUFbTwyo3VbN3ECaiHc4RutuLgzye3KDFzgxucpzb",
+    "add_asset_zBTC": "4wcGcV7Km3yA5vExZQ9X3fTTuJqqBpbFxepxwvA8QzmCAHBnyxL6EAJC1BpH8NkhSukc2ixwPocpa7mEHsCoPzwS",
+    "add_asset_USDT": "mrz4LCW8uS8BnE6tbocSVMvZQbCfoDwhz4M9DfzWv1HtCDHJQyZShGgBhUExVejMB2dCvbqqGj8PpXRmD3Zh83M"
+  }
+}
