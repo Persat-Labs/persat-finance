@@ -74,7 +74,7 @@
       },
       {
         "symbol": "zBTC",
-        "mint": "PLACEHOLDER_CREATE_DEVNET_MINT",
+        "mint": "DqQ1yzTPsfpuMMyuV6mVBvusxpq9mqmTTJZ4yMUQwQEt",
         "decimals": 8,
         "bridge": "Zeus Network",
         "riskParameters": {
@@ -96,7 +96,7 @@
       },
       {
         "symbol": "USDT",
-        "mint": "PLACEHOLDER_CREATE_DEVNET_MINT",
+        "mint": "8zdnnnuNJPNDkGTCxREnTyKnRo494By7MrDSTYtRx1aJ",
         "decimals": 6,
         "$comment": "Treated as exactly $1. No oracle feed, by protocol policy."
       }

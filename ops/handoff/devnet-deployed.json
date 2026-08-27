@@ -1,0 +1,128 @@
+{
+  "$comment": "Reconstructed from the Day-0 deployment (run 33056824911, green). Program ids, PDAs and mint addresses are derived from contracts/config/devnet.json + the stand-in mints registered in that run. The original per-step transaction signatures live in the `devnet-deployment` artifact of Actions run 33056824911 and are appended below as they are re-derivable / re-recorded during Day-1 lifecycle verification.",
+  "cluster": "devnet",
+  "rpcUrl": "https://api.devnet.solana.com",
+  "deployedAt": "2026-08-27T00:00:00.000Z",
+  "deploymentRun": 33056824911,
+  "programs": {
+    "governance": "gSCWC42bnn8XbRNXt7FdoGPGqG5dkfMihqYj8xhGwuj",
+    "price_oracle": "8udyx5YywfH7KTk6WyaECzaqenyni4JQrWpF5y774qgc",
+    "asset_whitelist": "F9m5MaeNeLurf1A3fuwL9EEP6ZNJ6e46UqnW26LvjqSe",
+    "deal_registry": "2jGypEsuyB31ZFUfgLvLLEEAJHdWdMoVimeWWTrzGks2",
+    "escrow_vault": "ETZyNBxrn43GApFkiAwfEimzWC93P7nEdSQMcT8Snmy3",
+    "loan_lifecycle": "HLsDiU1oABybsQhXxnodvoG9tngwTDZGeKwMG5i9Lo3p",
+    "liquidation_engine": "C2nL9d8EyyeEz5XQiJVLACMjN9S8GVBvxV9FQ65VTtUx",
+    "fee_treasury": "Gnq8qb2Rmnua296VcQ7KHZsuav5ZnWTsP39xCYv8aK5V"
+  },
+  "pdas": {
+    "governance": "HwJeffPD8vbJv7CfZ8iAWL4GakCqSZNBBCLZSbjoUgdN",
+    "oracle": "5GBf6NUvPYPYUFimK5in9w97Cc2qfmPawcxW8mdRHKqy",
+    "assetRegistry": "ArsDzmBEfqEzruNd2vmo1tV3UmVcSbHFVx83FBCDa3dS",
+    "dealConfig": "5VP6WmSTp5aakBDqYzhUvr6VpP48hhsZkkoFAHDxRHbT",
+    "loanConfig": "EnTkJYPqcpZe36TgRJWeCEUcc2kpahmHip26CVEwgi5z",
+    "engine": "2ci1pT87JUD67HjpXJmXA9AiPsekFrcV6bwXFT681upp",
+    "treasury": "FQ5q39coUS19DagXAALXVGToP2GuhRGMvkQ7zc3n1kAA"
+  },
+  "mints": {
+    "tBTC": "79ALd5ZPZNRLSwaWgFKbtffSSNFDS3TZh3faVbgdNhDg",
+    "zBTC": "DqQ1yzTPsfpuMMyuV6mVBvusxpq9mqmTTJZ4yMUQwQEt",
+    "USDC": "FsSPdkdWnb8R7oziaiYFvhMbhHT7Sd9Uq55t88B7Muqe",
+    "USDT": "8zdnnnuNJPNDkGTCxREnTyKnRo494By7MrDSTYtRx1aJ"
+  },
+  "governance": {
+    "signers": [
+      "99QGZmjKBsm9Bcnw21jn61Qe9SLAKS5ZAFoKLZDu3aAD",
+      "9Az4yhFKRoGhCiJLY5ubS3ybLL9F4hvgKj4SQSnbURv2",
+      "F4rJY7TBP3eG381MTm5SwzehwPKYG5XA8T2etMD67Mki"
+    ],
+    "treasury": "99QGZmjKBsm9Bcnw21jn61Qe9SLAKS5ZAFoKLZDu3aAD"
+  },
+  "operator": {
+    "pubkey": "99QGZmjKBsm9Bcnw21jn61Qe9SLAKS5ZAFoKLZDu3aAD",
+    "note": "Signs lock_vault, begin_funding, mark_active, close_deal, release_collateral, seize_collateral, mark_liquidated, and record_origination_fee. Vaults MUST be initialized with this address as both the loan and liquidation authority.",
+    "actions": [
+      "lock_vault",
+      "begin_funding",
+      "mark_active",
+      "close_deal",
+      "release_collateral",
+      "seize_collateral",
+      "mark_liquidated",
+      "record_origination_fee"
+    ]
+  },
+  "assetPlans": [
+    {
+      "symbol": "tBTC",
+      "kind": "collateral",
+      "decimals": 8,
+      "risk": {
+        "maxLtvBps": 5000,
+        "partialLiquidationLtvBps": 7000,
+        "fullLiquidationLtvBps": 8000,
+        "liquidationPenaltyBps": 500,
+        "maxPartialLiquidationBps": 2000
+      }
+    },
+    {
+      "symbol": "zBTC",
+      "kind": "collateral",
+      "decimals": 8,
+      "risk": {
+        "maxLtvBps": 5000,
+        "partialLiquidationLtvBps": 7000,
+        "fullLiquidationLtvBps": 8000,
+        "liquidationPenaltyBps": 500,
+        "maxPartialLiquidationBps": 2000
+      }
+    },
+    {
+      "symbol": "USDC",
+      "kind": "loanCurrency",
+      "decimals": 6,
+      "risk": {
+        "maxLtvBps": 5000,
+        "partialLiquidationLtvBps": 7000,
+        "fullLiquidationLtvBps": 8000,
+        "liquidationPenaltyBps": 500,
+        "maxPartialLiquidationBps": 2000
+      }
+    },
+    {
+      "symbol": "USDT",
+      "kind": "loanCurrency",
+      "decimals": 6,
+      "risk": {
+        "maxLtvBps": 5000,
+        "partialLiquidationLtvBps": 7000,
+        "fullLiquidationLtvBps": 8000,
+        "liquidationPenaltyBps": 500,
+        "maxPartialLiquidationBps": 2000
+      }
+    }
+  ],
+  "initialized": [
+    "governance",
+    "price_oracle",
+    "asset_whitelist",
+    "deal_registry",
+    "loan_lifecycle",
+    "liquidation_engine",
+    "fee_treasury",
+    "asset:tBTC",
+    "asset:zBTC",
+    "asset:USDC",
+    "asset:USDT"
+  ],
+  "signatures": {},
+  "explorer": {
+    "governance": "https://explorer.solana.com/address/gSCWC42bnn8XbRNXt7FdoGPGqG5dkfMihqYj8xhGwuj?cluster=devnet",
+    "price_oracle": "https://explorer.solana.com/address/8udyx5YywfH7KTk6WyaECzaqenyni4JQrWpF5y774qgc?cluster=devnet",
+    "asset_whitelist": "https://explorer.solana.com/address/F9m5MaeNeLurf1A3fuwL9EEP6ZNJ6e46UqnW26LvjqSe?cluster=devnet",
+    "deal_registry": "https://explorer.solana.com/address/2jGypEsuyB31ZFUfgLvLLEEAJHdWdMoVimeWWTrzGks2?cluster=devnet",
+    "escrow_vault": "https://explorer.solana.com/address/ETZyNBxrn43GApFkiAwfEimzWC93P7nEdSQMcT8Snmy3?cluster=devnet",
+    "loan_lifecycle": "https://explorer.solana.com/address/HLsDiU1oABybsQhXxnodvoG9tngwTDZGeKwMG5i9Lo3p?cluster=devnet",
+    "liquidation_engine": "https://explorer.solana.com/address/C2nL9d8EyyeEz5XQiJVLACMjN9S8GVBvxV9FQ65VTtUx?cluster=devnet",
+    "fee_treasury": "https://explorer.solana.com/address/Gnq8qb2Rmnua296VcQ7KHZsuav5ZnWTsP39xCYv8aK5V?cluster=devnet"
+  }
+}

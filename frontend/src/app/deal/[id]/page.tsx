@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/AppFrame";
 import { Button, Card } from "@/lib/design-system";
 import { dealIdFromUrl, useProtocol } from "@/lib/protocol/hooks";
@@ -18,14 +18,13 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 export default function DealPage() {
-  const params = useSearchParams();
+  const params = useParams<{ id: string }>();
   const { connection, publicKey, send, ataOf, pending } = useProtocol();
   const [deal, setDeal] = useState<DecodedDeal | null>(null);
   const [vault, setVault] = useState<DecodedVault | null>(null);
   const [loan, setLoan] = useState<DecodedLoan | null>(null);
   const [error, setError] = useState("");
-  const idParam = params.get("id");
-  const dealId = idParam ? dealIdFromUrl(idParam) : null;
+  const dealId = params.id ? dealIdFromUrl(params.id) : null;
 
   const reload = useCallback(async () => {
     if (!dealId) return;
