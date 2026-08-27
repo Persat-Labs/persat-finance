@@ -5,7 +5,12 @@ import Link from "next/link";
 import { AppFrame } from "@/components/AppFrame";
 import { Button, Card, Input, Modal } from "@/lib/design-system";
 import { useProtocol } from "@/lib/protocol/hooks";
-import { getProfileByWalletOrUsername, saveProfile, UserProfile } from "@/lib/profile/userProfile";
+import {
+  getProfileByWalletOrUsername,
+  saveProfile,
+  isUsernameAvailable,
+  UserProfile,
+} from "@/lib/profile/userProfile";
 import { MessagesDrawer } from "@/components/messaging/MessagesDrawer";
 import { useMarketplaceListings } from "@/lib/marketplace/marketplaceStore";
 
@@ -24,21 +29,38 @@ export default function ProfilePage() {
   const [usernameInput, setUsernameInput] = useState(profile?.username || "");
   const [displayNameInput, setDisplayNameInput] = useState(profile?.displayName || "");
   const [bioInput, setBioInput] = useState(profile?.bio || "");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const isMyProfile = Boolean(myWallet && profile && profile.wallet === myWallet);
 
+  // Real-time username availability validation
+  const cleanInput = usernameInput.trim().toLowerCase().replace(/^@/, "");
+  const isUnchanged = profile ? cleanInput === profile.username.toLowerCase() : false;
+  const check = isUsernameAvailable(cleanInput, profile?.wallet);
+  const isAvailable = isUnchanged || check.available;
+
   const handleSave = () => {
     if (!profile) return;
-    const cleanHandle = usernameInput.trim().toLowerCase().replace(/^@/, "");
-    if (!cleanHandle) return;
+    if (!isAvailable) {
+      setErrorMessage(check.reason || "Username is not available.");
+      return;
+    }
+
     const updated: UserProfile = {
       ...profile,
-      username: cleanHandle,
-      displayName: displayNameInput.trim() || `@${cleanHandle}`,
+      username: cleanInput,
+      displayName: displayNameInput.trim() || `@${cleanInput}`,
       bio: bioInput.trim(),
     };
-    saveProfile(updated);
+
+    const res = saveProfile(updated);
+    if (!res.ok) {
+      setErrorMessage(res.error || "Failed to save profile.");
+      return;
+    }
+
     setProfile(updated);
+    setErrorMessage("");
     setEditOpen(false);
   };
 
@@ -64,12 +86,12 @@ export default function ProfilePage() {
         <Card>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber/40 bg-gradient-to-br from-amber/20 to-orange/30 text-2xl font-display-persat text-white shadow-[0_0_20px_rgba(255,171,0,0.2)]">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber/40 bg-gradient-to-br from-amber/20 to-orange/30 text-2xl font-bold text-white shadow-[0_0_20px_rgba(255,171,0,0.2)]">
                 {profile.displayName.slice(0, 2).toUpperCase()}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-display-persat text-2xl uppercase text-white">{profile.displayName}</h2>
+                  <h2 className="font-display text-2xl uppercase tracking-tight text-white">{profile.displayName}</h2>
                   <span className="rounded-full bg-amber/20 px-2 py-0.5 font-mono text-[10px] text-amber border border-amber/40">
                     Verified
                   </span>
@@ -83,7 +105,17 @@ export default function ProfilePage() {
 
             <div className="flex gap-2">
               {isMyProfile ? (
-                <Button variant="secondary" onClick={() => setEditOpen(true)} className="text-xs">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setUsernameInput(profile.username);
+                    setDisplayNameInput(profile.displayName);
+                    setBioInput(profile.bio);
+                    setErrorMessage("");
+                    setEditOpen(true);
+                  }}
+                  className="text-xs"
+                >
                   Edit Profile
                 </Button>
               ) : (
@@ -100,15 +132,15 @@ export default function ProfilePage() {
 
           <div className="mt-8 grid grid-cols-2 gap-4 border-t border-white/10 pt-6 sm:grid-cols-4">
             <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
-              <p className="font-brand-persat text-2xl text-amber">{profile.reputationScore}</p>
+              <p className="font-mono text-2xl text-amber font-bold">{profile.reputationScore}</p>
               <p className="font-mono text-[10px] uppercase tracking-wider text-white/50 mt-1">Trust Score</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
-              <p className="font-brand-persat text-2xl text-white">{profile.totalDeals}</p>
+              <p className="font-mono text-2xl text-white font-bold">{profile.totalDeals}</p>
               <p className="font-mono text-[10px] uppercase tracking-wider text-white/50 mt-1">Deals Done</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
-              <p className="font-brand-persat text-2xl text-emerald-400">{profile.activeLoans}</p>
+              <p className="font-mono text-2xl text-emerald-400 font-bold">{profile.activeLoans}</p>
               <p className="font-mono text-[10px] uppercase tracking-wider text-white/50 mt-1">Active Loans</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
@@ -123,7 +155,7 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="eyebrow">Marketplace Activity</p>
-              <h3 className="mt-1 font-display-persat text-xl uppercase text-white">Listings by User</h3>
+              <h3 className="mt-1 font-display text-xl uppercase tracking-tight text-white">Listings by User</h3>
             </div>
             {isMyProfile && (
               <Link href="/deal/new">
@@ -165,21 +197,45 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      {/* Edit Profile Modal */}
+      {/* Edit Profile Modal with Real-Time Availability Check */}
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Profile">
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
-            <label className="eyebrow mb-1.5 block text-xs">Username (Handle)</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="eyebrow text-xs">Unique Username (Handle)</label>
+              {cleanInput && (
+                <span
+                  className={`font-mono text-[11px] ${
+                    isAvailable ? "text-emerald-400" : "text-red-400"
+                  }`}
+                >
+                  {isUnchanged
+                    ? "✓ Current username"
+                    : isAvailable
+                    ? `✓ @${cleanInput} is available`
+                    : `✕ ${check.reason}`}
+                </span>
+              )}
+            </div>
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-amber">@</span>
               <Input
                 value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value.replace(/\s+/g, ""))}
-                placeholder="your_handle"
-                className="pl-8"
+                onChange={(e) => {
+                  setUsernameInput(e.target.value.replace(/\s+/g, ""));
+                  setErrorMessage("");
+                }}
+                placeholder="your_unique_handle"
+                className={`pl-8 ${
+                  !isAvailable && cleanInput ? "border-red-500/60 focus:border-red-500" : ""
+                }`}
               />
             </div>
+            <p className="mt-1 font-mono text-[10px] text-white/40">
+              Only letters, numbers, and underscores (3-20 characters).
+            </p>
           </div>
+
           <div>
             <label className="eyebrow mb-1.5 block text-xs">Display Name</label>
             <Input
@@ -188,16 +244,28 @@ export default function ProfilePage() {
               placeholder="e.g. Satoshi"
             />
           </div>
+
           <div>
             <label className="eyebrow mb-1.5 block text-xs">Bio / Trading Focus</label>
             <textarea
               value={bioInput}
               onChange={(e) => setBioInput(e.target.value)}
-              placeholder="Tell other lenders and borrowers about your terms and preferences..."
+              placeholder="Describe your lending terms, collateral requirements, or borrowing plans..."
               className="h-24 w-full rounded-xl border border-white/10 bg-white/[0.03] p-3 font-body text-sm text-white outline-none focus:border-amber"
             />
           </div>
-          <Button onClick={handleSave} className="w-full py-3 text-xs">
+
+          {errorMessage && (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 font-mono text-xs text-red-300">
+              {errorMessage}
+            </div>
+          )}
+
+          <Button
+            onClick={handleSave}
+            disabled={!isAvailable || !cleanInput}
+            className="w-full py-3.5 text-xs"
+          >
             Save Profile
           </Button>
         </div>

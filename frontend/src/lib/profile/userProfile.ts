@@ -13,9 +13,9 @@ export interface UserProfile {
   joinedAt: string;
 }
 
-const STORAGE_PROFILES_KEY = "persat_profiles_live_v1";
+const STORAGE_PROFILES_KEY = "persat_profiles_live_v2";
 
-function getStoredProfiles(): Record<string, UserProfile> {
+export function getStoredProfiles(): Record<string, UserProfile> {
   if (typeof window === "undefined") return {};
   try {
     const raw = localStorage.getItem(STORAGE_PROFILES_KEY);
@@ -26,15 +26,66 @@ function getStoredProfiles(): Record<string, UserProfile> {
   }
 }
 
-export function saveProfile(profile: UserProfile): void {
-  if (typeof window === "undefined") return;
-  const current = getStoredProfiles();
-  current[profile.wallet] = profile;
-  // Index by lowercase username as well
-  if (profile.username) {
-    current[profile.username.toLowerCase().replace(/^@/, "")] = profile;
+export function isUsernameAvailable(
+  username: string,
+  myWallet: string | null | undefined,
+): { available: boolean; reason?: string } {
+  const clean = username.trim().toLowerCase().replace(/^@/, "");
+
+  if (!clean) {
+    return { available: false, reason: "Username cannot be empty." };
   }
+  if (clean.length < 3) {
+    return { available: false, reason: "Username must be at least 3 characters." };
+  }
+  if (clean.length > 20) {
+    return { available: false, reason: "Username cannot exceed 20 characters." };
+  }
+  if (!/^[a-z0-9_]+$/.test(clean)) {
+    return { available: false, reason: "Only letters, numbers, and underscores allowed." };
+  }
+
+  const current = getStoredProfiles();
+
+  // Check if any other profile already owns this username
+  for (const [, prof] of Object.entries(current)) {
+    if (prof.username && prof.username.toLowerCase() === clean) {
+      if (prof.wallet !== myWallet) {
+        return { available: false, reason: `@${clean} is already claimed by another wallet.` };
+      }
+    }
+  }
+
+  return { available: true };
+}
+
+export function saveProfile(profile: UserProfile): { ok: boolean; error?: string } {
+  if (typeof window === "undefined") return { ok: true };
+  const current = getStoredProfiles();
+  const cleanUsername = profile.username.trim().toLowerCase().replace(/^@/, "");
+
+  // Strict availability validation
+  const check = isUsernameAvailable(cleanUsername, profile.wallet);
+  if (!check.available) {
+    return { ok: false, error: check.reason };
+  }
+
+  // Remove old handle index if handle changed
+  const previousProfile = current[profile.wallet];
+  if (previousProfile && previousProfile.username && previousProfile.username.toLowerCase() !== cleanUsername) {
+    delete current[previousProfile.username.toLowerCase()];
+  }
+
+  const updatedProfile: UserProfile = {
+    ...profile,
+    username: cleanUsername,
+  };
+
+  current[profile.wallet] = updatedProfile;
+  current[cleanUsername] = updatedProfile;
+
   localStorage.setItem(STORAGE_PROFILES_KEY, JSON.stringify(current));
+  return { ok: true };
 }
 
 export function getProfileByWalletOrUsername(identifier: string): UserProfile | null {
@@ -56,8 +107,15 @@ export function useProfile(walletAddress: string | null | undefined) {
     if (found) {
       setProfile(found);
     } else {
-      // Initialize a real profile for this connected wallet
-      const handle = `user_${walletAddress.slice(0, 4)}${walletAddress.slice(-4)}`.toLowerCase();
+      // Find an available default handle derived from address
+      const baseHandle = `user_${walletAddress.slice(0, 4)}${walletAddress.slice(-4)}`.toLowerCase();
+      let handle = baseHandle;
+      let counter = 1;
+      while (!isUsernameAvailable(handle, walletAddress).available) {
+        handle = `${baseHandle}_${counter}`;
+        counter++;
+      }
+
       const initial: UserProfile = {
         wallet: walletAddress,
         username: handle,
@@ -80,10 +138,13 @@ export function useProfile(walletAddress: string | null | undefined) {
 
   const updateProfile = useCallback(
     (updates: Partial<UserProfile>) => {
-      if (!profile) return;
+      if (!profile) return { ok: false, error: "No profile loaded" };
       const updated = { ...profile, ...updates };
-      saveProfile(updated);
-      setProfile(updated);
+      const res = saveProfile(updated);
+      if (res.ok) {
+        setProfile(updated);
+      }
+      return res;
     },
     [profile],
   );
