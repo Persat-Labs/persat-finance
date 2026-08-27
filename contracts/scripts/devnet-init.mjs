@@ -288,7 +288,10 @@ for (const asset of assetPlans) {
   manifest.mints[asset.symbol] = mint.toBase58();
   saveManifest();
 
-  const recordPda = pda(["asset", ...pk(registryPda), ...pk(mint)], ids.asset_whitelist);
+  // Rust: seeds = [b"asset", registry.key().as_ref(), mint.key().as_ref()] — three
+  // seeds. The buffers are passed whole; spreading them (...pk()) would yield
+  // 64 bare numbers the pda() helper cannot convert.
+  const recordPda = pda(["asset", pk(registryPda), pk(mint)], ids.asset_whitelist);
   await step(`asset:${asset.symbol}`, recordPda, () =>
     send(`add_asset_${asset.symbol}`, () => new TransactionInstruction({
       programId: ids.asset_whitelist,

@@ -27,6 +27,12 @@
 name: Deploy programs to Devnet
 
 on:
+  # Lets the Arena integration (which holds contents:write but not
+  # actions:write) trigger this deploy via
+  #   POST /repos/Persat-Labs/persat-finance/dispatches  { event_type: deploy-devnet }
+  # The maintainer can still use the Run-workflow button (workflow_dispatch).
+  repository_dispatch:
+    types: [deploy-devnet]
   workflow_dispatch:
     inputs:
       skip-initialization:
@@ -154,8 +160,8 @@ jobs:
             echo "=== deploying $p ==="
             solana program deploy "target/deploy/$p.so" \
               --program-id "target/deploy/$p-keypair.json" \
-              --upgrade-authority "$PWD/keys/deployer.json" \
-              --with-compute-unit-limit 200000
+            --upgrade-authority "$PWD/keys/deployer.json" \
+            --with-compute-unit-price 200000
           done
           solana address --all | sort | uniq -c || true
 
