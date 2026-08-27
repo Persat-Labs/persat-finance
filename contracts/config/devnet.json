@@ -74,7 +74,7 @@
       },
       {
         "symbol": "zBTC",
-        "mint": "PLACEHOLDER_CREATE_DEVNET_MINT",
+        "mint": "DqQ1yzTPsfpuMMyuV6mVBvusxpq9mqmTTJZ4yMUQwQEt",
         "decimals": 8,
         "bridge": "Zeus Network",
         "riskParameters": {
@@ -96,7 +96,7 @@
       },
       {
         "symbol": "USDT",
-        "mint": "PLACEHOLDER_CREATE_DEVNET_MINT",
+        "mint": "8zdnnnuNJPNDkGTCxREnTyKnRo494By7MrDSTYtRx1aJ",
         "decimals": 6,
         "$comment": "Treated as exactly $1. No oracle feed, by protocol policy."
       }
@@ -120,7 +120,7 @@
       "9Az4yhFKRoGhCiJLY5ubS3ybLL9F4hvgKj4SQSnbURv2",
       "F4rJY7TBP3eG381MTm5SwzehwPKYG5XA8T2etMD67Mki"
     ],
-    "treasury": "PLACEHOLDER_TREASURY_PUBKEY"
+    "treasury": "99QGZmjKBsm9Bcnw21jn61Qe9SLAKS5ZAFoKLZDu3aAD"
   },
   "keeper": {
     "$comment": "Devnet MVP: governance signer 1 doubles as the operator/keeper that signs lock_vault, begin_funding, mark_active, close_deal, release_collateral, seize_collateral, mark_liquidated, and record_origination_fee. The programs contain no cross-program CPIs, so these transitions are signed directly by this wallet. Production replaces this with a dedicated keeper key the governance multisig controls.",
