@@ -6,7 +6,6 @@ import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
 import { clusterApiUrl } from "@solana/web3.js";
 import { useMemo, type ComponentType, type ReactNode } from "react";
 import "@solana/wallet-adapter-react-ui/styles.css";
-import { IframeNotice } from "@/components/IframeNotice";
 
 // The mobile adapter transitively resolves React Native's React 19 declarations.
 // Casting only isolates that upstream declaration mismatch; the runtime remains React 18/Next 14.
@@ -38,7 +37,6 @@ export function PersatWalletProvider({ children }: { children: ReactNode }) {
         }}
       >
         <SafeWalletModalProvider>
-          <IframeNotice />
           {children}
         </SafeWalletModalProvider>
       </SafeWalletProvider>
