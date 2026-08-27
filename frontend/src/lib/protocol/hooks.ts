@@ -26,10 +26,14 @@ export function useProtocol() {
 
   /** Send instructions, creating any missing associated token accounts first. */
   const send = useCallback(
-    async (instructions: TransactionInstruction[], mintsForAtas: PublicKey[] = []) => {
+    async (instructions: TransactionInstruction[], mintsForAtas: PublicKey[] = []): Promise<SendResult> => {
       if (!publicKey || !wallet.signTransaction) {
-        setState({ busy: false, result: { ok: false, failure: { kind: "wallet-rejected", message: "Connect your wallet first." } } });
-        return;
+        const failureResult: SendResult = {
+          ok: false,
+          failure: { kind: "wallet-rejected", message: "Connect your wallet first." },
+        };
+        setState({ busy: false, result: failureResult });
+        return failureResult;
       }
       setState({ busy: true, result: null });
       const prep: TransactionInstruction[] = [];
@@ -40,12 +44,13 @@ export function useProtocol() {
       }
       const all = [...prep, ...instructions];
       if (all.length === 0) {
-        // Nothing to do (e.g. treasury accounts already exist) — not an error.
-        setState({ busy: false, result: { ok: true, signature: "", explorerUrl: "" } });
-        return;
+        const emptyResult: SendResult = { ok: true, signature: "", explorerUrl: "" };
+        setState({ busy: false, result: emptyResult });
+        return emptyResult;
       }
       const result = await sendAndConfirm(connection, { publicKey, signTransaction: wallet.signTransaction }, all);
       setState({ busy: false, result });
+      return result;
     },
     [connection, publicKey, wallet.signTransaction],
   );

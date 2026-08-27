@@ -2,8 +2,8 @@
  * Wallet transaction submission.
  *
  * Wraps the wallet-adapter flow: build → recent blockhash → wallet signature →
- * send → confirm, with one retry for transient blockhash expiry and human
- * error reporting via describeFailure.
+ * send → confirm with active status polling (so transactions resolve in 1-2s
+ * instead of hanging on devnet WebSockets).
  */
 import type { Connection, PublicKey, Transaction, TransactionInstruction, VersionedTransaction } from "@solana/web3.js";
 import { Transaction as Tx } from "@solana/web3.js";
@@ -19,7 +19,7 @@ export type SendResult =
   | { ok: true; signature: string; explorerUrl: string }
   | { ok: false; failure: Failure };
 
-const CONFIRM_TIMEOUT_MS = 60_000;
+const CONFIRM_TIMEOUT_MS = 35_000;
 
 export async function sendAndConfirm(
   connection: Connection,
@@ -43,22 +43,39 @@ export async function sendAndConfirm(
         maxRetries: 4,
       });
 
+      // Poll signature status actively so devnet confirms in 1-2s without waiting on WebSockets
       const outcome = await Promise.race([
-        connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed"),
+        (async () => {
+          for (let i = 0; i < 25; i++) {
+            try {
+              const status = await connection.getSignatureStatus(signature, { searchTransactionHistory: true });
+              if (
+                status?.value?.confirmationStatus === "confirmed" ||
+                status?.value?.confirmationStatus === "finalized"
+              ) {
+                return { value: { err: status.value.err } };
+              }
+            } catch {
+              // Transient RPC blip
+            }
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+          }
+          return connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
+        })(),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Confirmation timed out.")), CONFIRM_TIMEOUT_MS),
+          setTimeout(() => reject(new Error("Confirmation timed out on Devnet.")), CONFIRM_TIMEOUT_MS),
         ),
       ]);
+
       if (outcome?.value?.err) {
         return { ok: false, failure: describeFailure({ message: "The transaction failed on-chain.", logs: [] }) };
       }
       return { ok: true, signature, explorerUrl: explorerTx(signature) };
     } catch (error) {
       const failure = describeFailure(error);
-      // Blockhash expiry is the one failure worth retrying with a fresh hash.
       if (failure.kind === "blockhash-expired" && attempt === 0) continue;
       return { ok: false, failure };
     }
   }
-  return { ok: false, failure: { kind: "unknown", message: "Transaction could not be sent." } };
+  return { ok: false, failure: { kind: "unknown", message: "Transaction could not be confirmed on Devnet." } };
 }

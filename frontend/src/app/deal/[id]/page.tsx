@@ -77,42 +77,28 @@ export default function DealPage() {
       </AppFrame>
     );
   }
+
+  // Instant Shimmer Skeleton while loading on-chain account data
   if (!deal) {
     return (
-      <AppFrame eyebrow="Deal // Loading On-Chain State" title="Fetching Immutable Terms…">
+      <AppFrame eyebrow="Deal // Live Devnet State" title="Fetching Immutable Terms…">
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          {/* Terms Card Shimmer */}
           <div className="glass sheen rounded-[22px] p-6 sm:p-8 space-y-4">
             <div className="flex justify-between items-center border-b border-white/5 pb-3">
               <div className="shimmer-box h-4 w-32" />
               <div className="shimmer-box h-6 w-20 rounded-full" />
             </div>
             <div className="space-y-3 pt-2">
-              <div className="flex justify-between py-2 border-b border-white/5">
-                <div className="shimmer-box h-4 w-24" />
-                <div className="shimmer-box h-4 w-28" />
-              </div>
-              <div className="flex justify-between py-2 border-b border-white/5">
-                <div className="shimmer-box h-4 w-28" />
-                <div className="shimmer-box h-4 w-24" />
-              </div>
-              <div className="flex justify-between py-2 border-b border-white/5">
-                <div className="shimmer-box h-4 w-20" />
-                <div className="shimmer-box h-4 w-16" />
-              </div>
-              <div className="flex justify-between py-2 border-b border-white/5">
-                <div className="shimmer-box h-4 w-20" />
-                <div className="shimmer-box h-4 w-20" />
-              </div>
-              <div className="flex justify-between py-2 border-b border-white/5">
-                <div className="shimmer-box h-4 w-24" />
-                <div className="shimmer-box h-4 w-32" />
-              </div>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex justify-between py-2 border-b border-white/5">
+                  <div className="shimmer-box h-4 w-24" />
+                  <div className="shimmer-box h-4 w-28" />
+                </div>
+              ))}
             </div>
             <div className="shimmer-box h-10 w-full rounded-xl mt-4" />
           </div>
 
-          {/* Actions Card Shimmer */}
           <div className="glass sheen rounded-[22px] p-6 sm:p-8 space-y-5">
             <div className="shimmer-box h-4 w-36" />
             <div className="shimmer-box h-12 w-full rounded-full" />
@@ -175,7 +161,7 @@ export default function DealPage() {
 
           <dl className="mt-5 space-y-1">
             <Row label="Principal" value={`${fmt(terms.principalAtoms)} ${currencyLabel}`} highlight />
-            <Row label="Collateral" value={`${fmt(terms.collateralAtoms, 8)} tBTC`} highlight />
+            <Row label="Collateral" value={`${fmt(terms.collateralAtoms, 8)} BTC`} highlight />
             <Row label="Annual Rate" value={`${terms.rateBps / 100}% APR`} />
             <Row label="Duration" value={`${terms.durationMonths} months`} />
             <Row label="Origination LTV" value={`${terms.ltvBps / 100}%`} />
@@ -190,7 +176,7 @@ export default function DealPage() {
             {vault && (
               <Row
                 label="Escrow Vault"
-                value={`${vault.state.toUpperCase()} · ${fmt(vault.collateralAtoms, 8)} tBTC`}
+                value={`${vault.state.toUpperCase()} · ${fmt(vault.collateralAtoms, 8)} BTC`}
                 highlight
               />
             )}
@@ -202,18 +188,91 @@ export default function DealPage() {
             )}
           </dl>
 
-          <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-4 font-mono text-xs text-white/50">
-            Terms Hash: <code className="text-amber">{termsHash(terms).slice(0, 16)}…</code>
+          <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-4 font-mono text-xs text-white/50 flex items-center justify-between">
+            <span>Terms Hash: <code className="text-amber">{termsHash(terms).slice(0, 12)}…</code></span>
+            <span className="text-[10px] text-emerald-400">● 100% Non-Custodial</span>
           </div>
         </Card>
 
         {/* Action Panel Card */}
         <Card>
-          <p className="eyebrow">Available Protocol Actions</p>
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <p className="eyebrow">Available Protocol Actions</p>
+            <Button variant="secondary" onClick={() => setShareOpen(true)} className="text-[10px] px-3 py-1">
+              Share Link
+            </Button>
+          </div>
+
           <div className="mt-5 space-y-4">
-            {/* Counterparty Accept or Counter */}
-            {deal.state === "proposed" && isCounterparty && me && (
-              <div className="space-y-3">
+            {/* Borrower: Initialize Vault & Deposit Collateral Step */}
+            {isBorrower && me && !vault && (
+              <div className="space-y-3 rounded-xl border border-amber/30 bg-amber/5 p-4 animate-reveal">
+                <p className="font-semibold text-amber text-xs uppercase tracking-wider">Next Step: Lock Collateral</p>
+                <p className="text-xs text-white/70">
+                  Initialize the smart contract escrow vault to prepare your Bitcoin collateral deposit.
+                </p>
+                <Button
+                  className="w-full py-3.5 text-xs"
+                  disabled={pending.busy}
+                  onClick={() =>
+                    act([
+                      initializeVault({
+                        borrower: me,
+                        dealId,
+                        vaultPda: vaultPda(dealId),
+                        vaultTokenAccount: vaultTokenPda(dealId),
+                        collateralMint: terms.collateralMint,
+                      }),
+                    ])
+                  }
+                >
+                  1 · Create Collateral Vault Escrow
+                </Button>
+              </div>
+            )}
+
+            {isBorrower && me && vault?.state === "open" && (
+              <div className="space-y-3 rounded-xl border border-amber/30 bg-amber/5 p-4 animate-reveal">
+                <p className="font-semibold text-amber text-xs uppercase tracking-wider">Deposit Bitcoin Collateral</p>
+                <p className="text-xs text-white/70">
+                  Transfer {fmt(terms.collateralAtoms, 8)} BTC into the non-custodial escrow vault.
+                </p>
+                <Button
+                  className="w-full py-3.5 text-xs"
+                  disabled={pending.busy}
+                  onClick={() =>
+                    act(
+                      [
+                        depositCollateral({
+                          borrower: me,
+                          vaultPda: vaultPda(dealId),
+                          collateralMint: terms.collateralMint,
+                          borrowerTokenAccount: ataOf(terms.collateralMint, me),
+                          vaultTokenAccount: vaultTokenPda(dealId),
+                          amount: terms.collateralAtoms,
+                        }),
+                      ],
+                      [terms.collateralMint, terms.loanMint],
+                    )
+                  }
+                >
+                  2 · Deposit {fmt(terms.collateralAtoms, 8)} BTC Collateral
+                </Button>
+              </div>
+            )}
+
+            {vault?.state === "locked" && deal.state === "confirmed" && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-white/90">
+                <p className="font-semibold text-emerald-400">Collateral Locked in Escrow</p>
+                <p className="mt-1 text-white/70">
+                  The keeper verifies the vault next, then the lender funds the loan.
+                </p>
+              </div>
+            )}
+
+            {/* Counterparty Review & Confirmation Actions */}
+            {deal.state === "proposed" && isCounterparty && me && !isCreator && (
+              <div className="space-y-3 border-t border-white/10 pt-3">
                 <Button
                   className="w-full py-3.5 text-xs"
                   disabled={pending.busy}
@@ -252,68 +311,14 @@ export default function DealPage() {
             )}
 
             {deal.state === "proposed" && isCreator && (
-              <div className="space-y-4 rounded-xl border border-amber/20 bg-amber/5 p-4 text-xs leading-6 text-white/80">
-                <p className="font-semibold text-white">Waiting for Counterparty</p>
-                <p>
-                  Share this page link with the counterparty. They can review and accept, or message you to negotiate terms.
+              <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-xs leading-6 text-white/80">
+                <p className="font-semibold text-white">Share Link with Counterparty</p>
+                <p className="text-white/60">
+                  Send this deal link to your counterparty via WhatsApp, Telegram, or direct message so they can confirm and fund.
                 </p>
-                <Button variant="primary" onClick={() => setShareOpen(true)} className="w-full">
-                  Share Deal Link (WhatsApp / Telegram / Copy)
+                <Button variant="secondary" onClick={() => setShareOpen(true)} className="w-full text-xs py-2.5">
+                  Copy / Share Deal Link ↗
                 </Button>
-              </div>
-            )}
-
-            {/* Borrower Collateral Steps */}
-            {deal.state === "confirmed" && isBorrower && me && !vault && (
-              <Button
-                className="w-full py-3.5 text-xs"
-                disabled={pending.busy}
-                onClick={() =>
-                  act([
-                    initializeVault({
-                      borrower: me,
-                      dealId,
-                      vaultPda: vaultPda(dealId),
-                      vaultTokenAccount: vaultTokenPda(dealId),
-                      collateralMint: terms.collateralMint,
-                    }),
-                  ])
-                }
-              >
-                1 · Create Collateral Vault Escrow
-              </Button>
-            )}
-
-            {deal.state === "confirmed" && vault?.state === "open" && isBorrower && me && (
-              <Button
-                className="w-full py-3.5 text-xs"
-                disabled={pending.busy}
-                onClick={() =>
-                  act(
-                    [
-                      depositCollateral({
-                        borrower: me,
-                        vaultPda: vaultPda(dealId),
-                        collateralMint: terms.collateralMint,
-                        borrowerTokenAccount: ataOf(terms.collateralMint, me),
-                        vaultTokenAccount: vaultTokenPda(dealId),
-                        amount: terms.collateralAtoms,
-                      }),
-                    ],
-                    [terms.collateralMint, terms.loanMint],
-                  )
-                }
-              >
-                2 · Deposit {fmt(terms.collateralAtoms, 8)} tBTC Collateral
-              </Button>
-            )}
-
-            {vault?.state === "locked" && deal.state === "confirmed" && (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-white/90">
-                <p className="font-semibold text-emerald-400">Collateral Locked in Escrow</p>
-                <p className="mt-1 text-white/70">
-                  The keeper verifies the vault next, then the lender funds the loan.
-                </p>
               </div>
             )}
 
@@ -393,7 +398,7 @@ export default function DealPage() {
                     )
                   }
                 >
-                  Repay In Full & Release BTC
+                  Repay In Full &amp; Release BTC
                 </Button>
               </div>
             )}
@@ -401,7 +406,7 @@ export default function DealPage() {
             {loan && (loan.state === "active" || loan.state === "defaulted") && me && (
               <Button
                 variant="ghost"
-                className="w-full text-xs text-white/50 hover:text-red-400"
+                className="w-full text-xs text-white/40 hover:text-red-400"
                 disabled={pending.busy}
                 onClick={() => act([flagDefault({ reporter: me, loanPda: loanPda(dealId) })])}
               >
@@ -423,7 +428,7 @@ export default function DealPage() {
                   onClick={() => setFundingOpen(true)}
                   className="rounded-full border border-amber/50 bg-amber/15 px-3 py-1 font-mono text-[11px] text-amber hover:bg-amber/25 transition"
                 >
-                  ⚡ Need Test Funds or Gas? Click to Dispense SOL + Tokens
+                  ⚡ Need Test Funds or Gas? Click to Dispense
                 </button>
               </div>
             )}
