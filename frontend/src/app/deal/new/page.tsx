@@ -1,6 +1,5 @@
 "use client";
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/AppFrame";
 import { Button, Card, Input } from "@/lib/design-system";
 import { MINTS } from "@/lib/protocol/config";
@@ -13,7 +12,6 @@ import { getProfileByWalletOrUsername } from "@/lib/profile/userProfile";
 import { FundWalletModal } from "@/components/wallet/FundWalletModal";
 
 export default function NewDealPage() {
-  const router = useRouter();
   const { publicKey, send, pending } = useProtocol();
   const [side, setSide] = useState<"borrower" | "lender">("borrower");
   const [currency, setCurrency] = useState<"USDC" | "USDT">("USDC");
@@ -26,6 +24,7 @@ export default function NewDealPage() {
   const [counterpartyError, setCounterpartyError] = useState("");
   const [fundingOpen, setFundingOpen] = useState(false);
   const [showBridgeInfo, setShowBridgeInfo] = useState(false);
+  const [confirmedDealUrlId, setConfirmedDealUrlId] = useState<string | null>(null);
 
   const months = durationChoice === "custom" ? Math.max(1, Number(customMonths) || 1) : Number(durationChoice);
 
@@ -114,13 +113,34 @@ export default function NewDealPage() {
         });
       }
 
-      // REDIRECT IMMEDIATELY TO THE DEAL WORKSPACE UPON VERIFICATION!
-      router.push(`/deal/${urlId}`);
+      // Immediate redirect to the deal workspace!
+      setConfirmedDealUrlId(urlId);
+      if (typeof window !== "undefined") {
+        window.location.href = `/deal/${urlId}`;
+      }
     }
   }
 
   return (
     <AppFrame eyebrow="Direct Deal" title="Propose a Loan">
+      {confirmedDealUrlId ? (
+        <div className="mt-8 mx-auto max-w-xl rounded-3xl border border-emerald-500/40 bg-emerald-500/10 p-8 text-center space-y-5 animate-reveal">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 text-3xl font-bold">
+            ✓
+          </div>
+          <h2 className="font-display text-3xl font-bold uppercase text-white">
+            Deal Confirmed On Solana Devnet!
+          </h2>
+          <p className="text-sm text-white/80 leading-6">
+            Your loan terms are permanently registered on-chain. Opening your deal workspace to lock collateral and share terms...
+          </p>
+          <a href={`/deal/${confirmedDealUrlId}`} className="inline-block w-full">
+            <Button className="w-full py-4 text-xs">
+              Open Deal Workspace Now →
+            </Button>
+          </a>
+        </div>
+      ) : (
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_.9fr]">
         <Card>
           <div className="space-y-6">
@@ -373,6 +393,7 @@ export default function NewDealPage() {
           </Card>
         </div>
       </div>
+      )}
 
       {/* In-Flow Fund Wallet Modal */}
       <FundWalletModal
