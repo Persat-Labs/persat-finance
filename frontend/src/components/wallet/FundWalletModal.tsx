@@ -2,7 +2,12 @@
 import { useState, useCallback } from "react";
 import { Button, Modal } from "@/lib/design-system";
 import { useProtocol } from "@/lib/protocol/hooks";
-import { useDevnetBundle, dispenseTestnetAssets, DispenseResult } from "@/lib/protocol/bundle";
+import {
+  useDevnetBundle,
+  dispenseTestnetAssets,
+  registerAllMetadata,
+  DispenseResult,
+} from "@/lib/protocol/bundle";
 
 export function FundWalletModal({
   open,
@@ -25,7 +30,14 @@ export function FundWalletModal({
   }>({ busy: false, result: null, message: "" });
 
   const handleDispense = useCallback(
-    async (opts: { sol?: number; tbtc?: number; usdc?: number; usdt?: number }) => {
+    async (opts: {
+      sol?: number;
+      tbtc?: number;
+      zbtc?: number;
+      btc?: number;
+      usdc?: number;
+      usdt?: number;
+    }) => {
       if (!publicKey) return;
 
       if (!deployerKeypair) {
@@ -37,7 +49,7 @@ export function FundWalletModal({
         return;
       }
 
-      setDispenseState({ busy: true, result: null, message: "Dispensing assets on Solana Devnet…" });
+      setDispenseState({ busy: true, result: null, message: "Dispensing official test assets on Solana Devnet…" });
       try {
         const res = await dispenseTestnetAssets({
           connection,
@@ -45,6 +57,8 @@ export function FundWalletModal({
           recipient: publicKey,
           solAmount: opts.sol,
           tbtcAmount: opts.tbtc,
+          zbtcAmount: opts.zbtc,
+          btcAmount: opts.btc,
           usdcAmount: opts.usdc,
           usdtAmount: opts.usdt,
         });
@@ -53,7 +67,7 @@ export function FundWalletModal({
           setDispenseState({
             busy: false,
             result: res,
-            message: "Successfully funded wallet on Devnet!",
+            message: "Successfully dispensed official test tokens to your wallet on Devnet!",
           });
           if (onSuccess) onSuccess();
         } else {
@@ -75,10 +89,10 @@ export function FundWalletModal({
   );
 
   return (
-    <Modal open={open} onClose={onClose} title="Fund Testnet Wallet">
+    <Modal open={open} onClose={onClose} title="Official Test Token Dispenser">
       <div className="space-y-5">
         <p className="text-sm text-white/80 leading-6">
-          {reason || "To test peer-to-peer Bitcoin-backed loans on Solana Devnet, your wallet needs a small amount of test SOL for gas and stand-in tokens."}
+          {reason || "Dispense official testnet collateral and stablecoins directly into your wallet. All assets are minted on Solana Devnet for non-custodial testing."}
         </p>
 
         {publicKey ? (
@@ -115,22 +129,54 @@ export function FundWalletModal({
               </div>
             )}
 
-            {/* Primary Action: Dispense Full Pack */}
+            {/* Primary Action: Dispense Full Pack with ALL Assets */}
             <Button
-              className="w-full py-4 text-xs"
+              className="w-full py-4 text-xs font-semibold"
               disabled={!isBundleLoaded || dispenseState.busy}
-              onClick={() => handleDispense({ sol: 0.5, tbtc: 0.1, usdc: 5000 })}
+              onClick={() =>
+                handleDispense({
+                  sol: 0.5,
+                  tbtc: 0.1,
+                  zbtc: 0.1,
+                  btc: 0.1,
+                  usdc: 5000,
+                  usdt: 5000,
+                })
+              }
             >
-              {dispenseState.busy ? "Dispensing On-Chain…" : "⚡ Dispense Full Pack (0.5 SOL + 0.1 tBTC + 5,000 USDC)"}
+              {dispenseState.busy
+                ? "Dispensing All Tokens On Devnet…"
+                : "⚡ Dispense Full Pack (SOL + tBTC + zBTC + BTC + USDC + USDT)"}
             </Button>
 
-            {/* Quick Granular Chips */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {/* Metaplex Logo & Name Registration Button */}
+            {isBundleLoaded && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!deployerKeypair) return;
+                  setDispenseState({ busy: true, result: null, message: "Writing official metadata & logos on-chain…" });
+                  const res = await registerAllMetadata({ connection, deployerKeypair });
+                  setDispenseState({
+                    busy: false,
+                    result: res.ok ? { ok: true, explorerUrl: res.explorerUrl } : { ok: false, error: res.message },
+                    message: res.message,
+                  });
+                }}
+                className="w-full rounded-xl border border-white/15 bg-white/[0.03] py-2.5 font-mono text-[11px] text-white/70 hover:border-amber hover:text-white transition flex items-center justify-center gap-2"
+              >
+                <span>🏷️</span>
+                <span>Register Official Logos &amp; Names on Phantom</span>
+              </button>
+            )}
+
+            {/* Granular Chips for Each Asset */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 font-mono text-[11px]">
               <Button
                 variant="secondary"
                 disabled={!isBundleLoaded || dispenseState.busy}
                 onClick={() => handleDispense({ sol: 0.5 })}
-                className="text-[11px] py-2"
+                className="py-2 text-[11px]"
               >
                 + 0.5 SOL
               </Button>
@@ -138,15 +184,31 @@ export function FundWalletModal({
                 variant="secondary"
                 disabled={!isBundleLoaded || dispenseState.busy}
                 onClick={() => handleDispense({ tbtc: 0.1 })}
-                className="text-[11px] py-2"
+                className="py-2 text-[11px]"
               >
                 + 0.1 tBTC
               </Button>
               <Button
                 variant="secondary"
                 disabled={!isBundleLoaded || dispenseState.busy}
+                onClick={() => handleDispense({ zbtc: 0.1 })}
+                className="py-2 text-[11px]"
+              >
+                + 0.1 zBTC
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={!isBundleLoaded || dispenseState.busy}
+                onClick={() => handleDispense({ btc: 0.1 })}
+                className="py-2 text-[11px]"
+              >
+                + 0.1 BTC
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={!isBundleLoaded || dispenseState.busy}
                 onClick={() => handleDispense({ usdc: 5000 })}
-                className="text-[11px] py-2"
+                className="py-2 text-[11px]"
               >
                 + 5k USDC
               </Button>
@@ -154,7 +216,7 @@ export function FundWalletModal({
                 variant="secondary"
                 disabled={!isBundleLoaded || dispenseState.busy}
                 onClick={() => handleDispense({ usdt: 5000 })}
-                className="text-[11px] py-2"
+                className="py-2 text-[11px]"
               >
                 + 5k USDT
               </Button>
@@ -192,7 +254,7 @@ export function FundWalletModal({
           <button
             type="button"
             onClick={onClose}
-            className="font-ui-persat text-xs uppercase tracking-wider text-white/50 hover:text-white transition"
+            className="font-ui text-xs uppercase tracking-wider text-white/50 hover:text-white transition"
           >
             Maybe Later — Let Me Explore First
           </button>

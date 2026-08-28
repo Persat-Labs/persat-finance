@@ -7,6 +7,8 @@ import {
   SystemProgram,
   Transaction,
   LAMPORTS_PER_SOL,
+  TransactionInstruction,
+  SYSVAR_RENT_PUBKEY,
 } from "@solana/web3.js";
 import {
   createAssociatedTokenAccountInstruction,
@@ -16,6 +18,7 @@ import {
 } from "@solana/spl-token";
 import { MINTS, OPERATOR } from "./config";
 
+const METAPLEX_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 const STORAGE_KEY = "persat_devnet_bundle_v1";
 const AUTOFUND_KEY = "persat_autofund_enabled_v1";
 
@@ -54,9 +57,10 @@ export interface DispenseOptions {
   recipient: PublicKey;
   solAmount?: number;
   tbtcAmount?: number;
+  zbtcAmount?: number;
+  btcAmount?: number;
   usdcAmount?: number;
   usdtAmount?: number;
-  zbtcAmount?: number;
 }
 
 export interface DispenseResult {
@@ -66,11 +70,137 @@ export interface DispenseResult {
   error?: string;
 }
 
+function borshString(s: string) {
+  const b = Buffer.from(s, "utf8");
+  const len = Buffer.alloc(4);
+  len.writeUInt32LE(b.length, 0);
+  return Buffer.concat([len, b]);
+}
+
+export function createMetadataInstruction(opts: {
+  metadataPda: PublicKey;
+  mint: PublicKey;
+  authority: PublicKey;
+  name: string;
+  symbol: string;
+  uri: string;
+}): TransactionInstruction {
+  const data = Buffer.concat([
+    Buffer.from([33]), // CreateMetadataAccountV3 instruction discriminator
+    borshString(opts.name),
+    borshString(opts.symbol),
+    borshString(opts.uri),
+    Buffer.from([0, 0]), // sellerFeeBasisPoints = 0
+    Buffer.from([0]), // creators = None
+    Buffer.from([0]), // collection = None
+    Buffer.from([0]), // uses = None
+    Buffer.from([1]), // isMutable = true
+    Buffer.from([0]), // collectionDetails = None
+  ]);
+
+  return new TransactionInstruction({
+    programId: METAPLEX_PROGRAM_ID,
+    keys: [
+      { pubkey: opts.metadataPda, isSigner: false, isWritable: true },
+      { pubkey: opts.mint, isSigner: false, isWritable: false },
+      { pubkey: opts.authority, isSigner: true, isWritable: false },
+      { pubkey: opts.authority, isSigner: true, isWritable: true },
+      { pubkey: opts.authority, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+    ],
+    data,
+  });
+}
+
+export async function registerAllMetadata(opts: {
+  connection: Connection;
+  deployerKeypair: Keypair;
+}): Promise<{ ok: boolean; message: string; explorerUrl?: string }> {
+  const { connection, deployerKeypair } = opts;
+  const tokenMetadataList = [
+    {
+      symbol: "tBTC",
+      name: "Threshold Bitcoin",
+      mint: MINTS.tBTC,
+      uri: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/6DNSN2T0GmgSm8gQAbPaK0MmKKhwNsmkXJkE2p0D9z44/metadata.json",
+    },
+    {
+      symbol: "zBTC",
+      name: "Zeus Bitcoin",
+      mint: MINTS.zBTC,
+      uri: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh/metadata.json",
+    },
+    {
+      symbol: "USDC",
+      name: "USD Coin",
+      mint: MINTS.USDC,
+      uri: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/metadata.json",
+    },
+    {
+      symbol: "USDT",
+      name: "Tether USD",
+      mint: MINTS.USDT,
+      uri: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/metadata.json",
+    },
+  ];
+
+  const tx = new Transaction();
+  let count = 0;
+
+  for (const item of tokenMetadataList) {
+    if (!item.mint) continue;
+    const [pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("metadata"), METAPLEX_PROGRAM_ID.toBuffer(), item.mint.toBuffer()],
+      METAPLEX_PROGRAM_ID,
+    );
+    const existing = await connection.getAccountInfo(pda);
+    if (!existing) {
+      tx.add(
+        createMetadataInstruction({
+          metadataPda: pda,
+          mint: item.mint,
+          authority: deployerKeypair.publicKey,
+          name: item.name,
+          symbol: item.symbol,
+          uri: item.uri,
+        }),
+      );
+      count++;
+    }
+  }
+
+  if (count === 0) {
+    return { ok: true, message: "Metadata already registered on Devnet for all tokens." };
+  }
+
+  try {
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = deployerKeypair.publicKey;
+    tx.sign(deployerKeypair);
+
+    const raw = tx.serialize();
+    const signature = await connection.sendRawTransaction(raw, { skipPreflight: false });
+    await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
+
+    return {
+      ok: true,
+      message: `Registered on-chain token metadata & logos for ${count} tokens!`,
+      explorerUrl: `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, message: `Failed to register metadata: ${msg}` };
+  }
+}
+
 export async function dispenseTestnetAssets(opts: DispenseOptions): Promise<DispenseResult> {
   const { connection, deployerKeypair, recipient } = opts;
   const tx = new Transaction();
   let count = 0;
 
+  // 1. Transfer Devnet SOL for gas
   if (opts.solAmount && opts.solAmount > 0) {
     const lamports = BigInt(Math.round(opts.solAmount * LAMPORTS_PER_SOL));
     tx.add(
@@ -83,11 +213,40 @@ export async function dispenseTestnetAssets(opts: DispenseOptions): Promise<Disp
     count++;
   }
 
+  // 2. All tokens: tBTC, zBTC, BTC, USDC, USDT
   const tokenList = [
-    { symbol: "tBTC", amount: opts.tbtcAmount, mint: MINTS.tBTC, decimals: 8 },
-    { symbol: "USDC", amount: opts.usdcAmount, mint: MINTS.USDC, decimals: 6 },
-    { symbol: "USDT", amount: opts.usdtAmount, mint: MINTS.USDT, decimals: 6 },
-    { symbol: "zBTC", amount: opts.zbtcAmount, mint: MINTS.zBTC, decimals: 8 },
+    {
+      symbol: "tBTC",
+      name: "Threshold Bitcoin",
+      amount: opts.tbtcAmount ?? opts.btcAmount,
+      mint: MINTS.tBTC,
+      decimals: 8,
+      uri: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/6DNSN2T0GmgSm8gQAbPaK0MmKKhwNsmkXJkE2p0D9z44/metadata.json",
+    },
+    {
+      symbol: "zBTC",
+      name: "Zeus Bitcoin",
+      amount: opts.zbtcAmount,
+      mint: MINTS.zBTC,
+      decimals: 8,
+      uri: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh/metadata.json",
+    },
+    {
+      symbol: "USDC",
+      name: "USD Coin",
+      amount: opts.usdcAmount,
+      mint: MINTS.USDC,
+      decimals: 6,
+      uri: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/metadata.json",
+    },
+    {
+      symbol: "USDT",
+      name: "Tether USD",
+      amount: opts.usdtAmount,
+      mint: MINTS.USDT,
+      decimals: 6,
+      uri: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/metadata.json",
+    },
   ];
 
   for (const item of tokenList) {
@@ -133,7 +292,7 @@ export async function dispenseTestnetAssets(opts: DispenseOptions): Promise<Disp
     const raw = tx.serialize();
     const signature = await connection.sendRawTransaction(raw, {
       skipPreflight: false,
-      preflightCommitment: "confirmed",
+      maxRetries: 3,
     });
     await connection.confirmTransaction(
       { signature, blockhash, lastValidBlockHeight },
@@ -162,7 +321,7 @@ export function useDevnetBundle() {
       const af = localStorage.getItem(AUTOFUND_KEY);
       if (af !== null) setAutoFund(af === "true");
     } catch {
-      // Ignore storage access errors
+      //
     }
   }, []);
 
@@ -200,7 +359,7 @@ export function useDevnetBundle() {
       deployerKeypair = extractKeypair(parsed.deployer ?? parsed);
       operatorKeypair = extractKeypair(parsed["gov-signer-1"] ?? parsed.gov1);
     } catch {
-      // Corrupt storage
+      //
     }
   }
 
