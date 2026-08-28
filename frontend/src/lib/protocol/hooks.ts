@@ -65,15 +65,46 @@ export function useProtocol() {
   return { connection, wallet, publicKey, isOperator, send, ataOf, pending: state, clear };
 }
 
-/** Encode/decode 16-byte deal ids for URLs. */
-export const dealIdToUrl = (id: Uint8Array) => Buffer.from(id).toString("base64url");
-export const dealIdFromUrl = (text: string): Uint8Array | null => {
+/** Encode/decode 16-byte deal ids for URLs — browser-safe base64url (no Buffer base64url dep). */
+function bytesToBase64Url(bytes: Uint8Array): string {
+  // Browser-safe: btoa + url-safe replace, no Buffer dependency
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  // btoa works in browser, in Node we have global Buffer fallback
+  let base64: string;
+  if (typeof btoa !== "undefined") {
+    base64 = btoa(binary);
+  } else {
+    // Node fallback
+    base64 = Buffer.from(bytes).toString("base64");
+  }
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function base64UrlToBytes(text: string): Uint8Array | null {
   try {
-    const bytes = Buffer.from(text, "base64url");
-    return bytes.length === 16 ? new Uint8Array(bytes) : null;
+    let base64 = text.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = base64.length % 4;
+    if (pad) base64 += "=".repeat(4 - pad);
+    let binary: string;
+    if (typeof atob !== "undefined") {
+      binary = atob(base64);
+    } else {
+      const buf = Buffer.from(base64, "base64");
+      return new Uint8Array(buf);
+    }
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
   } catch {
     return null;
   }
+}
+
+export const dealIdToUrl = (id: Uint8Array) => bytesToBase64Url(id);
+export const dealIdFromUrl = (text: string): Uint8Array | null => {
+  const bytes = base64UrlToBytes(text);
+  return bytes && bytes.length === 16 ? bytes : null;
 };
 
 export function randomDealId(): Uint8Array {

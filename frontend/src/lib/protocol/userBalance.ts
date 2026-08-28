@@ -1,17 +1,40 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { MINTS } from "./config";
 
 export interface UserBalanceData {
   connected: boolean;
-  solBalance: number; // e.g. 1.0000 SOL (Available Gas)
-  usdcBalance: number; // e.g. 5000.00 USDC
-  tbtcBalance: number; // e.g. 0.1000 tBTC (In Wallet)
-  lockedCollateralBtc: number; // e.g. 0.0000 tBTC (Locked in Smart Contract Escrow)
-  totalUsdValue: number; // Total net balance of the user
+  solBalance: number;
+  usdcBalance: number;
+  usdtBalance: number;
+  tbtcBalance: number;
+  zbtcBalance: number;
+  btcBalance: number; // alias tBTC
+  lockedCollateralBtc: number;
+  availableBtc: number;
+  totalUsdValue: number;
+  tokenList: { symbol: string; balance: number; usdValue: number; mint: PublicKey | null; locked?: number }[];
   loading: boolean;
+  error: string | null;
+}
+
+const BALANCE_CACHE_TTL = 10000;
+const cache = new Map<string, { at: number; data: Omit<UserBalanceData, "loading" | "error"> }>();
+
+async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+  let lastErr: any;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      if (i < retries) await new Promise((r) => setTimeout(r, 300 * Math.pow(2, i) + Math.random() * 200));
+    }
+  }
+  throw lastErr;
 }
 
 export function useUserRealBalances(connection: Connection, publicKey: PublicKey | null) {
@@ -19,80 +42,124 @@ export function useUserRealBalances(connection: Connection, publicKey: PublicKey
     connected: false,
     solBalance: 0,
     usdcBalance: 0,
+    usdtBalance: 0,
     tbtcBalance: 0,
+    zbtcBalance: 0,
+    btcBalance: 0,
     lockedCollateralBtc: 0,
+    availableBtc: 0,
     totalUsdValue: 0,
+    tokenList: [],
     loading: false,
+    error: null,
   });
+
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!publicKey) {
+      if (!mountedRef.current) return;
       setData({
         connected: false,
         solBalance: 0,
         usdcBalance: 0,
+        usdtBalance: 0,
         tbtcBalance: 0,
+        zbtcBalance: 0,
+        btcBalance: 0,
         lockedCollateralBtc: 0,
+        availableBtc: 0,
         totalUsdValue: 0,
+        tokenList: [],
         loading: false,
+        error: null,
       });
       return;
     }
 
-    setData((prev) => ({ ...prev, loading: true, connected: true }));
+    const cacheKey = publicKey.toBase58();
+    const cached = cache.get(cacheKey);
+    if (cached && Date.now() - cached.at < BALANCE_CACHE_TTL) {
+      setData((prev) => ({ ...prev, ...cached.data, connected: true, loading: false, error: null }));
+    } else {
+      setData((prev) => ({ ...prev, loading: true, connected: true, error: null }));
+    }
 
     try {
-      // 1. Real SOL Balance
-      const lamports = await connection.getBalance(publicKey, "confirmed");
+      const lamports = await fetchWithRetry(() => connection.getBalance(publicKey, "confirmed"));
+
+      const fetchToken = async (mint: PublicKey | null): Promise<number> => {
+        if (!mint) return 0;
+        try {
+          const ata = getAssociatedTokenAddressSync(mint, publicKey, false, TOKEN_PROGRAM_ID);
+          const bal = await connection.getTokenAccountBalance(ata, "confirmed");
+          return Number(bal.value.uiAmount || 0);
+        } catch {
+          return 0;
+        }
+      };
+
+      const [usdc, usdt, tbtc, zbtc] = await Promise.all([
+        fetchToken(MINTS.USDC),
+        fetchToken(MINTS.USDT),
+        fetchToken(MINTS.tBTC),
+        fetchToken(MINTS.zBTC),
+      ]);
+
       const sol = lamports / LAMPORTS_PER_SOL;
-
-      // 2. Real USDC Balance
-      let usdc = 0;
-      if (MINTS.USDC) {
-        try {
-          const usdcAta = getAssociatedTokenAddressSync(MINTS.USDC, publicKey, false, TOKEN_PROGRAM_ID);
-          const bal = await connection.getTokenAccountBalance(usdcAta, "confirmed");
-          usdc = Number(bal.value.uiAmount || 0);
-        } catch {
-          usdc = 0;
-        }
-      }
-
-      // 3. Real tBTC Balance (in user's wallet)
-      let tbtc = 0;
-      if (MINTS.tBTC) {
-        try {
-          const tbtcAta = getAssociatedTokenAddressSync(MINTS.tBTC, publicKey, false, TOKEN_PROGRAM_ID);
-          const bal = await connection.getTokenAccountBalance(tbtcAta, "confirmed");
-          tbtc = Number(bal.value.uiAmount || 0);
-        } catch {
-          tbtc = 0;
-        }
-      }
-
-      // 4. Real Locked Collateral
-      // Defaults to 0 unless user has locked a vault in a deal
+      // TODO: sum vaults where borrower == wallet for locked collateral — for now 0, but show available
       const lockedCollateral = 0;
+      const availableBtc = tbtc + zbtc; // BTC alias shares tBTC mint
+      const btcPrice = 60000; // will be replaced by live Pyth price in UI
+      const solPrice = 150;
+      const totalUsd = usdc + usdt + sol * solPrice + tbtc * btcPrice + zbtc * btcPrice + lockedCollateral * btcPrice;
 
-      // Estimate real net balance in USD (SOL ~$150, BTC ~$60,000)
-      const totalUsd = usdc + sol * 150 + tbtc * 60000 + lockedCollateral * 60000;
+      const tokenList = [
+        { symbol: "BTC", balance: availableBtc, usdValue: availableBtc * btcPrice, mint: MINTS.BTC, locked: lockedCollateral },
+        { symbol: "tBTC", balance: tbtc, usdValue: tbtc * btcPrice, mint: MINTS.tBTC, locked: 0 },
+        { symbol: "zBTC", balance: zbtc, usdValue: zbtc * btcPrice, mint: MINTS.zBTC, locked: 0 },
+        { symbol: "SOL", balance: sol, usdValue: sol * solPrice, mint: null, locked: 0 },
+        { symbol: "USDC", balance: usdc, usdValue: usdc, mint: MINTS.USDC, locked: 0 },
+        { symbol: "USDT", balance: usdt, usdValue: usdt, mint: MINTS.USDT, locked: 0 },
+      ];
 
-      setData({
+      const newData = {
         connected: true,
         solBalance: sol,
         usdcBalance: usdc,
+        usdtBalance: usdt,
         tbtcBalance: tbtc,
+        zbtcBalance: zbtc,
+        btcBalance: availableBtc,
         lockedCollateralBtc: lockedCollateral,
+        availableBtc,
         totalUsdValue: totalUsd,
-        loading: false,
-      });
-    } catch {
-      setData((prev) => ({ ...prev, loading: false }));
+        tokenList,
+      };
+
+      cache.set(cacheKey, { at: Date.now(), data: newData });
+
+      if (!mountedRef.current) return;
+      setData({ ...newData, loading: false, error: null });
+    } catch (e) {
+      if (!mountedRef.current) return;
+      setData((prev) => ({ ...prev, loading: false, error: (e as Error).message.slice(0, 120) }));
     }
   }, [connection, publicKey]);
 
   useEffect(() => {
     void refresh();
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      void refresh();
+    }, 15000);
+    return () => clearInterval(id);
   }, [refresh]);
 
   return { ...data, refreshBalances: refresh };
