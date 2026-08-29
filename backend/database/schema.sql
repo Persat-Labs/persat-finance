@@ -95,3 +95,23 @@ CREATE TABLE IF NOT EXISTS direct_messages (
   INDEX idx_conversation (conversation_id, created_at),
   INDEX idx_recipient (recipient_wallet, read_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. Faucet Claims — 24h cooldown for auto-dispense (no bundle upload)
+CREATE TABLE IF NOT EXISTS faucet_claims (
+  id VARCHAR(36) PRIMARY KEY,
+  wallet VARCHAR(44) NOT NULL,
+  asset VARCHAR(20) NOT NULL,
+  claimed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_wallet_asset_time (wallet, asset, claimed_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. Waitlist Signups (replacing Supabase)
+CREATE TABLE IF NOT EXISTS waitlist_signups (
+  id VARCHAR(36) PRIMARY KEY,
+  full_name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  role_type VARCHAR(50) NOT NULL,
+  region VARCHAR(100) NULL,
+  referral_source VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

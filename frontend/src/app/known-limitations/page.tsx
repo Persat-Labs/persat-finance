@@ -79,7 +79,7 @@ export default function KnownLimitationsPage() {
               <Link href="/marketplace"><Button variant="secondary">Marketplace — Live</Button></Link>
             </div>
 
-            <p className="mt-6 font-mono text-[11px] text-white/30">Fonts: Persat Cuaniex (finance/display/brand) + Detra (UI/panels) + Plus Jakarta Sans normal fallback — clean, no dramatic fonts, frosted glass cards.</p>
+            <p className="mt-6 font-mono text-[11px] text-white/30">Fonts: Inter + Plus Jakarta Sans + system-ui — Phantom-style crisp antialiased, no OTF, no dramatic fonts, frosted glass cards.</p>
           </Card>
         </div>
       </AppFrame>

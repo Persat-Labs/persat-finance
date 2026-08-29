@@ -39,7 +39,13 @@ await app.register(cors, {
     if (config.corsOrigins.length === 0) return cb(null, true); // dev fallback
     if (config.corsOrigins.includes(origin)) return cb(null, true);
     // Allow vercel preview and localhost for dev
-    if (origin.includes("localhost") || origin.includes("vercel.app") || origin.includes("persat")) {
+    if (
+      origin.includes("localhost") ||
+      origin.includes("vercel.app") ||
+      origin.includes("persat") ||
+      origin.includes("e2b.app") ||
+      origin.includes("e2b.dev")
+    ) {
       return cb(null, true);
     }
     cb(new Error("CORS not allowed"), false);

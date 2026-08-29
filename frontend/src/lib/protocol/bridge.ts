@@ -27,30 +27,39 @@ export type BridgeHealthResponse = {
 
 const CACHE_TTL = 30000;
 let cache: { at: number; data: BridgeHealthResponse | null } = { at: 0, data: null };
+let inFlight: Promise<BridgeHealthResponse> | null = null;
 
 export async function getBridgeHealth(): Promise<BridgeHealthResponse> {
   const now = Date.now();
   if (cache.data && now - cache.at < CACHE_TTL) return cache.data;
+  if (inFlight) return inFlight;
+
+  inFlight = (async () => {
+    try {
+      const data = await api.bridgeHealth();
+      if (data?.bridges) {
+        cache = { at: Date.now(), data };
+        return data;
+      }
+    } catch {}
+
+    // Fail-closed — never guess a route when health is missing
+    return {
+      mode: "fail_closed" as const,
+      bestBridge: null,
+      bridges: [
+        { id: "tbtc" as const, available: false, reason: "Bridge health unavailable — manual selection required.", lastChecked: new Date().toISOString() },
+        { id: "zbtc" as const, available: false, reason: "Bridge health unavailable — manual selection required.", lastChecked: new Date().toISOString() },
+      ],
+      timestamp: new Date().toISOString(),
+    };
+  })();
 
   try {
-    const data = await api.bridgeHealth();
-    if (data?.bridges) {
-      cache = { at: now, data };
-      return data;
-    }
-  } catch {}
-
-  // Fail-closed fallback
-  const fallback: BridgeHealthResponse = {
-    mode: "fail_closed",
-    bestBridge: null,
-    bridges: [
-      { id: "tbtc", available: false, reason: "Bridge health unavailable — manual selection required.", lastChecked: new Date().toISOString() },
-      { id: "zbtc", available: false, reason: "Bridge health unavailable — manual selection required.", lastChecked: new Date().toISOString() },
-    ],
-    timestamp: new Date().toISOString(),
-  };
-  return fallback;
+    return await inFlight;
+  } finally {
+    inFlight = null;
+  }
 }
 
 export function useBridgeHealth(pollMs = 30000) {

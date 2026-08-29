@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireDatabase } from "../database.js";
+import { requireDatabase, type UnifiedDb } from "../database.js";
 import { config } from "../config.js";
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { createAssociatedTokenAccountInstruction, createMintToInstruction, getAssociatedTokenAddressSync, getAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token";
@@ -33,6 +33,58 @@ function getDeployerKeypair(): Keypair | null {
     return null;
   } catch {
     return null;
+  }
+}
+
+async function ensureFaucetTable(db: UnifiedDb): Promise<void> {
+  if (db.type === "mysql") {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS faucet_claims (
+        id VARCHAR(36) PRIMARY KEY,
+        wallet VARCHAR(44) NOT NULL,
+        asset VARCHAR(20) NOT NULL,
+        claimed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_wallet_asset_time (wallet, asset, claimed_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+  } else {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS faucet_claims (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        wallet TEXT NOT NULL,
+        asset TEXT NOT NULL,
+        claimed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await db.query(`CREATE INDEX IF NOT EXISTS faucet_claims_wallet_asset_time ON faucet_claims(wallet, asset, claimed_at DESC);`).catch(() => undefined);
+  }
+}
+
+/** Returns remaining hours if cooldown active, otherwise null. Soft-fails open if DB unavailable. */
+async function checkAndRecordCooldown(
+  wallet: string,
+  asset: string,
+): Promise<{ blocked: true; remainingHours: number } | { blocked: false; recorded: boolean }> {
+  try {
+    const db = await requireDatabase();
+    await ensureFaucetTable(db);
+
+    const last = await db.query(
+      `SELECT claimed_at FROM faucet_claims WHERE wallet = ? AND asset = ? ORDER BY claimed_at DESC LIMIT 1`,
+      [wallet, asset],
+    );
+    if (last.rowCount === 1) {
+      const lastAt = new Date(last.rows[0].claimed_at).getTime();
+      const hoursSince = (Date.now() - lastAt) / (1000 * 60 * 60);
+      if (hoursSince < COOLDOWN_HOURS) {
+        return { blocked: true, remainingHours: Math.ceil(COOLDOWN_HOURS - hoursSince) };
+      }
+    }
+    await db.query(`INSERT INTO faucet_claims (id, wallet, asset) VALUES (UUID(), ?, ?)`, [wallet, asset]);
+    return { blocked: false, recorded: true };
+  } catch {
+    // No persistence — allow dispense without cooldown record
+    return { blocked: false, recorded: false };
   }
 }
 
@@ -99,55 +151,24 @@ export async function faucetRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Invalid wallet address" });
     }
 
-    try {
-      const db = await requireDatabase();
-      if (db.type === "mysql") {
-        await db.query(`
-          CREATE TABLE IF NOT EXISTS faucet_claims (
-            id VARCHAR(36) PRIMARY KEY,
-            wallet VARCHAR(44) NOT NULL,
-            asset VARCHAR(20) NOT NULL,
-            claimed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_wallet_asset_time (wallet, asset, claimed_at)
-          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        `);
-      } else {
-        await db.query(`
-          CREATE TABLE IF NOT EXISTS faucet_claims (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            wallet TEXT NOT NULL,
-            asset TEXT NOT NULL,
-            claimed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-          );
-          CREATE INDEX IF NOT EXISTS faucet_claims_wallet_asset_time ON faucet_claims(wallet, asset, claimed_at DESC);
-        `);
-      }
-
-      const last = await db.query(`SELECT claimed_at FROM faucet_claims WHERE wallet = ? AND asset = ? ORDER BY claimed_at DESC LIMIT 1`, [wallet, asset ?? "ALL"]);
-      if (last.rowCount === 1) {
-        const lastAt = new Date(last.rows[0].claimed_at).getTime();
-        const hoursSince = (Date.now() - lastAt) / (1000 * 60 * 60);
-        if (hoursSince < COOLDOWN_HOURS) {
-          const remaining = Math.ceil(COOLDOWN_HOURS - hoursSince);
-          return reply.code(429).send({ error: `Faucet cooldown active — try again in ${remaining}h`, cooldownHours: COOLDOWN_HOURS, remainingHours: remaining });
-        }
-      }
-      await db.query(`INSERT INTO faucet_claims (id, wallet, asset) VALUES (UUID(), ?, ?)`, [wallet, asset ?? "ALL"]);
-    } catch (err) {
-      const msg = (err as Error).message;
-      if (!msg.includes("not configured") && !msg.includes("cooldown")) {
-        request.log.warn(err, "[faucet] DB check failed, continuing without persistence");
-      }
+    const assetKey = asset ?? "ALL";
+    const cooldown = await checkAndRecordCooldown(wallet, assetKey);
+    if (cooldown.blocked) {
+      return reply.code(429).send({
+        error: `Faucet cooldown active — try again in ${cooldown.remainingHours}h`,
+        cooldownHours: COOLDOWN_HOURS,
+        remainingHours: cooldown.remainingHours,
+      });
     }
 
     if (config.deployerConfigured) {
       try {
-        const result = await dispenseFromServer(walletPubkey, asset ?? "ALL");
+        const result = await dispenseFromServer(walletPubkey, assetKey);
         return {
           ok: true,
           wallet,
-          asset: asset ?? "ALL",
-          message: `Dispensed ${asset ?? "full pack (0.5 SOL + 0.1 tBTC + 0.1 zBTC + 5k USDC + 5k USDT)"} to ${wallet.slice(0, 4)}...`,
+          asset: assetKey,
+          message: `Dispensed ${assetKey === "ALL" ? "full pack (0.5 SOL + 0.1 tBTC + 0.1 zBTC + 5k USDC + 5k USDT)" : assetKey} to ${wallet.slice(0, 4)}...`,
           signature: result.signature,
           explorerUrl: result.explorerUrl,
           mode: "server_dispense",
@@ -158,7 +179,7 @@ export async function faucetRoutes(app: FastifyInstance) {
         return {
           ok: true,
           wallet,
-          asset: asset ?? "ALL",
+          asset: assetKey,
           message: `Server dispense failed: ${(e as Error).message}. Use client bundle as fallback.`,
           mode: "client_bundle_fallback",
           error: (e as Error).message,
@@ -170,7 +191,7 @@ export async function faucetRoutes(app: FastifyInstance) {
     return {
       ok: true,
       wallet,
-      asset: asset ?? "ALL",
+      asset: assetKey,
       message: "Faucet claim recorded — dispense via client bundle (upload persat-devnet-keypairs-KEEP-SECRET.json) or configure PERSAT_DEPLOYER_KEYPAIR on server for auto-dispense.",
       mode: "client_bundle",
       cooldownHours: COOLDOWN_HOURS,
@@ -182,6 +203,7 @@ export async function faucetRoutes(app: FastifyInstance) {
     if (!wallet || wallet.length < 32) return reply.code(400).send({ error: "Invalid wallet" });
     try {
       const db = await requireDatabase();
+      await ensureFaucetTable(db);
       const result = await db.query(`SELECT asset, claimed_at FROM faucet_claims WHERE wallet = ? ORDER BY claimed_at DESC LIMIT 10`, [wallet]);
       return { wallet, claims: result.rows, serverDispenseAvailable: config.deployerConfigured };
     } catch {
@@ -204,20 +226,34 @@ export async function faucetRoutes(app: FastifyInstance) {
       return reply.code(503).send({ error: "Auto-faucet not configured — server needs PERSAT_DEPLOYER_KEYPAIR.", mode: "client_bundle_required" });
     }
 
+    const cooldown = await checkAndRecordCooldown(wallet, "ALL");
+    if (cooldown.blocked) {
+      return reply.code(429).send({
+        error: `Faucet cooldown active — try again in ${cooldown.remainingHours}h`,
+        cooldownHours: COOLDOWN_HOURS,
+        remainingHours: cooldown.remainingHours,
+      });
+    }
+
     try {
       const result = await dispenseFromServer(walletPubkey, "ALL");
       return {
         ok: true,
         wallet,
         asset: "ALL",
-        message: "Auto-dispensed full pack: 0.5 SOL + 0.1 tBTC + 0.1 zBTC + 0.1 BTC + 5k USDC + 5k USDT",
+        message: "Auto-dispensed full pack: 0.5 SOL + 0.1 tBTC + 0.1 zBTC + 5k USDC + 5k USDT",
         signature: result.signature,
         explorerUrl: result.explorerUrl,
-        breakdown: { sol: 0.5, tbtc: 0.1, zbtc: 0.1, btc: 0.1, usdc: 5000, usdt: 5000 },
+        mode: "server_dispense",
+        cooldownHours: COOLDOWN_HOURS,
+        breakdown: { sol: 0.5, tbtc: 0.1, zbtc: 0.1, usdc: 5000, usdt: 5000 },
       };
     } catch (e) {
       request.log.error(e, "[faucet/auto] failed");
-      return reply.code(500).send({ error: `Auto-dispense failed: ${(e as Error).message}`, explorer: `https://explorer.solana.com/address/${wallet}?cluster=devnet` });
+      return reply.code(500).send({
+        error: `Auto-dispense failed: ${(e as Error).message}`,
+        explorer: `https://explorer.solana.com/address/${wallet}?cluster=${config.cluster}`,
+      });
     }
   });
 }

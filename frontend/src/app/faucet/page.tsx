@@ -206,7 +206,7 @@ export default function Faucet() {
           <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-emerald-400">● One-Click Auto (No Bundle Needed)</span>
           <span className="rounded-full border border-white/10 bg-white/[0.02] px-2.5 py-1 text-white/50">BTC Default → Auto tBTC/zBTC</span>
           <span className="rounded-full border border-white/10 bg-white/[0.02] px-2.5 py-1 text-white/50">24h Cooldown</span>
-          <span className="rounded-full border border-amber/20 bg-amber/10 px-2.5 py-1 text-amber">Cuaniex + Detra Clean</span>
+          <span className="rounded-full border border-amber/20 bg-amber/10 px-2.5 py-1 text-amber">Inter + Plus Jakarta · Antialiased</span>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-3">

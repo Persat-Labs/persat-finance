@@ -9,11 +9,14 @@ class Database {
             return self::$pdo;
         }
 
+        // Prefer DB_* names from .env.example / docs; fall back to common Laravel-style aliases
         $host = getenv('DB_HOST') ?: '127.0.0.1';
         $port = getenv('DB_PORT') ?: '3306';
-        $db   = getenv('DB_DATABASE') ?: 'persat_finance';
-        $user = getenv('DB_USERNAME') ?: 'root';
-        $pass = getenv('DB_PASSWORD') ?: '';
+        $db   = getenv('DB_NAME') ?: (getenv('DB_DATABASE') ?: 'persat_finance');
+        $user = getenv('DB_USER') ?: (getenv('DB_USERNAME') ?: 'root');
+        $pass = getenv('DB_PASS') !== false && getenv('DB_PASS') !== ''
+            ? (string) getenv('DB_PASS')
+            : (getenv('DB_PASSWORD') ?: '');
         $charset = 'utf8mb4';
 
         $dsn = "mysql:host={$host};port={$port};dbname={$db};charset={$charset}";
