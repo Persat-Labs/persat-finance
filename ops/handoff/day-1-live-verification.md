@@ -64,3 +64,12 @@ operator  : releaseCollateral -> closeDeal(Completed)   [happy path]
 | Step | Tx / state | Verified | Signature |
 | --- | --- | --- | --- |
 | (pending) | | | |
+
+## Superseding A1/A2 evidence home
+
+Day-1 notes remain historical. **Canonical happy + default evidence files:**
+
+- Runbook: [`A1-A2-live-cycle-runbook.md`](./A1-A2-live-cycle-runbook.md)
+- `security-audits/pass-3/cycles/cycle-01-happy.md`
+- `security-audits/pass-3/cycles/cycle-02-default.md`
+- Recorder: `frontend/scripts/record-cycle.mjs`

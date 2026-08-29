@@ -289,10 +289,22 @@ Completed toward **A3** (not full A):
 - [x] Removed centered “persat” loading flash; layout-mimic `loading.tsx`
 - [x] Onboarding hang gate removed (no `ready=false` forever)
 
-Still open for **A**:
+**A1 / A2 / A4 / B scaffolding (2026-08-29):**
 
-- [ ] A1–A2 explorer sig archive
-- [ ] A4 `api.persat.finance` + main merge deploy discipline
+- [x] `ops/handoff/A1-A2-live-cycle-runbook.md` — browser click-list for happy + default paths
+- [x] `security-audits/pass-3/cycles/cycle-01-happy.md` — evidence template (`PENDING_LIVE_SIGS`)
+- [x] `security-audits/pass-3/cycles/cycle-02-default.md` — evidence template (`PENDING_LIVE_SIGS`)
+- [x] `frontend/scripts/record-cycle.mjs` — JSON → markdown emitter for real sigs
+- [x] `docs/HOSTING_A4.md` — Mode W (wallet-RPC-only) default + founder DNS/merge checklist
+- [x] `security-audits/pass-2/GAPS_B1_PLAN.md` — PDA + state-transition fuzz plan
+- [x] `security-audits/pass-3/B2_TEN_CYCLES.md` — 10-cycle map (1–2 = A; 3–10 = B2)
+- [x] Backend keeper: stub vs live-ready modes (`KEEPER_ENABLED` / `KEEPER_KEYPAIR_PATH`)
+
+Still open for **A** (needs live browser + founder):
+
+- [ ] A1 — replace `PENDING` sigs in `cycle-01-happy.md` → Status `PASS`
+- [ ] A2 — replace `PENDING` sigs in `cycle-02-default.md` → Status `PASS`
+- [ ] A4 — founder fills evidence block in `docs/HOSTING_A4.md` (RPC + merge to `main`)
 - [ ] A5 production labeling pass on live dApp
 - [ ] Locked collateral sum from vaults (FE TODO in `userBalance.ts`)
 

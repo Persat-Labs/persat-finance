@@ -64,12 +64,24 @@ export default function KnownLimitationsPage() {
             </div>
 
             <div className="mt-8 rounded-xl border border-white/10 bg-white/[0.02] p-5">
-              <h3 className="font-display text-lg uppercase text-white">Day 3 Prep — Next Steps</h3>
+              <h3 className="font-display text-lg uppercase text-white">Hosting — Testnet Mode W</h3>
+              <p className="mt-2 font-mono text-xs text-white/60">
+                Default testnet posture: <span className="text-amber">wallet + Solana RPC only</span>. 
+                Backend API (<code className="text-white">api.persat.finance</code>) is optional until DNS and deploy exist. 
+                Waitlist stays on <code className="text-white">persat.finance</code> from <code className="text-white">waitlist/</code>; dApp on <code className="text-white">dapp.persat.finance</code>.
+                Founder checklist: <code className="text-white">docs/HOSTING_A4.md</code>.
+              </p>
+            </div>
+
+            <div className="mt-8 rounded-xl border border-white/10 bg-white/[0.02] p-5">
+              <h3 className="font-display text-lg uppercase text-white">A1 / A2 Live Evidence — Next Steps</h3>
               <ul className="mt-3 space-y-1.5 font-mono text-xs text-white/60 list-disc pl-5">
-                <li>10 scripted lifecycle cycles as audit Pass-3 evidence — see scripts/day2-liquidation-sim.mjs and upcoming scripts/day3-lifecycle-cycles.mjs, each with tx signatures + cluster.</li>
-                <li>Netlify deployment for waitlist + frontend — netlify.toml already present, needs env NEXT_PUBLIC_SOLANA_RPC_URL, NEXT_PUBLIC_BACKEND_URL.</li>
-                <li>Load testing under pump — 100 concurrent users, verify rate limiting, caching, pagination cap 100, no crash.</li>
-                <li>External audit scoping after Pass-3/4 clean.</li>
+                <li>Run happy + default paths per <code className="text-white">ops/handoff/A1-A2-live-cycle-runbook.md</code> (browser + Phantom Devnet).</li>
+                <li>Fill <code className="text-white">security-audits/pass-3/cycles/cycle-01-happy.md</code> and <code className="text-white">cycle-02-default.md</code> with explorer signatures.</li>
+                <li>Optional: <code className="text-white">node frontend/scripts/record-cycle.mjs --template happy --json … --out …</code></li>
+                <li>Ten-cycle Pass-3 map: <code className="text-white">security-audits/pass-3/B2_TEN_CYCLES.md</code> (cycles 3–10 = audit-grade B).</li>
+                <li>Dedicated RPC + merge to <code className="text-white">main</code> for dApp — <code className="text-white">docs/HOSTING_A4.md</code>.</li>
+                <li>External audit scoping after Pass-3/4 clean — <code className="text-white">docs/MAINNET_CUTOVER_3_STEP.md</code>.</li>
               </ul>
             </div>
 

@@ -1,48 +1,83 @@
 /**
- * Keeper service — devnet MVP operator loop.
- * The programs have no CPI, so operator wallet signs state transitions.
- * This is a stub that logs what it would do; full implementation needs
- * deployer keypair and RPC to fetch active deals and drive them.
+ * Keeper service — devnet operator loop scaffolding (B3).
  *
- * Production: replace with dedicated keeper key controlled by gov multisig,
- * poll DealRegistry for Funding/Active/Defaulted, call lock_vault, begin_funding,
- * mark_active, flag_default, evaluate_position, seize, mark_liquidated, close, release.
+ * Programs have no cross-program CPI for these transitions; an operator wallet
+ * signs: lock_vault, begin_funding, mark_active, flag_default, seize_*, 
+ * mark_liquidated, release_collateral, close_deal, record_origination_fee.
+ *
+ * States:
+ *  - disabled: default (no env)
+ *  - stub: KEEPER_ENABLED=1 without key → liveness ticks only (safe)
+ *  - live: KEEPER_KEYPAIR_PATH set → load key, sign (implement fetch+ix next)
+ *
+ * Production: dedicated keeper key (fee-only), never gov signer long-term;
+ * controlled by 2-of-3 governance process. See docs/MAINNET_CUTOVER_3_STEP.md § B3.
  */
 
+import fs from "fs";
 import { config } from "../config.js";
 
 let interval: NodeJS.Timeout | null = null;
 let running = false;
+let tickCount = 0;
+let mode: "disabled" | "stub" | "live-ready" = "disabled";
+
+function resolveMode(): typeof mode {
+  if (!config.keeperEnabled) return "disabled";
+  const keyPath = process.env.KEEPER_KEYPAIR_PATH;
+  if (keyPath && fs.existsSync(keyPath)) return "live-ready";
+  return "stub";
+}
+
+/**
+ * Future: load Keypair from KEEPER_KEYPAIR_PATH, Connection from SOLANA_RPC_URL,
+ * scan deal PDAs / indexer, build instructions, sign+send, log explorer URLs.
+ * Do not implement signing until key path is present and tests cover dry-run.
+ */
+async function processTick(): Promise<void> {
+  tickCount += 1;
+  const ts = new Date().toISOString();
+
+  if (mode === "stub") {
+    console.log(
+      `[keeper] tick=${tickCount} at=${ts} mode=stub cluster=${config.cluster} — no key loaded; would scan Funding/Active/Defaulted`,
+    );
+    return;
+  }
+
+  if (mode === "live-ready") {
+    // Key file exists — still no automatic send until deal index + ix builders land.
+    // This prevents accidental mainnet-shaped sends from a half-wired loop.
+    console.log(
+      `[keeper] tick=${tickCount} at=${ts} mode=live-ready cluster=${config.cluster} — key present; deal scan + sign not yet wired (B3 in progress)`,
+    );
+    // TODO B3: fetch candidates → build ix → sendTransaction → log sig
+    return;
+  }
+}
 
 export function startKeeper() {
-  if (!config.keeperEnabled) {
-    console.log("[keeper] Disabled — set KEEPER_ENABLED or KEEPER_KEYPAIR_PATH to enable");
+  mode = resolveMode();
+  if (mode === "disabled") {
+    console.log("[keeper] Disabled — set KEEPER_ENABLED=1 and optionally KEEPER_KEYPAIR_PATH");
     return;
   }
   if (running) return;
   running = true;
 
   const pollMs = config.keeperPollSeconds * 1000;
-  console.log(`[keeper] Starting — poll every ${config.keeperPollSeconds}s, cluster=${config.cluster}`);
+  console.log(
+    `[keeper] Starting mode=${mode} poll=${config.keeperPollSeconds}s cluster=${config.cluster}`,
+  );
 
-  interval = setInterval(async () => {
-    try {
-      // In full version:
-      // 1. Fetch all deals in Funding state -> check vault collateral >= required -> lock_vault + begin_funding
-      // 2. Fetch Active -> check payment due -> if overdue past grace -> flag_default
-      // 3. Fetch Active/Defaulted -> evaluate_position via Pyth price -> if LTV > 70% partial, >80% full -> seize + mark_liquidated
-      // 4. Fetch Completed -> release_collateral + close_deal
-      // All with idempotency, retry, and logging tx sigs.
-
-      // For now, log liveness
-      console.log(`[keeper] Tick ${new Date().toISOString()} — would process active deals (stub)`);
-    } catch (err) {
-      console.error("[keeper] Tick failed", (err as Error).message);
-    }
+  void processTick();
+  interval = setInterval(() => {
+    void processTick();
   }, pollMs);
 
-  // Unref so it doesn't block shutdown
-  if (interval && typeof (interval as any).unref === "function") (interval as any).unref();
+  if (interval && typeof (interval as NodeJS.Timeout & { unref?: () => void }).unref === "function") {
+    (interval as NodeJS.Timeout & { unref: () => void }).unref();
+  }
 }
 
 export function stopKeeper() {
@@ -51,4 +86,10 @@ export function stopKeeper() {
     interval = null;
   }
   running = false;
+  console.log(`[keeper] Stopped after ${tickCount} ticks`);
+}
+
+/** Test/health introspection */
+export function getKeeperStatus() {
+  return { running, mode, tickCount, cluster: config.cluster, pollSeconds: config.keeperPollSeconds };
 }
