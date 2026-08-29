@@ -234,27 +234,73 @@ export function OnboardingFlow({
   );
 }
 
+export function readOnboardingCompleted(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem(ONBOARDING_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Gate home load:
+ * - Wallet already connected → dashboard immediately (no guide)
+ * - New visitor (no wallet) → guide immediately, never flash dashboard
+ * - While wallet adapter is still auto-connecting → hold (not dashboard)
+ */
 export function useOnboarding() {
+  const { publicKey, connecting } = useProtocol();
+  const [ready, setReady] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [completed, setCompleted] = useState(false);
 
   useEffect(() => {
-    try {
-      const completed = localStorage.getItem(ONBOARDING_KEY);
-      if (!completed) {
-        setShowOnboarding(true);
-      }
-    } catch {
-      //
-    }
-
     const handleTrigger = () => setShowOnboarding(true);
     window.addEventListener("persat_show_onboarding", handleTrigger);
     return () => window.removeEventListener("persat_show_onboarding", handleTrigger);
   }, []);
 
+  useEffect(() => {
+    // Hold until auto-connect finishes so returning wallets don't flash the guide
+    if (connecting) {
+      setReady(false);
+      return;
+    }
+
+    const t = window.setTimeout(() => {
+      const done = readOnboardingCompleted();
+      setCompleted(done);
+
+      if (publicKey) {
+        // Wallet already connected → dashboard only, skip guide
+        setShowOnboarding(false);
+        setReady(true);
+        return;
+      }
+
+      // No wallet: new users get guide first — never show dashboard underneath
+      if (!done) {
+        setShowOnboarding(true);
+      } else {
+        // Completed guide earlier but disconnected — dashboard OK (or they can reopen Guide *)
+        setShowOnboarding(false);
+      }
+      setReady(true);
+    }, 80);
+
+    return () => window.clearTimeout(t);
+  }, [publicKey, connecting]);
+
   return {
+    /** false until guide-vs-dashboard is decided — home must not paint dashboard while false */
+    ready,
     showOnboarding,
+    onboardingCompleted: completed,
     openOnboarding: () => setShowOnboarding(true),
-    closeOnboarding: () => setShowOnboarding(false),
+    closeOnboarding: () => {
+      setCompleted(true);
+      setShowOnboarding(false);
+    },
   };
 }

@@ -19,7 +19,7 @@ export default function Home() {
   const userBalances = useUserRealBalances(connection, publicKey);
   const { price: btcPrice } = useBtcPrice();
 
-  const { showOnboarding, openOnboarding, closeOnboarding } = useOnboarding();
+  const { ready, showOnboarding, openOnboarding, closeOnboarding } = useOnboarding();
   const [fundingOpen, setFundingOpen] = useState(false);
   const [balanceVisible, setBalanceVisible] = useState(true);
 
@@ -29,6 +29,27 @@ export default function Home() {
     ? `User ${publicKey.toBase58().slice(0, 4)}`
     : "Trader";
 
+  // New users: guide only — never paint dashboard underneath (no flash)
+  if (!ready || showOnboarding) {
+    return (
+      <main className="app-shell min-h-screen bg-black">
+        {showOnboarding ? (
+          <OnboardingFlow onComplete={closeOnboarding} onOpenFunding={() => setFundingOpen(true)} />
+        ) : (
+          /* Brief hold while wallet auto-connect resolves — solid black, not dashboard */
+          <div className="flex min-h-screen items-center justify-center" aria-busy="true" aria-label="Loading">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-10 w-10 animate-pulse rounded-xl bg-gradient-to-br from-amber/40 to-orange/50" />
+              <span className="font-brand-persat text-sm uppercase tracking-[.24em] text-white/40">persat</span>
+            </div>
+          </div>
+        )}
+        <FundWalletModal open={fundingOpen} onClose={() => setFundingOpen(false)} />
+      </main>
+    );
+  }
+
+  // Wallet connected (or guide already finished) → dashboard immediately
   return (
     <main className="app-shell hud-grid min-h-screen pb-24 md:pb-12">
       <header className="sticky top-0 z-40 px-4 pt-3 sm:px-8">
@@ -281,8 +302,6 @@ export default function Home() {
       </section>
 
       <BottomNav />
-
-      {showOnboarding && <OnboardingFlow onComplete={closeOnboarding} onOpenFunding={() => setFundingOpen(true)} />}
 
       <FundWalletModal open={fundingOpen} onClose={() => setFundingOpen(false)} />
     </main>

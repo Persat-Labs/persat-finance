@@ -62,7 +62,18 @@ export function useProtocol() {
 
   const clear = useCallback(() => setState({ busy: false, result: null }), []);
 
-  return { connection, wallet, publicKey, isOperator, send, ataOf, pending: state, clear };
+  return {
+    connection,
+    wallet,
+    publicKey,
+    connecting: Boolean(wallet.connecting),
+    connected: Boolean(wallet.connected && publicKey),
+    isOperator,
+    send,
+    ataOf,
+    pending: state,
+    clear,
+  };
 }
 
 /** Encode/decode 16-byte deal ids for URLs — browser-safe base64url (no Buffer base64url dep). */
