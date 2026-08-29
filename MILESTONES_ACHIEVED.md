@@ -41,3 +41,7 @@ This record follows the authoritative 10-week roadmap. Status reflects verified 
 ## Weeks 6–10
 
 Not started. No later-week task is marked complete before source, tests, and the required audit pass evidence exist.
+
+## Testnet → mainnet phase tracking
+
+Use [`docs/MAINNET_CUTOVER_3_STEP.md`](docs/MAINNET_CUTOVER_3_STEP.md) for Definitions of **A** (honest public testnet), **B** (audit-grade), and **C** (3-step mainnet cutover). Do not treat mint-address swap language as sufficient for mainnet until that document’s gates are green with evidence under `security-audits/pass-3/`.

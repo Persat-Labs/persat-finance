@@ -24,3 +24,11 @@ Populate the corresponding blank names in `.env.example` only through environmen
 2. All four security audit passes completed with reports stored under `security-audits/pass-[n]/`.
 3. Bridge partner integration, health checks, manual fallback, and fail-closed price behavior verified on the selected public test cluster.
 4. Load testing, monitoring, alerting, incident response, and a launch-day rollback plan completed before any public promotion.
+
+## Testnet → mainnet cutover checklist
+
+Authoritative phased checklist (Definitions of **A** honest testnet, **B** audit-grade testnet, **C** three-step mainnet cutover):
+
+→ **[`docs/MAINNET_CUTOVER_3_STEP.md`](docs/MAINNET_CUTOVER_3_STEP.md)**
+
+Do not run mainnet program deploy or real-funds marketing until that document’s **B exit** and Pass-4 gate are satisfied. Devnet stand-in mints and deferred bridge keys are expected until then.
