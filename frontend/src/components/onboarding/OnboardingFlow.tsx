@@ -244,17 +244,31 @@ export function readOnboardingCompleted(): boolean {
 }
 
 /**
- * Gate home load:
- * - Wallet already connected → dashboard immediately (no guide)
- * - New visitor (no wallet) → guide immediately, never flash dashboard
- * - Auto-connect may take a moment — wait briefly, but NEVER hang forever
+ * Immediate guide vs dashboard — NO loading gate (never stuck).
+ * - Wallet connected → dashboard (skip guide)
+ * - New visitor (guide not completed) → guide only, no dashboard underneath
+ * - Guide completed, no wallet → dashboard
  */
 export function useOnboarding() {
-  const { publicKey, connecting } = useProtocol();
-  // Start ready=false only for the first tick; always resolve within ~1.2s max
-  const [ready, setReady] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [completed, setCompleted] = useState(false);
+  const { publicKey } = useProtocol();
+
+  // Sync initial state — no useEffect delay, no ready flag that can hang
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window === "undefined") return true; // SSR: guide shell, never dashboard HTML for first paint
+    return !readOnboardingCompleted();
+  });
+
+  useEffect(() => {
+    // Wallet already connected → always dashboard
+    if (publicKey) {
+      setShowOnboarding(false);
+      return;
+    }
+    // No wallet: respect completed flag
+    if (!readOnboardingCompleted()) {
+      setShowOnboarding(true);
+    }
+  }, [publicKey]);
 
   useEffect(() => {
     const handleTrigger = () => setShowOnboarding(true);
@@ -262,53 +276,8 @@ export function useOnboarding() {
     return () => window.removeEventListener("persat_show_onboarding", handleTrigger);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const decide = () => {
-      if (cancelled) return;
-      const done = readOnboardingCompleted();
-      setCompleted(done);
-
-      if (publicKey) {
-        // Wallet already connected → dashboard only
-        setShowOnboarding(false);
-      } else if (!done) {
-        // New user → guide only (no dashboard underneath)
-        setShowOnboarding(true);
-      } else {
-        setShowOnboarding(false);
-      }
-      setReady(true);
-    };
-
-    // Wallet already known → decide immediately
-    if (publicKey) {
-      decide();
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    // Give auto-connect a short window, then decide no matter what.
-    // Previous bug: if `connecting` stayed true, ready never became true → infinite black screen.
-    const delayMs = connecting ? 900 : 50;
-    const t = window.setTimeout(decide, delayMs);
-    // Hard ceiling so the page always loads
-    const hard = window.setTimeout(decide, 1500);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(t);
-      window.clearTimeout(hard);
-    };
-  }, [publicKey, connecting]);
-
   return {
-    /** false until guide-vs-dashboard is decided — home must not paint dashboard while false */
-    ready,
-    showOnboarding,
-    onboardingCompleted: completed,
+    showOnboarding: publicKey ? false : showOnboarding,
     openOnboarding: () => setShowOnboarding(true),
     closeOnboarding: () => {
       try {
@@ -316,9 +285,7 @@ export function useOnboarding() {
       } catch {
         //
       }
-      setCompleted(true);
       setShowOnboarding(false);
-      setReady(true);
     },
   };
 }

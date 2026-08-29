@@ -31,9 +31,11 @@ export function PersatWalletProvider({ children }: { children: ReactNode }) {
     <SafeConnectionProvider endpoint={endpoint}>
       <SafeWalletProvider
         wallets={wallets}
+        // Auto-reconnect returning wallets; failures must not block the app shell
         autoConnect={true}
         onError={(err) => {
-          console.warn("[Persat Wallet Notice]", err?.message ?? err);
+          // Never throw — wallet errors must not freeze the page on loading
+          console.warn("[Persat Wallet Notice]", err?.message ?? String(err));
         }}
       >
         <SafeWalletModalProvider>
