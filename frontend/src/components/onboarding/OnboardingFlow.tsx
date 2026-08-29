@@ -244,15 +244,11 @@ export function readOnboardingCompleted(): boolean {
 }
 
 /**
- * Hydration-safe guide vs dashboard gate.
+ * Hydration-safe onboarding flag.
  *
- * CRITICAL: first server render and first client render MUST match.
- * Never read localStorage or wallet in useState initializers — that caused:
- *   "Expected server HTML to contain a matching <header> in <main>"
- *
- * Flow:
- * 1. mounted=false → identical black shell (SSR + hydrate)
- * 2. after mount → wallet connected → dashboard; else incomplete guide → guide only
+ * Home always paints the dashboard tree (SSR === client first paint).
+ * Guide is an overlay decided only after mount — never blocks first paint,
+ * never shows a "persat" loading word.
  */
 export function useOnboarding() {
   const { publicKey } = useProtocol();
@@ -267,12 +263,10 @@ export function useOnboarding() {
     if (!mounted) return;
 
     if (publicKey) {
-      // Returning user with wallet → dashboard only
       setShowOnboarding(false);
       return;
     }
 
-    // New visitor → guide; completed guide → dashboard
     setShowOnboarding(!readOnboardingCompleted());
   }, [mounted, publicKey]);
 
@@ -283,9 +277,7 @@ export function useOnboarding() {
   }, []);
 
   return {
-    /** false until after hydrate — home must render the same shell as SSR */
-    mounted,
-    /** only meaningful when mounted; wallet always wins over guide */
+    /** Overlay only after mount; wallet connected → never show guide */
     showOnboarding: mounted && !publicKey && showOnboarding,
     openOnboarding: () => setShowOnboarding(true),
     closeOnboarding: () => {
