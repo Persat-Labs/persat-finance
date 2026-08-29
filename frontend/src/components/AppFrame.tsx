@@ -41,8 +41,11 @@ export function AppFrame({
 
           {/* Clean, Focused Core Navigation (Faucet & Keeper removed) */}
           <div className="hidden items-center gap-7 font-ui-persat text-xs uppercase tracking-wider text-white/70 md:flex">
+            <Link href="/deals" className="hover:text-amber transition">
+              My Deals
+            </Link>
             <Link href="/deal/new" className="hover:text-amber transition">
-              Direct Deal
+              New Deal
             </Link>
             <Link href="/marketplace" className="hover:text-amber transition">
               Marketplace

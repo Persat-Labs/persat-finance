@@ -32,7 +32,8 @@ export function BottomNav() {
     },
     {
       label: "Deals",
-      href: "/deal/new",
+      // My Deals list — NOT /deal/new (that is "New Deal +" inside /deals)
+      href: "/deals",
       icon: (active: boolean) => (
         <svg
           className={`h-5 w-5 ${active ? "text-amber" : "text-white/50"}`}
@@ -45,7 +46,7 @@ export function BottomNav() {
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
         </svg>
       ),
-      active: pathname.startsWith("/deal"),
+      active: pathname === "/deals" || (pathname.startsWith("/deal/") && !pathname.startsWith("/deal/new")),
     },
     {
       label: "Market",
