@@ -247,10 +247,11 @@ export function readOnboardingCompleted(): boolean {
  * Gate home load:
  * - Wallet already connected → dashboard immediately (no guide)
  * - New visitor (no wallet) → guide immediately, never flash dashboard
- * - While wallet adapter is still auto-connecting → hold (not dashboard)
+ * - Auto-connect may take a moment — wait briefly, but NEVER hang forever
  */
 export function useOnboarding() {
   const { publicKey, connecting } = useProtocol();
+  // Start ready=false only for the first tick; always resolve within ~1.2s max
   const [ready, setReady] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [completed, setCompleted] = useState(false);
@@ -262,34 +263,45 @@ export function useOnboarding() {
   }, []);
 
   useEffect(() => {
-    // Hold until auto-connect finishes so returning wallets don't flash the guide
-    if (connecting) {
-      setReady(false);
-      return;
-    }
+    let cancelled = false;
 
-    const t = window.setTimeout(() => {
+    const decide = () => {
+      if (cancelled) return;
       const done = readOnboardingCompleted();
       setCompleted(done);
 
       if (publicKey) {
-        // Wallet already connected → dashboard only, skip guide
+        // Wallet already connected → dashboard only
         setShowOnboarding(false);
-        setReady(true);
-        return;
-      }
-
-      // No wallet: new users get guide first — never show dashboard underneath
-      if (!done) {
+      } else if (!done) {
+        // New user → guide only (no dashboard underneath)
         setShowOnboarding(true);
       } else {
-        // Completed guide earlier but disconnected — dashboard OK (or they can reopen Guide *)
         setShowOnboarding(false);
       }
       setReady(true);
-    }, 80);
+    };
 
-    return () => window.clearTimeout(t);
+    // Wallet already known → decide immediately
+    if (publicKey) {
+      decide();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Give auto-connect a short window, then decide no matter what.
+    // Previous bug: if `connecting` stayed true, ready never became true → infinite black screen.
+    const delayMs = connecting ? 900 : 50;
+    const t = window.setTimeout(decide, delayMs);
+    // Hard ceiling so the page always loads
+    const hard = window.setTimeout(decide, 1500);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+      window.clearTimeout(hard);
+    };
   }, [publicKey, connecting]);
 
   return {
@@ -299,8 +311,14 @@ export function useOnboarding() {
     onboardingCompleted: completed,
     openOnboarding: () => setShowOnboarding(true),
     closeOnboarding: () => {
+      try {
+        localStorage.setItem(ONBOARDING_KEY, "true");
+      } catch {
+        //
+      }
       setCompleted(true);
       setShowOnboarding(false);
+      setReady(true);
     },
   };
 }

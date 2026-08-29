@@ -30,13 +30,13 @@ export default function Home() {
     : "Trader";
 
   // New users: guide only — never paint dashboard underneath (no flash)
+  // While !ready we show a short loader; useOnboarding always resolves within ~1.5s
   if (!ready || showOnboarding) {
     return (
       <main className="app-shell min-h-screen bg-black">
         {showOnboarding ? (
           <OnboardingFlow onComplete={closeOnboarding} onOpenFunding={() => setFundingOpen(true)} />
         ) : (
-          /* Brief hold while wallet auto-connect resolves — solid black, not dashboard */
           <div className="flex min-h-screen items-center justify-center" aria-busy="true" aria-label="Loading">
             <div className="flex flex-col items-center gap-3">
               <div className="h-10 w-10 animate-pulse rounded-xl bg-gradient-to-br from-amber/40 to-orange/50" />
