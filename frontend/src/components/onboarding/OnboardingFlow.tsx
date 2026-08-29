@@ -244,31 +244,37 @@ export function readOnboardingCompleted(): boolean {
 }
 
 /**
- * Immediate guide vs dashboard — NO loading gate (never stuck).
- * - Wallet connected → dashboard (skip guide)
- * - New visitor (guide not completed) → guide only, no dashboard underneath
- * - Guide completed, no wallet → dashboard
+ * Hydration-safe guide vs dashboard gate.
+ *
+ * CRITICAL: first server render and first client render MUST match.
+ * Never read localStorage or wallet in useState initializers — that caused:
+ *   "Expected server HTML to contain a matching <header> in <main>"
+ *
+ * Flow:
+ * 1. mounted=false → identical black shell (SSR + hydrate)
+ * 2. after mount → wallet connected → dashboard; else incomplete guide → guide only
  */
 export function useOnboarding() {
   const { publicKey } = useProtocol();
-
-  // Sync initial state — no useEffect delay, no ready flag that can hang
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    if (typeof window === "undefined") return true; // SSR: guide shell, never dashboard HTML for first paint
-    return !readOnboardingCompleted();
-  });
+  const [mounted, setMounted] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    // Wallet already connected → always dashboard
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     if (publicKey) {
+      // Returning user with wallet → dashboard only
       setShowOnboarding(false);
       return;
     }
-    // No wallet: respect completed flag
-    if (!readOnboardingCompleted()) {
-      setShowOnboarding(true);
-    }
-  }, [publicKey]);
+
+    // New visitor → guide; completed guide → dashboard
+    setShowOnboarding(!readOnboardingCompleted());
+  }, [mounted, publicKey]);
 
   useEffect(() => {
     const handleTrigger = () => setShowOnboarding(true);
@@ -277,7 +283,10 @@ export function useOnboarding() {
   }, []);
 
   return {
-    showOnboarding: publicKey ? false : showOnboarding,
+    /** false until after hydrate — home must render the same shell as SSR */
+    mounted,
+    /** only meaningful when mounted; wallet always wins over guide */
+    showOnboarding: mounted && !publicKey && showOnboarding,
     openOnboarding: () => setShowOnboarding(true),
     closeOnboarding: () => {
       try {

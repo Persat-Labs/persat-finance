@@ -19,7 +19,7 @@ export default function Home() {
   const userBalances = useUserRealBalances(connection, publicKey);
   const { price: btcPrice } = useBtcPrice();
 
-  const { showOnboarding, openOnboarding, closeOnboarding } = useOnboarding();
+  const { mounted, showOnboarding, openOnboarding, closeOnboarding } = useOnboarding();
   const [fundingOpen, setFundingOpen] = useState(false);
   const [balanceVisible, setBalanceVisible] = useState(true);
 
@@ -29,8 +29,18 @@ export default function Home() {
     ? `User ${publicKey.toBase58().slice(0, 4)}`
     : "Trader";
 
-  // New users (no wallet yet): guide ONLY — never mount dashboard underneath
-  // Connected wallet: always dashboard (showOnboarding forced false in hook)
+  // 1) Pre-hydrate shell — MUST match server HTML exactly (no header / no guide fork)
+  if (!mounted) {
+    return (
+      <main className="app-shell min-h-screen bg-black">
+        <div className="flex min-h-screen items-center justify-center" aria-busy="true" aria-label="Loading">
+          <span className="font-brand-persat text-sm uppercase tracking-[.24em] text-white/50">persat</span>
+        </div>
+      </main>
+    );
+  }
+
+  // 2) New users: guide only — never mount dashboard underneath
   if (showOnboarding) {
     return (
       <main className="app-shell min-h-screen bg-black">
@@ -40,6 +50,7 @@ export default function Home() {
     );
   }
 
+  // 3) Wallet connected or guide finished → dashboard
   return (
     <main className="app-shell hud-grid min-h-screen pb-24 md:pb-12">
       <header className="sticky top-0 z-40 px-4 pt-3 sm:px-8">
