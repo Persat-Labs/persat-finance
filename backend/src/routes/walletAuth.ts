@@ -12,7 +12,7 @@ export async function walletAuthRoutes(app: FastifyInstance) {
     if (!parsed.success) return reply.code(400).send({ error: "Invalid Solana wallet" });
     try {
       const db = await requireDatabase();
-      const challenge = createChallenge(parsed.data.wallet, process.env.NEXT_PUBLIC_APP_URL ?? "https://persat.finance");
+      const challenge = createChallenge(parsed.data.wallet, process.env.NEXT_PUBLIC_APP_URL ?? "https://dapp.persat.finance");
       // MySQL and PG compatible — use ? placeholders, wrapper converts $1 to ?
       await db.query(
         "INSERT INTO wallet_auth_challenges (id, wallet, nonce_hash, message, expires_at) VALUES (UUID(), ?, ?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE))",

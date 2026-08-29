@@ -12,7 +12,7 @@
   # Devnet is target cluster — see contracts/config/devnet.json
   NEXT_PUBLIC_SOLANA_RPC_URL = "https://api.devnet.solana.com"
   NEXT_PUBLIC_BACKEND_URL = "https://api.persat.finance"
-  NEXT_PUBLIC_APP_URL = "https://persat.finance"
+  NEXT_PUBLIC_APP_URL = "https://dapp.persat.finance"
 
 # Next.js SSR via Netlify Next.js Runtime
 [[plugins]]
