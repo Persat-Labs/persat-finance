@@ -23,6 +23,19 @@ export interface MarketplaceListing {
 const STORAGE_KEY = "persat_marketplace_listings_live_v2";
 const CACHE_TTL_MS = 15000;
 
+function isDemoListing(l: { id?: string; dealId?: string; dealUrlId?: string }): boolean {
+  const ids = [l.id, l.dealId, l.dealUrlId].filter(Boolean).map((s) => String(s).toLowerCase());
+  return ids.some(
+    (s) =>
+      s.startsWith("demo") ||
+      s.includes("demo-") ||
+      s.startsWith("fake") ||
+      s.startsWith("sample") ||
+      s.startsWith("mock") ||
+      s.startsWith("seed"),
+  );
+}
+
 function getStored(): MarketplaceListing[] {
   if (typeof window === "undefined") return [];
   try {
@@ -30,7 +43,8 @@ function getStored(): MarketplaceListing[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed;
+    // Never surface demo/fake seed listings
+    return parsed.filter((l) => l && !isDemoListing(l));
   } catch {
     return [];
   }
@@ -45,6 +59,7 @@ function setStored(listings: MarketplaceListing[]) {
 
 export function saveListing(listing: MarketplaceListing): void {
   if (typeof window === "undefined") return;
+  if (isDemoListing(listing)) return;
   const current = getStored().filter((l) => l.dealId !== listing.dealId);
   current.unshift(listing);
   setStored(current);

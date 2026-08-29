@@ -103,7 +103,9 @@ export default function NewDealPage() {
         saveListing({
           source: "client" as const,
           id: `list_${urlId}`,
-          dealId: Buffer.from(dealId).toString("hex"),
+          dealId: Array.from(dealId)
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join(""),
           creatorWallet: publicKey.toBase58(),
           creatorHandle: handle,
           side: side === "borrower" ? "borrow" : "lend",
@@ -300,27 +302,27 @@ export default function NewDealPage() {
               )}
             </fieldset>
 
-            {/* Publish Toggle — Marketplace vs Private */}
+            {/* Publish Toggle — Marketplace vs Private handle/wallet only */}
             <div className="space-y-3">
-              <label className="eyebrow mb-2 block">Publish Mode</label>
+              <label className="eyebrow mb-2 block">Where should this deal go?</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setPublishMode("marketplace")}
                   className={`rounded-xl border p-3 text-left transition ${publishMode === "marketplace" ? "border-amber bg-amber/15 text-white" : "border-white/10 bg-white/[0.02] text-white/60 hover:text-white hover:border-white/20"}`}
                 >
-                  <p className="font-mono text-xs font-bold uppercase">🌐 Publish to Marketplace</p>
-                  <p className="mt-1 font-mono text-[10px] text-white/40">Open listing — anyone can fulfill, real on-chain deal, watch to track earnings & due</p>
-                  {publishMode === "marketplace" && <p className="mt-1 font-mono text-[10px] text-amber">● Selected — public deal</p>}
+                  <p className="font-mono text-xs font-bold uppercase">Publish to Marketplace</p>
+                  <p className="mt-1 font-mono text-[10px] text-white/40">Open public listing — anyone can fulfill. Appears on Marketplace for others to watch & track.</p>
+                  {publishMode === "marketplace" && <p className="mt-1 font-mono text-[10px] text-amber">● Selected</p>}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPublishMode("private")}
                   className={`rounded-xl border p-3 text-left transition ${publishMode === "private" ? "border-amber bg-amber/15 text-white" : "border-white/10 bg-white/[0.02] text-white/60 hover:text-white hover:border-white/20"}`}
                 >
-                  <p className="font-mono text-xs font-bold uppercase">🔒 Private to Handle/Wallet Only</p>
-                  <p className="mt-1 font-mono text-[10px] text-white/40">Send only to attached handle/wallet — private link, not in marketplace</p>
-                  {publishMode === "private" && <p className="mt-1 font-mono text-[10px] text-amber">● Selected — private deal</p>}
+                  <p className="font-mono text-xs font-bold uppercase">Send to Handle / Wallet Only</p>
+                  <p className="mt-1 font-mono text-[10px] text-white/40">Private — only the attached @handle or wallet can take the other side. Not listed publicly.</p>
+                  {publishMode === "private" && <p className="mt-1 font-mono text-[10px] text-amber">● Selected</p>}
                 </button>
               </div>
 
