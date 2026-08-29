@@ -10,8 +10,9 @@
 import { PublicKey } from "@solana/web3.js";
 
 export const CLUSTER = "devnet" as const;
-export const DEFAULT_RPC =
-  process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
+export const DEFAULT_RPC = process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
+export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+export const IS_PROD = process.env.NODE_ENV === "production";
 
 export const PROGRAM_IDS = {
   governance: new PublicKey("gSCWC42bnn8XbRNXt7FdoGPGqG5dkfMihqYj8xhGwuj"),

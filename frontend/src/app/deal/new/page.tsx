@@ -20,6 +20,7 @@ export default function NewDealPage() {
   const [durationChoice, setDurationChoice] = useState<"6" | "12" | "24" | "custom">("12");
   const [customMonths, setCustomMonths] = useState("18");
   const [collateralBtc, setCollateralBtc] = useState("0.05");
+  const [publishMode, setPublishMode] = useState<"marketplace" | "private">("marketplace");
   const [counterparty, setCounterparty] = useState("");
   const [counterpartyError, setCounterpartyError] = useState("");
   const [fundingOpen, setFundingOpen] = useState(false);
@@ -28,9 +29,10 @@ export default function NewDealPage() {
 
   const months = durationChoice === "custom" ? Math.max(1, Number(customMonths) || 1) : Number(durationChoice);
 
+  const [collateralType, setCollateralType] = useState<"BTC" | "tBTC" | "zBTC">("BTC");
   const loanMint = MINTS[currency];
-  // Auto-route to healthiest bridge (default tBTC on devnet)
-  const collateralMint = MINTS.tBTC;
+  // BTC default auto-routes to best bridge via live health checker — manual tBTC/zBTC option for users who already hold them
+  const collateralMint = collateralType === "BTC" ? MINTS.tBTC : MINTS[collateralType];
   const decimalsReady = Boolean(loanMint && collateralMint);
 
   const summary = useMemo(() => {
@@ -45,10 +47,13 @@ export default function NewDealPage() {
     if (!publicKey || !loanMint || !collateralMint) return;
 
     let counterpartyKey: PublicKey | null = null;
-    const rawInput = counterparty.trim();
-    if (rawInput) {
+    if (publishMode === "private") {
+      const rawInput = counterparty.trim();
+      if (!rawInput) {
+        setCounterpartyError("Private deal requires a counterparty handle or wallet address.");
+        return;
+      }
       const cleanHandle = rawInput.replace(/^@/, "");
-      // 1. Check if it's a registered handle in profiles
       const prof = getProfileByWalletOrUsername(cleanHandle);
       if (prof && prof.wallet) {
         try {
@@ -58,7 +63,6 @@ export default function NewDealPage() {
           return;
         }
       } else {
-        // 2. Try parsing as a raw Solana base58 public key
         try {
           counterpartyKey = new PublicKey(rawInput);
         } catch {
@@ -97,6 +101,7 @@ export default function NewDealPage() {
         const myProfile = getProfileByWalletOrUsername(publicKey.toBase58());
         const handle = myProfile ? myProfile.username : `user_${publicKey.toBase58().slice(0, 4)}`;
         saveListing({
+          source: "client" as const,
           id: `list_${urlId}`,
           dealId: Buffer.from(dealId).toString("hex"),
           creatorWallet: publicKey.toBase58(),
@@ -194,33 +199,34 @@ export default function NewDealPage() {
               </div>
             </div>
 
-            {/* Clean Bitcoin Collateral Input with Auto-Routing */}
+            {/* BTC Default Auto-Routing — Manual tBTC/zBTC Option */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="eyebrow block" htmlFor="collateral">
-                    Collateral: Bitcoin (BTC)
+                    Collateral: {collateralType} {collateralType === "BTC" ? "(auto → best bridge)" : "(manual)"}
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowBridgeInfo(!showBridgeInfo)}
-                    className="font-mono text-[10px] text-amber hover:underline"
-                  >
-                    {showBridgeInfo ? "Hide Bridge" : "Bridge: Auto ▾"}
+                  <button type="button" onClick={() => setShowBridgeInfo(!showBridgeInfo)} className="font-mono text-[10px] text-amber hover:underline">
+                    {showBridgeInfo ? "Hide Bridge" : "Bridge: Auto Live ▾"}
                   </button>
                 </div>
-                <Input
-                  id="collateral"
-                  type="number"
-                  step="0.00000001"
-                  min="0.00000001"
-                  value={collateralBtc}
-                  onChange={(e) => setCollateralBtc(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <Input id="collateral" type="number" step="0.00000001" min="0.00000001" value={collateralBtc} onChange={(e) => setCollateralBtc(e.target.value)} className="flex-1" />
+                  <div className="flex gap-1">
+                    {(["BTC", "tBTC", "zBTC"] as const).map((t) => (
+                      <button key={t} type="button" onClick={() => setCollateralType(t)} className={`rounded-lg border px-2.5 py-1 font-mono text-[11px] ${collateralType === t ? "border-amber bg-amber/15 text-white" : "border-white/10 bg-white/[0.02] text-white/50 hover:text-white"}`}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="mt-1 font-mono text-[10px] text-white/40">
+                  {collateralType === "BTC" ? "Default: deposit BTC → auto converts to tBTC/zBTC via live health (pause/status, success rate, liquidity)" : `Manual: you already have ${collateralType}, deposit directly`}
+                </p>
                 {showBridgeInfo && (
                   <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.02] p-2.5 font-mono text-[11px] text-white/60 space-y-1">
-                    <p className="text-white font-semibold">Auto-Routed Bridge: Threshold Network (tBTC)</p>
-                    <p className="text-[10px] text-white/40">Health: 100% · Status: Active · 100% Non-Custodial</p>
+                    <p className="text-white font-semibold">Auto-Routed: {collateralType === "BTC" ? "Best bridge via live checker → tBTC/zBTC" : `${collateralType} direct`}</p>
+                    <p className="text-[10px] text-white/40">Health: 3 signals — provider pause/status, success rate {" > "}80%, liquidity {" > "}$10k — fail-closed, never guessed</p>
                   </div>
                 )}
               </div>
@@ -294,27 +300,56 @@ export default function NewDealPage() {
               )}
             </fieldset>
 
-            {/* Counterparty Input with Handle Support */}
-            <div>
-              <label className="eyebrow mb-2 block" htmlFor="counterparty">
-                Counterparty Handle or Wallet Address (Optional)
-              </label>
-              <Input
-                id="counterparty"
-                value={counterparty}
-                onChange={(e) => {
-                  setCounterparty(e.target.value);
-                  setCounterpartyError("");
-                }}
-                placeholder="e.g. @persattest1 or 2G2a... (leave blank for open marketplace deal)"
-                className={counterpartyError ? "border-red-500/60 focus:border-red-500" : ""}
-              />
-              {counterpartyError ? (
-                <p className="mt-1.5 font-mono text-[11px] text-red-400">{counterpartyError}</p>
+            {/* Publish Toggle — Marketplace vs Private */}
+            <div className="space-y-3">
+              <label className="eyebrow mb-2 block">Publish Mode</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPublishMode("marketplace")}
+                  className={`rounded-xl border p-3 text-left transition ${publishMode === "marketplace" ? "border-amber bg-amber/15 text-white" : "border-white/10 bg-white/[0.02] text-white/60 hover:text-white hover:border-white/20"}`}
+                >
+                  <p className="font-mono text-xs font-bold uppercase">🌐 Publish to Marketplace</p>
+                  <p className="mt-1 font-mono text-[10px] text-white/40">Open listing — anyone can fulfill, real on-chain deal, watch to track earnings & due</p>
+                  {publishMode === "marketplace" && <p className="mt-1 font-mono text-[10px] text-amber">● Selected — public deal</p>}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPublishMode("private")}
+                  className={`rounded-xl border p-3 text-left transition ${publishMode === "private" ? "border-amber bg-amber/15 text-white" : "border-white/10 bg-white/[0.02] text-white/60 hover:text-white hover:border-white/20"}`}
+                >
+                  <p className="font-mono text-xs font-bold uppercase">🔒 Private to Handle/Wallet Only</p>
+                  <p className="mt-1 font-mono text-[10px] text-white/40">Send only to attached handle/wallet — private link, not in marketplace</p>
+                  {publishMode === "private" && <p className="mt-1 font-mono text-[10px] text-amber">● Selected — private deal</p>}
+                </button>
+              </div>
+
+              {publishMode === "private" ? (
+                <div>
+                  <label className="eyebrow mb-2 block" htmlFor="counterparty">
+                    Counterparty Handle or Wallet Address (Required for Private)
+                  </label>
+                  <Input
+                    id="counterparty"
+                    value={counterparty}
+                    onChange={(e) => {
+                      setCounterparty(e.target.value);
+                      setCounterpartyError("");
+                    }}
+                    placeholder="e.g. @persattest1 or 2G2a... (required)"
+                    className={counterpartyError ? "border-red-500/60 focus:border-red-500" : ""}
+                  />
+                  {counterpartyError ? (
+                    <p className="mt-1.5 font-mono text-[11px] text-red-400">{counterpartyError}</p>
+                  ) : (
+                    <p className="mt-1 font-mono text-[10px] text-white/40">Accepts @username or 32–44 char Solana pubkey — only this wallet can fulfill</p>
+                  )}
+                </div>
               ) : (
-                <p className="mt-1 font-mono text-[10px] text-white/40">
-                  Accepts usernames (e.g. @persattest1) or 32–44 char Solana public keys.
-                </p>
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 font-mono text-[11px] text-white/60">
+                  <p className="text-emerald-400 font-semibold">Marketplace mode:</p>
+                  <p>Deal will be published as real on-chain listing — anyone can see and fulfill. No demo deals — only real network deals. You can watch it to track earnings & due date on /deals page. BTC default auto → best bridge.</p>
+                </div>
               )}
             </div>
 

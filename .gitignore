@@ -18,3 +18,9 @@ coverage/
 # Rust / Anchor generated artifacts
 target/
 .anchor/
+
+# Persat devnet secrets — never commit
+persat-*.json
+*KEEP-SECRET*.json
+VIRTUAL_ENV_README.md
+frontend/persat-sandbox-bundle.json

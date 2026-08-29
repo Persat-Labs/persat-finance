@@ -317,4 +317,94 @@ export function markLiquidated(input: { operator: PublicKey; loanPda: PublicKey;
   );
 }
 
+/* ------------------------------------------------------------------ liquidation engine — Day 2 */
+
+export type PositionInput = {
+  dealId: Uint8Array;
+  outstandingDebtAtoms: bigint;
+  collateralAtoms: bigint;
+  collateralDecimals: number;
+  loanDecimals: number;
+  maxLtvBps: number;
+  partialLiquidationLtvBps: number;
+  fullLiquidationLtvBps: number;
+};
+
+function encodePositionInput(pos: PositionInput): Buffer {
+  if (pos.dealId.length !== 16) throw new Error("deal id must be 16 bytes");
+  const buf = Buffer.alloc(16 + 8 + 8 + 1 + 1 + 2 + 2 + 2);
+  let offset = 0;
+  Buffer.from(pos.dealId).copy(buf, offset);
+  offset += 16;
+  buf.writeBigUInt64LE(pos.outstandingDebtAtoms, offset);
+  offset += 8;
+  buf.writeBigUInt64LE(pos.collateralAtoms, offset);
+  offset += 8;
+  buf.writeUInt8(pos.collateralDecimals & 0xff, offset);
+  offset += 1;
+  buf.writeUInt8(pos.loanDecimals & 0xff, offset);
+  offset += 1;
+  buf.writeUInt16LE(pos.maxLtvBps & 0xffff, offset);
+  offset += 2;
+  buf.writeUInt16LE(pos.partialLiquidationLtvBps & 0xffff, offset);
+  offset += 2;
+  buf.writeUInt16LE(pos.fullLiquidationLtvBps & 0xffff, offset);
+  return buf;
+}
+
+/** evaluate(position) — keeper, requires fresh Pyth price via oracle + price_update */
+export function evaluatePosition(input: {
+  keeper: PublicKey;
+  enginePda: PublicKey;
+  oraclePda: PublicKey;
+  priceUpdatePda: PublicKey;
+  position: PositionInput;
+}): TransactionInstruction {
+  return ix(
+    PROGRAM_IDS.liquidationEngine,
+    Buffer.concat([disc("evaluate"), encodePositionInput(input.position)]),
+    [writer(input.enginePda), signer(input.keeper), reader(input.oraclePda), reader(input.priceUpdatePda)],
+  );
+}
+
+/** execute_partial_liquidation(position, missed_payment_atoms, penalty_bps, max_partial_bps) */
+export function executePartialLiquidation(input: {
+  keeper: PublicKey;
+  enginePda: PublicKey;
+  oraclePda: PublicKey;
+  priceUpdatePda: PublicKey;
+  position: PositionInput;
+  missedPaymentAtoms: bigint;
+  penaltyBps: number;
+  maxPartialBps: number;
+}): TransactionInstruction {
+  return ix(
+    PROGRAM_IDS.liquidationEngine,
+    Buffer.concat([
+      disc("executePartialLiquidation"),
+      encodePositionInput(input.position),
+      u64(input.missedPaymentAtoms),
+      u16(input.penaltyBps),
+      u16(input.maxPartialBps),
+    ]),
+    [writer(input.enginePda), signer(input.keeper), reader(input.oraclePda), reader(input.priceUpdatePda)],
+  );
+}
+
+/** execute_full_liquidation(position, terminal_default) */
+export function executeFullLiquidation(input: {
+  keeper: PublicKey;
+  enginePda: PublicKey;
+  oraclePda: PublicKey;
+  priceUpdatePda: PublicKey;
+  position: PositionInput;
+  terminalDefault: boolean;
+}): TransactionInstruction {
+  return ix(
+    PROGRAM_IDS.liquidationEngine,
+    Buffer.concat([disc("executeFullLiquidation"), encodePositionInput(input.position), bool(input.terminalDefault)]),
+    [writer(input.enginePda), signer(input.keeper), reader(input.oraclePda), reader(input.priceUpdatePda)],
+  );
+}
+
 export { SYSTEM_PROGRAM_ID } from "./pdas";

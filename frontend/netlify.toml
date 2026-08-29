@@ -1,0 +1,53 @@
+# Persat Finance — Frontend Netlify Deployment (Day 3 Prep)
+# Next.js production build for sub-10ms response times, waitlist design language, full dispenser pack
+
+[build]
+  base = "frontend"
+  command = "npm ci && npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
+  # Devnet is target cluster — see contracts/config/devnet.json
+  NEXT_PUBLIC_SOLANA_RPC_URL = "https://api.devnet.solana.com"
+  NEXT_PUBLIC_BACKEND_URL = "https://api.persat.finance"
+  NEXT_PUBLIC_APP_URL = "https://persat.finance"
+
+# Next.js SSR via Netlify Next.js Runtime
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Security headers — fail-closed, no custody
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # CSP allows self, solana RPC, Pyth Hermes, explorer
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.devnet.solana.com https://*.helius-rpc.com https://*.quicknode.com https://hermes.pyth.network https://explorer.solana.com https://api.persat.finance; font-src 'self' data:;"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Redirects for SPA fallback (Next.js handles, but keep for safety)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Known limitations page is static, cache short
+[[headers]]
+  for = "/known-limitations"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

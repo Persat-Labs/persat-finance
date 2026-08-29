@@ -7,6 +7,8 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["@solana/web3.js", "@solana/spl-token"],
   },
+  // Allow Arena E2B preview origins for virtual environment
+  allowedDevOrigins: ["*.e2b.app", "*.e2b.dev"],
 };
 
 export default nextConfig;
