@@ -310,6 +310,46 @@ ADMIN_API_KEY=...
 
 ---
 
+## Local `.env` file (Arena / laptop)
+
+1. Copy example (do not commit the real file):
+
+   ```bash
+   cp .env.example .env
+   # OR put secrets only in backend/
+   cp .env.example backend/.env
+   ```
+
+2. Edit **real** values — at minimum:
+
+   ```env
+   PERSAT_DATABASE_URL=mysql://USER:PASSWORD@HOST:PORT/DATABASE
+   SOLANA_RPC_URL=https://your-devnet-rpc
+   SOLANA_CLUSTER=devnet
+   PORT=4000
+   NODE_ENV=development
+   CORS_ORIGINS=https://dapp.persat.finance,http://localhost:3000
+   ```
+
+3. Backend loads `backend/.env` then repo-root `.env` automatically (`backend/src/loadEnv.ts`).
+
+4. Safe check (never prints secrets):
+
+   ```bash
+   cd backend && node scripts/check-env.mjs
+   ```
+
+5. Restart API, then:
+
+   ```bash
+   curl -sS http://localhost:4000/health
+   curl -sS http://localhost:4000/v1/auth/status
+   ```
+
+Want `database: ok` and `mode: database`.
+
+**Arena note:** some sandboxes block reading `.env` from the agent for security. If the agent cannot see your file, that is OK — Node still loads it when *you* restart the server. Prefer setting the same keys in Railway/Netlify Variables for production (not only a local file).
+
 ## Done when
 
 - [ ] `curl https://api.persat.finance/health` → `database: ok`  
