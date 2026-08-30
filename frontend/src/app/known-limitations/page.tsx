@@ -64,6 +64,16 @@ export default function KnownLimitationsPage() {
             </div>
 
             <div className="mt-8 rounded-xl border border-white/10 bg-white/[0.02] p-5">
+              <h3 className="font-display text-lg uppercase text-white">Sessions &amp; Inspect / DevTools</h3>
+              <p className="mt-2 font-mono text-xs text-white/60 leading-6">
+                Anyone can edit HTML in Inspect — that only changes <span className="text-white">their screen</span>, not the chain.
+                Real authority is a <span className="text-amber">wallet-signed Solana transaction</span> (funds/deals) and, for API writes,
+                a <span className="text-amber">SIWS session token</span> (challenge → sign message → Bearer token bound to your pubkey).
+                Wallet menu → <span className="text-white">Sign in for session token</span>. Details: <code className="text-white">docs/SESSION_AND_AUTH.md</code>.
+              </p>
+            </div>
+
+            <div className="mt-8 rounded-xl border border-white/10 bg-white/[0.02] p-5">
               <h3 className="font-display text-lg uppercase text-white">Hosting — Testnet Mode W</h3>
               <p className="mt-2 font-mono text-xs text-white/60">
                 Default testnet posture: <span className="text-amber">wallet + Solana RPC only</span>. 

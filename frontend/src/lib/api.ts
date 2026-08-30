@@ -5,7 +5,12 @@
  * Features: retry with exponential backoff, timeout, request-id, fail-closed, localStorage fallback.
  */
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+/**
+ * Empty string = same-origin (Next.js rewrites /v1 and /health → API).
+ * Set NEXT_PUBLIC_BACKEND_URL only when the API is on another absolute host
+ * and rewrites are not used.
+ */
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 const TIMEOUT_MS = 8000;
 const MAX_RETRIES = 2;
 
@@ -80,9 +85,15 @@ export const api = {
   marketplaceListings: () => fetchWithRetry("/v1/marketplace/listings"),
   marketplaceProposals: (listingId: string) => fetchWithRetry(`/v1/marketplace/proposals/${listingId}`),
 
-  // Authenticated — requires wallet session
+  // Auth status (public)
+  authStatus: () => fetchWithRetry("/v1/auth/status", { method: "GET", retries: 0 }),
+
+  // Authenticated — requires wallet session (SIWS challenge → Bearer token)
   authChallenge: (wallet: string) => fetchWithRetry("/v1/auth/challenge", { method: "POST", body: { wallet } }),
-  authVerify: (challengeId: string, signature: string) => fetchWithRetry("/v1/auth/verify", { method: "POST", body: { challengeId, signature } }),
+  authVerify: (challengeId: string, signature: string, wallet?: string) =>
+    fetchWithRetry("/v1/auth/verify", { method: "POST", body: { challengeId, signature, wallet } }),
+  authMe: (token: string) => fetchWithRetry("/v1/auth/me", { method: "GET", authToken: token, retries: 0 }),
+  authLogout: (token: string) => fetchWithRetry("/v1/auth/logout", { method: "POST", authToken: token, retries: 0 }),
   createProposal: (data: any, token: string) => fetchWithRetry("/v1/marketplace/proposals", { method: "POST", body: data, authToken: token }),
   createDealLink: (data: any, token: string) => fetchWithRetry("/v1/deal-links", { method: "POST", body: data, authToken: token }),
   claimDealLink: (linkToken: string, wallet: string) => fetchWithRetry(`/v1/deal-links/${linkToken}/claim`, { method: "POST", body: { wallet } }),
