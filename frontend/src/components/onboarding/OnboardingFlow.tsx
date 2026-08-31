@@ -89,8 +89,8 @@ export function OnboardingFlow({
   const isFinalStep = currentStep === 3;
   const currentSlide = SLIDES[currentStep];
 
+  // z-40 sits below wallet-adapter modal (z-10050) so Connect can open the picker
   return (
-    {/* z-40: below wallet-adapter modal (z-10050) so Connect can open the picker */}
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black p-0 sm:p-4 animate-reveal">
       {/* Full-screen on mobile; no dashboard or bottom tabs visible underneath */}
       <div className="relative flex h-full w-full flex-col justify-between overflow-y-auto border-0 bg-black p-6 sm:border sm:border-white/15 sm:bg-black/95 sm:p-10 sm:h-auto sm:max-w-lg sm:rounded-[28px] sm:shadow-2xl sm:backdrop-blur-2xl">
