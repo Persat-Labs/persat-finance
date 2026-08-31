@@ -16,12 +16,13 @@ const nextConfig = {
    * rewrites pointed at the API upstream.
    */
   async rewrites() {
-    const upstream = process.env.API_PROXY_TARGET || process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:4000";
-    // If frontend already talks to an absolute public API, skip local proxy
-    if (upstream.startsWith("https://api.persat.finance")) {
-      return [];
-    }
-    const base = upstream.replace(/\/$/, "");
+    // Always same-origin proxy so browser never hits cross-origin CORS on api.*
+    // Prefer explicit proxy target, then public API, then local Node.
+    const upstream =
+      process.env.API_PROXY_TARGET ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      "https://api.persat.finance";
+    const base = upstream.replace(/\/$/, "") || "https://api.persat.finance";
     return [
       { source: "/v1/:path*", destination: `${base}/v1/:path*` },
       { source: "/health", destination: `${base}/health` },

@@ -77,13 +77,9 @@ export default function Faucet() {
     setAutoFaucetState({ busy: true, message: "Requesting full pack from server — 0.5 SOL + 0.1 tBTC + 0.1 zBTC + 0.1 BTC + 5k USDC + 5k USDT..." });
     setCooldownInfo(null);
     try {
+      // Prefer server auto-mint, then claim (cooldown + optional dispense)
+      const autoRes = await api.faucetAuto(targetPubkey.toBase58(), "ALL").catch(() => null);
       const res = await api.faucetClaim(targetPubkey.toBase58(), "ALL").catch(() => null);
-      // Try auto endpoint first
-      const autoRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || ""}/v1/faucet/auto`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet: targetPubkey.toBase58(), asset: "ALL" }),
-      }).then(r => r.json()).catch(() => null);
 
       if (autoRes?.ok && autoRes?.signature) {
         setAutoFaucetState({ busy: false, message: `✅ Auto-dispensed full pack to ${targetPubkey.toBase58().slice(0, 4)}…${targetPubkey.toBase58().slice(-4)}!`, explorerUrl: autoRes.explorerUrl });
@@ -127,7 +123,7 @@ export default function Faucet() {
       opts: { sol?: number; tbtc?: number; zbtc?: number; btc?: number; usdc?: number; usdt?: number },
     ) => {
       if (!deployerKeypair) {
-        setDispenseState({ busy: false, result: null, message: "Upload persat-devnet-keypairs-KEEP-SECRET.json first to activate dispenser (advanced devs). For normal users, use Auto-Faucet above — no upload needed." });
+        setDispenseState({ busy: false, result: null, message: "Use One-Click Auto-Faucet above (no upload). Advanced local mint only if you load a deployer bundle yourself." });
         return;
       }
 

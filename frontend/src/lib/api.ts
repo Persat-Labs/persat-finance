@@ -6,11 +6,14 @@
  */
 
 /**
- * Empty string = same-origin (Next.js rewrites /v1 and /health → API).
- * Set NEXT_PUBLIC_BACKEND_URL only when the API is on another absolute host
- * and rewrites are not used.
+ * Prefer same-origin (Next.js rewrites /v1 and /health → API) so the browser
+ * never fights CORS. Absolute NEXT_PUBLIC_BACKEND_URL is only used when set
+ * AND we are not in the browser (SSR) — client always uses relative paths.
  */
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+const BACKEND_URL =
+  typeof window === "undefined" && process.env.NEXT_PUBLIC_BACKEND_URL
+    ? process.env.NEXT_PUBLIC_BACKEND_URL
+    : "";
 const TIMEOUT_MS = 8000;
 const MAX_RETRIES = 2;
 
@@ -80,7 +83,11 @@ export const api = {
   health: () => fetchWithRetry("/health", { method: "GET", retries: 0 }),
   bridgeHealth: () => fetchWithRetry("/v1/bridges/health"),
   btcPrice: () => fetchWithRetry("/v1/oracle/btc-usd"),
-  faucetClaim: (wallet: string, asset?: string) => fetchWithRetry("/v1/faucet/claim", { method: "POST", body: { wallet, asset } }),
+  faucetClaim: (wallet: string, asset?: string) =>
+    fetchWithRetry("/v1/faucet/claim", { method: "POST", body: { wallet, asset } }),
+  /** Server mint path — same body as claim; 503 when deployer key not set */
+  faucetAuto: (wallet: string, asset?: string) =>
+    fetchWithRetry("/v1/faucet/auto", { method: "POST", body: { wallet, asset: asset ?? "ALL" }, retries: 1 }),
   faucetStatus: (wallet: string) => fetchWithRetry(`/v1/faucet/status/${wallet}`),
   marketplaceListings: () => fetchWithRetry("/v1/marketplace/listings"),
   marketplaceProposals: (listingId: string) => fetchWithRetry(`/v1/marketplace/proposals/${listingId}`),

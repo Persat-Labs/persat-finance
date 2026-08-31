@@ -54,8 +54,8 @@ export default function Home() {
 
   return (
     <main className="app-shell hud-grid min-h-screen pb-24 md:pb-12">
-      <header className="sticky top-0 z-40 px-4 pt-3 sm:px-8">
-        <nav className="glass mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-6 py-2 rounded-full border border-white/10 shadow-2xl backdrop-blur-xl">
+      <header className="sticky top-0 z-40 overflow-visible px-4 pt-3 sm:px-8">
+        <nav className="glass mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 overflow-visible px-6 py-2 rounded-full border border-white/10 shadow-2xl backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <Link href="/" className="font-brand-persat text-xl uppercase tracking-[.24em] text-white hover:text-amber transition">
               persat
