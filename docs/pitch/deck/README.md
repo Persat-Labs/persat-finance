@@ -1,21 +1,29 @@
 # Persat Finance — Brand pitch deck (Testnet Live)
 
-Interactive HTML deck with Persat Labs branding and custom imagery.
+## Download PDF (pitch-ready)
 
-## Open
+**Single file — download and present immediately:**
 
-- Open `index.html` in a browser, **or**
-- From repo: serve the folder statically
+- **[`Persat-Finance-Pitch-Deck-Testnet-Live.pdf`](./Persat-Finance-Pitch-Deck-Testnet-Live.pdf)** (~1.7 MB, 15 pages, landscape)
+
+**GitHub direct download (this branch):**
+
+https://github.com/Persat-Labs/persat-finance/raw/arena/01a04c34-persat-finance/docs/pitch/deck/Persat-Finance-Pitch-Deck-Testnet-Live.pdf
+
+Also mirrored at:
+
+https://github.com/Persat-Labs/persat-finance/raw/arena/01a04c34-persat-finance/docs/pitch/Persat-Finance-Pitch-Deck-Testnet-Live.pdf
+
+Regenerate after content/image edits:
 
 ```bash
-npx --yes serve docs/pitch/deck -p 5055
+cd docs/pitch/deck && node build-pdf.mjs
 ```
 
-## Controls
+## Interactive HTML (optional)
 
-- `←` `→` / Space / PageUp·Down  
-- Click left/right edges  
-- Print to PDF: browser **Print → Save as PDF** (each slide is a page)
+- Open `index.html` in a browser, or `npx --yes serve docs/pitch/deck -p 5055`
+- Controls: `←` `→` / Space · click edges
 
 ## Brand
 
@@ -23,12 +31,8 @@ npx --yes serve docs/pitch/deck -p 5055
 | --- | --- |
 | Background | `#000000` |
 | Accent | `#FF8A00` / `#FFAA45` / `#FF6D00` |
-| Fonts | Inter, Plus Jakarta Sans, JetBrains Mono |
-| Logo | `assets/persatlogo.png` (from waitlist) |
-
-## Slides
-
-15 slides matching the Gamma limbic-first outline, with generated art for slides 01–10 and brand panel layouts for 11–15.
+| Type in PDF | DejaVu (embedded) approximating Inter/Jakarta |
+| Logo | `assets/persatlogo.png` |
 
 ## Note on honesty
 
