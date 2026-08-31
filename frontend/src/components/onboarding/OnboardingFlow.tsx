@@ -7,8 +7,11 @@ import { useProtocol } from "@/lib/protocol/hooks";
 import { useProfile } from "@/lib/profile/userProfile";
 import { getStoredAuthToken } from "@/lib/api";
 
-export const ONBOARDING_KEY = "persat_onboarding_completed_v1";
+/** Bumped when gate rules change so stale "skipped" flags don't unlock the dashboard */
+export const ONBOARDING_KEY = "persat_onboarding_completed_v2";
 export const AUTH_WALLET_KEY = "persat_auth_wallet_v1";
+/** Legacy keys cleared on mount so old skips cannot hide onboarding */
+const LEGACY_ONBOARDING_KEYS = ["persat_onboarding_completed_v1"];
 
 interface SlideData {
   icon: string;
@@ -74,6 +77,11 @@ export function OnboardingFlow({
       localStorage.setItem(ONBOARDING_KEY, "true");
     } catch {
       //
+    }
+    // Without a wallet, stay on the final "Connect" step — never dump to dashboard
+    if (!publicKey) {
+      setCurrentStep(3);
+      return;
     }
     onComplete();
   };
@@ -266,58 +274,62 @@ export function readHasPersistedSession(): boolean {
 }
 
 /**
- * Gate home:
- * - No wallet + never finished onboarding → full-screen onboarding (no dashboard, no tabs)
- * - Wallet connected OR API session OR onboarding already done → dashboard
- * - Returning to Dashboard tab after first onboarding → dashboard (flag stays set)
+ * Gate home (strict):
+ * - NO connected wallet → always full-screen onboarding (never the dashboard)
+ * - Wallet connected → dashboard immediately (session optional for API later)
+ * - After onboarding + wallet, other tabs → home still dashboard while wallet stays connected
+ * - Disconnect → onboarding again
+ *
+ * localStorage "completed" only marks that they finished the slides once (for analytics /
+ * Guide *); it does NOT unlock the dashboard without a wallet.
  */
 export function useOnboarding() {
   const { publicKey, connecting } = useProtocol();
   const [mounted, setMounted] = useState(false);
   const [gateReady, setGateReady] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  /** Manual reopen (Guide *) or disconnect event — allow even if wallet connected */
+  /** true until we know a wallet is present */
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  /** Manual reopen (Guide *) even with wallet connected */
   const [forceShow, setForceShow] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    // Drop legacy skip flags that used to unlock dashboard without a wallet
+    try {
+      for (const k of LEGACY_ONBOARDING_KEYS) localStorage.removeItem(k);
+    } catch {
+      //
+    }
   }, []);
 
-  // Cap autoConnect wait so we never stick on the logo splash forever
+  // Cap autoConnect wait — then decide with whatever wallet state we have
   useEffect(() => {
     if (!mounted || gateReady) return;
     const t = window.setTimeout(() => {
       setGateReady(true);
-      if (!publicKey && !readOnboardingCompleted() && !readHasPersistedSession()) {
-        setShowOnboarding(true);
-      }
-    }, 1800);
+      // Still no wallet after wait → onboarding (never dashboard)
+      if (!publicKey) setShowOnboarding(true);
+    }, 1200);
     return () => window.clearTimeout(t);
   }, [mounted, gateReady, publicKey]);
 
   useEffect(() => {
     if (!mounted) return;
 
-    // Wait for autoConnect to settle so returning wallets skip onboarding without flash
+    // Wait briefly for autoConnect so returning Phantom users skip the wall
     if (connecting) {
       return;
     }
 
-    const onboarded = readOnboardingCompleted();
-    const hasSession = readHasPersistedSession();
-
-    if (publicKey || hasSession) {
-      // Active wallet or restored API session → dashboard immediately
+    if (publicKey) {
+      // Connected wallet → dashboard (unless user opened Guide *)
       if (!forceShow) setShowOnboarding(false);
       setGateReady(true);
       return;
     }
 
-    // No wallet: first visit → onboarding; already finished once → dashboard
-    // (returning to Dashboard tab never re-triggers — flag stays in localStorage)
-    if (!forceShow) {
-      setShowOnboarding(!onboarded);
-    }
+    // No wallet → always onboarding. Never use session/onboarded flag to show dashboard.
+    setShowOnboarding(true);
     setGateReady(true);
   }, [mounted, publicKey, connecting, forceShow]);
 
@@ -331,14 +343,16 @@ export function useOnboarding() {
     return () => window.removeEventListener("persat_show_onboarding", handleTrigger);
   }, []);
 
+  const mustOnboard = !publicKey || forceShow;
+
   return {
     /** False until client + wallet autoConnect settled — avoid painting dashboard first */
     gateReady: mounted && gateReady,
     /**
      * Full-screen guide only — home must not render dashboard or mobile tabs.
-     * forceShow allows Guide * / disconnect flow even with a connected wallet.
+     * No wallet ⇒ always true. Wallet ⇒ only if Guide * / force.
      */
-    showOnboarding: mounted && gateReady && (forceShow || (showOnboarding && !publicKey)),
+    showOnboarding: mounted && gateReady && mustOnboard && (forceShow || showOnboarding || !publicKey),
     openOnboarding: () => {
       setForceShow(true);
       setShowOnboarding(true);
@@ -351,7 +365,14 @@ export function useOnboarding() {
         //
       }
       setForceShow(false);
-      setShowOnboarding(false);
+      // Without a wallet, closing slides still keeps onboarding wall — user must connect
+      // to reach dashboard. "Skip" only dismisses the multi-step deck when wallet is live.
+      if (publicKey) {
+        setShowOnboarding(false);
+      } else {
+        // Stay on final connect step feel: keep wall; jump flow still requires connect
+        setShowOnboarding(true);
+      }
     },
   };
 }

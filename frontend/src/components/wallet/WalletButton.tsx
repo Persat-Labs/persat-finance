@@ -46,6 +46,7 @@ export function WalletButton() {
     await session.signOut();
     try {
       localStorage.removeItem("persat_onboarding_completed_v1");
+      localStorage.removeItem("persat_onboarding_completed_v2");
     } catch {
       //
     }
