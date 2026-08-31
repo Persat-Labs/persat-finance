@@ -19,7 +19,7 @@ export default function Home() {
   const userBalances = useUserRealBalances(connection, publicKey);
   const { price: btcPrice } = useBtcPrice();
 
-  const { showOnboarding, openOnboarding, closeOnboarding } = useOnboarding();
+  const { gateReady, showOnboarding, openOnboarding, closeOnboarding } = useOnboarding();
   const [fundingOpen, setFundingOpen] = useState(false);
   const [balanceVisible, setBalanceVisible] = useState(true);
 
@@ -29,14 +29,31 @@ export default function Home() {
     ? `User ${publicKey.toBase58().slice(0, 4)}`
     : "Trader";
 
-  // Always paint the real dashboard (SSR + client match → zero flash).
-  // Guide is a full-screen overlay after mount — never a separate loading tree.
+  // Gate: wait for wallet autoConnect, then either onboarding-only OR dashboard.
+  // Never paint dashboard under onboarding (no tab bar flash on mobile).
+  if (!gateReady) {
+    return (
+      <main className="app-shell flex min-h-screen items-center justify-center bg-black">
+        <div className="flex flex-col items-center gap-3 animate-pulse">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/persatlogo.png" alt="Persat Finance" className="h-14 w-14 object-contain" />
+          <span className="font-brand-persat text-sm uppercase tracking-[.3em] text-white/50">persat</span>
+        </div>
+      </main>
+    );
+  }
+
+  if (showOnboarding) {
+    return (
+      <main className="app-shell min-h-screen bg-black">
+        <OnboardingFlow onComplete={closeOnboarding} onOpenFunding={() => setFundingOpen(true)} />
+        <FundWalletModal open={fundingOpen} onClose={() => setFundingOpen(false)} />
+      </main>
+    );
+  }
+
   return (
     <main className="app-shell hud-grid min-h-screen pb-24 md:pb-12">
-      {showOnboarding && (
-        <OnboardingFlow onComplete={closeOnboarding} onOpenFunding={() => setFundingOpen(true)} />
-      )}
-
       <header className="sticky top-0 z-40 px-4 pt-3 sm:px-8">
         <nav className="glass mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-6 py-2 rounded-full border border-white/10 shadow-2xl backdrop-blur-xl">
           <div className="flex items-center gap-3">
@@ -286,7 +303,7 @@ export default function Home() {
         </div>
       </section>
 
-      <BottomNav />
+      <BottomNav hidden={false} />
 
       <FundWalletModal open={fundingOpen} onClose={() => setFundingOpen(false)} />
     </main>

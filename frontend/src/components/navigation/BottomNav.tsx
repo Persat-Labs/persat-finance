@@ -4,13 +4,15 @@ import { usePathname } from "next/navigation";
 import { useProtocol } from "@/lib/protocol/hooks";
 import { useDirectMessages } from "@/lib/messages/messagesStore";
 
-export function BottomNav() {
+export function BottomNav({ hidden = false }: { hidden?: boolean }) {
   const pathname = usePathname();
   const { publicKey } = useProtocol();
   const myWallet = publicKey ? publicKey.toBase58() : null;
   const { unreadCount } = useDirectMessages(myWallet);
 
   const profileHref = myWallet ? `/profile/${myWallet}` : "/profile/satoshi";
+
+  if (hidden) return null;
 
   const navItems = [
     {
