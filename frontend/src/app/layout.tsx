@@ -4,9 +4,18 @@ import { PersatWalletProvider } from "@/components/wallet/WalletContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata: Metadata = {
-  title: "Persat Finance — Non-custodial Bitcoin-backed Lending",
-  description: "Non-custodial Bitcoin-backed lending infrastructure on Solana. Private deals + open marketplace, single Pyth BTC/USD oracle, tBTC/zBTC only, USDC/USDT.",
-  keywords: ["Bitcoin", "DeFi", "Solana", "tBTC", "zBTC", "lending", "non-custodial"],
+  title: "Persat Finance — What If You Could Lend to Anyone?",
+  description:
+    "Infrastructure for a world where anyone can lend to anyone, secured by digital assets and enforced by smart contracts — starting with Bitcoin. Trust-minimized peer-to-peer credit on Solana.",
+  keywords: [
+    "peer-to-peer lending",
+    "trust-minimized",
+    "collateral-backed credit",
+    "Bitcoin",
+    "DeFi",
+    "Solana",
+    "lending infrastructure",
+  ],
   applicationName: "Persat Finance",
   icons: {
     icon: [

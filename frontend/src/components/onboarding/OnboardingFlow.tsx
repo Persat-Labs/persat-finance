@@ -19,25 +19,25 @@ interface SlideData {
 
 const SLIDES: SlideData[] = [
   {
+    icon: "🤝",
+    title: "What if you could lend to anyone?",
+    tagline: "The Problem Is Trust",
+    description:
+      "Most of us have lent money because we trusted someone — and too often it never came back. The problem isn't that people won't lend. It's that lending still depends on personal trust.",
+  },
+  {
     icon: "🛡️",
-    title: "Secure. Private. Yours.",
-    tagline: "Bank-Grade Non-Custodial Protocol",
+    title: "Infrastructure, not favors.",
+    tagline: "Trust-Minimized Credit",
     description:
-      "Your data is protected with bank-level security. Your Bitcoin stays locked in cryptographically verified smart contract vaults on Solana. We never take custody of your keys or funds.",
+      "Persat is building infrastructure so you don't have to personally trust the borrower. Credit is secured by digital assets. Terms are programmable. Enforcement is transparent — on smart contracts.",
   },
   {
-    icon: "📊",
-    title: "Track. Analyze. Grow.",
-    tagline: "Instant Overcollateralized Liquidity",
+    icon: "₿",
+    title: "Bitcoin is the first vehicle.",
+    tagline: "Current Pilot",
     description:
-      "Get insights that help you make smarter decisions and grow your finances. Access instant USDC and USDT stablecoin loans against your BTC collateral without selling your stack.",
-  },
-  {
-    icon: "🚀",
-    title: "Let's launch your goals!",
-    tagline: "Decentralized Peer-to-Peer Marketplace",
-    description:
-      "Join thousands of people who are already building a better future. Lend stablecoins directly to borrowers at fixed annual rates or borrow with zero counterparty risk.",
+      "We're piloting with Bitcoin because holders already need liquidity without selling. That's the first market — not the final destination. The highway is open lending infrastructure.",
   },
 ];
 
@@ -143,7 +143,7 @@ export function OnboardingFlow({
                   </p>
 
                   <p className="text-sm leading-6 text-white/70 max-w-sm mx-auto">
-                    Your non-custodial terminal is active on Solana Devnet. You can request test funds now or head straight to your dashboard.
+                    Your terminal is live on Solana Devnet — the Bitcoin pilot of Persat&apos;s lending infrastructure. Request test funds or open the dashboard.
                   </p>
 
                   <div className="pt-4 space-y-3">
@@ -165,11 +165,11 @@ export function OnboardingFlow({
               ) : (
                 <div className="space-y-4 w-full">
                   <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-white">
-                    Enter the Trust Layer
+                    Enter the Infrastructure
                   </h2>
 
                   <p className="max-w-sm mx-auto text-sm sm:text-base leading-7 text-white/70">
-                    Connect your Solana wallet to explore peer-to-peer Bitcoin loans, create private deal links, and browse verified marketplace offers.
+                    Connect your Solana wallet to try trust-minimized lending — private deals, marketplace offers, and Bitcoin as the first collateral pilot.
                   </p>
 
                   <div className="pt-6 space-y-3">
