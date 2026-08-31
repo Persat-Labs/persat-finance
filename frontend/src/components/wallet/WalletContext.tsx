@@ -16,7 +16,11 @@ const SafeWalletProvider = WalletProvider as unknown as ComponentType<{
   onError?: (error: Error) => void;
   children: ReactNode;
 }>;
-const SafeWalletModalProvider = WalletModalProvider as unknown as ComponentType<{ children: ReactNode }>;
+const SafeWalletModalProvider = WalletModalProvider as unknown as ComponentType<{
+  children: ReactNode;
+  className?: string;
+  container?: string | HTMLElement | null;
+}>;
 
 /**
  * Devnet is the MVP target cluster, not Solana testnet: testnet exists for
@@ -38,6 +42,7 @@ export function PersatWalletProvider({ children }: { children: ReactNode }) {
           console.warn("[Persat Wallet Notice]", err?.message ?? String(err));
         }}
       >
+        {/* Modal mounts at document body; CSS raises z-index above onboarding */}
         <SafeWalletModalProvider>
           {children}
         </SafeWalletModalProvider>

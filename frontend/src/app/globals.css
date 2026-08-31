@@ -230,3 +230,25 @@ button, input, select, textarea {
     border-radius: 22px;
   }
 }
+
+/* Wallet adapter modal MUST sit above onboarding (z-100) and app chrome */
+.wallet-adapter-modal-wrapper,
+.wallet-adapter-modal,
+.wallet-adapter-modal-overlay {
+  z-index: 10050 !important;
+}
+.wallet-adapter-modal-wrapper {
+  position: fixed !important;
+  inset: 0 !important;
+}
+.wallet-adapter-modal-overlay {
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(8px);
+}
+.wallet-adapter-modal-container {
+  z-index: 10051 !important;
+}
+.wallet-adapter-button,
+.wallet-adapter-modal-list .wallet-adapter-button {
+  pointer-events: auto !important;
+}

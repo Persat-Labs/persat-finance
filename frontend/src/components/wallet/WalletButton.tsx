@@ -34,12 +34,12 @@ export function WalletButton() {
     }
     if (publicKey) {
       setMenuOpen((prev) => !prev);
-    } else if (wallet) {
-      connect().catch(() => setVisible(true));
-    } else {
-      setVisible(true);
+      return;
     }
-  }, [connecting, publicKey, disconnect, wallet, connect, setVisible]);
+    // Always open the wallet picker modal first so Phantom/Solflare can
+    // receive a fresh user gesture. Silent connect() often fails in iframes.
+    setVisible(true);
+  }, [connecting, publicKey, disconnect, setVisible]);
 
   const handleDisconnect = async () => {
     setMenuOpen(false);

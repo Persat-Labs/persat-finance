@@ -90,7 +90,8 @@ export function OnboardingFlow({
   const currentSlide = SLIDES[currentStep];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black p-0 sm:p-4 animate-reveal">
+    {/* z-40: below wallet-adapter modal (z-10050) so Connect can open the picker */}
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black p-0 sm:p-4 animate-reveal">
       {/* Full-screen on mobile; no dashboard or bottom tabs visible underneath */}
       <div className="relative flex h-full w-full flex-col justify-between overflow-y-auto border-0 bg-black p-6 sm:border sm:border-white/15 sm:bg-black/95 sm:p-10 sm:h-auto sm:max-w-lg sm:rounded-[28px] sm:shadow-2xl sm:backdrop-blur-2xl">
         {/* Top Header: real brand logo + Dismiss */}
@@ -130,9 +131,9 @@ export function OnboardingFlow({
             </div>
           ) : (
             <div className="flex flex-col items-center text-center animate-reveal">
-              {/* Final slide: real transparent Persat logo */}
-              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-2xl border border-amber/30 bg-gradient-to-br from-amber/10 to-orange/20 shadow-[0_0_30px_rgba(255,171,0,0.25)] p-3">
-                <PersatLogo size={72} className="h-full w-full" />
+              {/* Final slide: bare transparent logo — no chrome / glow box */}
+              <div className="mb-6 flex items-center justify-center">
+                <PersatLogo size={88} className="h-[88px] w-[88px]" />
               </div>
 
               {publicKey ? (
@@ -182,8 +183,14 @@ export function OnboardingFlow({
 
                   <div className="pt-6 space-y-3">
                     <Button
+                      type="button"
                       className="w-full py-4 text-xs font-semibold"
-                      onClick={() => setWalletModalVisible(true)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Open adapter modal above onboarding (see globals.css z-index)
+                        setWalletModalVisible(true);
+                      }}
                     >
                       Connect Solana Wallet
                     </Button>

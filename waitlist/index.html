@@ -97,7 +97,7 @@ svg{display:block}
 
 .eyebrow{font-family:var(--font-ui);font-size:15px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
 .sec-title{
-  font-family:var(--font-finance);font-size:clamp(30px,4.2vw,50px);line-height:1.12;font-weight:400;letter-spacing:.025em;text-align:center;text-transform:uppercase;
+  font-family:var(--font-finance),"Segoe UI",system-ui,sans-serif;font-size:clamp(30px,4.2vw,50px);line-height:1.12;font-weight:400;letter-spacing:.025em;text-align:center;text-transform:uppercase;
   text-wrap:balance;text-shadow:0 0 34px rgba(255,138,0,.12);
 }
 .sec-sub{text-align:center;color:var(--muted);font-size:14px;margin-top:14px}
@@ -109,7 +109,7 @@ svg{display:block}
   font-family:var(--font-ui);letter-spacing:.075em;text-transform:uppercase;
 }
 .p-head h3,.fcard h3,.fcard h4,.wl h5,.qa summary,.cta-box h2{
-  font-family:var(--font-panel);font-weight:400;letter-spacing:.035em;text-transform:uppercase;
+  font-family:var(--font-panel),"Segoe UI",system-ui,sans-serif;font-weight:400;letter-spacing:.035em;text-transform:uppercase;
 }
 .stat b,.bal b,.xval,.mkt-price,.metric-number{font-family:var(--font-brand);font-weight:400;letter-spacing:.035em}
 .logoipsum span{font-family:var(--font-finance);font-weight:400;letter-spacing:.04em;text-transform:uppercase}
@@ -680,6 +680,17 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
 /* hide unused chip styles from taking space if any remain */
 .chip{display:none!important}
 
+.disc-list{margin:18px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.disc-list li{font-size:13px;color:#9d9d9d;line-height:1.55;padding-left:14px;border-left:2px solid rgba(255,138,0,.45)}
+.disc-list b{color:#fff;font-weight:600}
+.disc-panel{display:flex;flex-direction:column;gap:10px;padding:20px!important}
+.disc-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
+.disc-row.on{background:rgba(255,138,0,.12);border-color:rgba(255,166,60,.35)}
+.disc-tag{font-family:var(--font-panel);font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:#fff}
+.disc-meta{font-size:11px;color:#8a8a8a}
+.disc-foot{margin-top:8px;font-size:12px;color:#8a8a8a;text-align:center}
+
+
 /* ============================================================
    REVEAL ANIMATION
    ============================================================ */
@@ -705,6 +716,17 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
     background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1)}
   .nav-toggle svg{width:18px;height:18px}
   .chip{display:none!important}
+
+.disc-list{margin:18px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.disc-list li{font-size:13px;color:#9d9d9d;line-height:1.55;padding-left:14px;border-left:2px solid rgba(255,138,0,.45)}
+.disc-list b{color:#fff;font-weight:600}
+.disc-panel{display:flex;flex-direction:column;gap:10px;padding:20px!important}
+.disc-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
+.disc-row.on{background:rgba(255,138,0,.12);border-color:rgba(255,166,60,.35)}
+.disc-tag{font-family:var(--font-panel);font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:#fff}
+.disc-meta{font-size:11px;color:#8a8a8a}
+.disc-foot{margin-top:8px;font-size:12px;color:#8a8a8a;text-align:center}
+
   .dash{flex-direction:column;align-items:center;gap:20px;padding-bottom:60px}
   .p-side,.p-center{width:min(360px,92vw);margin:0}
   .f-wide{grid-template-columns:1fr;gap:28px}
@@ -921,15 +943,15 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
   <div class="edge-glow right"></div>
   <div class="wrap">
     <div class="feat-head rv">
-      <h2 class="sec-title">Built So You Don't Have To<br> Personally Trust The Borrower</h2>
+      <h2 class="sec-title">Built So You Do Not Have To<br> Personally Trust The Borrower</h2>
       <p class="sec-sub">Infrastructure for trust-minimized peer-to-peer lending — secured by digital assets, enforced by smart contracts, starting with Bitcoin.</p>
     </div>
 
     <!-- wide card -->
     <div class="fcard f-wide rv">
       <div>
-        <h3>Credit That Doesn't<br> Depend On Personal Trust</h3>
-        <p>Agree terms peer-to-peer. Collateral secures the loan. Smart contracts enforce the agreement — so repayment isn't a favor, it's infrastructure.</p>
+        <h3>Credit That Does Not<br> Depend On Personal Trust</h3>
+        <p>Agree terms peer-to-peer. Collateral secures the loan. Smart contracts enforce the agreement — so repayment is not a favor, it is infrastructure.</p>
         <a class="btn-primary" href="#waitlist">Start Lending With Confidence
           <span class="arw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
         </a>
@@ -1013,7 +1035,29 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
           </div>
         </div>
         <h4>Infrastructure Holds The Rules</h4>
-        <p class="desc">Assets lock in program-controlled vaults — not company wallets. You don't hand custody to Persat; the system holds the agreement.</p>
+        <p class="desc">Assets lock in program-controlled vaults — not company wallets. You do not hand custody to Persat; the system holds the agreement.</p>
+      </div>
+    </div>
+
+    <!-- discovery -->
+    <div class="fcard rv" style="margin-top:24px">
+      <div class="f-wide" style="grid-template-columns:1fr 1.05fr; gap:32px; align-items:center">
+        <div>
+          <h3>Discovery Without<br> Trusting A Middleman</h3>
+          <p>Find counterparties two ways: publish a structured offer on the open marketplace, or share a private deal link with someone you already know. Either path ends in the same place — collateral-backed terms enforced on-chain, not a handshake and a hope.</p>
+          <ul class="disc-list">
+            <li><b>Marketplace</b> — browse public listings with fixed rates, duration, and LTV. Respond with structured terms only (no free-text DMs required to start).</li>
+            <li><b>Private deal links</b> — invite one counterparty with a single-use link. They claim it, confirm terms, and lock collateral in program vaults.</li>
+            <li><b>Same enforcement</b> — discovery is how you meet; smart contracts are how the agreement holds.</li>
+          </ul>
+        </div>
+        <div class="chartcard disc-panel">
+          <div class="disc-row"><span class="disc-tag">Marketplace</span><span class="disc-meta">Open discovery</span></div>
+          <div class="disc-row on"><span class="disc-tag">Private link</span><span class="disc-meta">Invite only · single-use</span></div>
+          <div class="disc-row"><span class="disc-tag">On-chain terms</span><span class="disc-meta">Rate · duration · LTV</span></div>
+          <div class="disc-row"><span class="disc-tag">Vault escrow</span><span class="disc-meta">Program-controlled</span></div>
+          <p class="disc-foot">Highway first. Bitcoin is the pilot vehicle on that road.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -1024,13 +1068,13 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
   <div class="edge-glow left"></div>
   <div class="wrap">
     <div class="rv">
-      <h2 class="sec-title">Why Start With Bitcoin —<br> And Where We're Going</h2>
+      <h2 class="sec-title">Why Start With Bitcoin —<br> And Where We Are Going</h2>
       <p class="sec-sub">Infrastructure for trust-minimized peer-to-peer lending — secured by digital assets, enforced by smart contracts, starting with Bitcoin.</p>
     </div>
 
     <div class="why-grid">
       <div class="stat-grid rv">
-        <div class="stat"><b>Trust</b><span>Today's lending still depends on knowing the person</span></div>
+        <div class="stat"><b>Trust</b><span>Today lending still depends on knowing the person</span></div>
         <div class="stat"><b>BTC first</b><span>Clear demand: unlock liquidity without selling</span></div>
         <div class="stat"><b>Open</b><span>Architecture built for more assets over time</span></div>
         <div class="stat"><b>0</b><span>Companies holding your assets at any point</span></div>
@@ -1069,12 +1113,12 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
     <div class="t-grid">
       <div class="tcard rv">
         <div class="stars"><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg></div>
-        <q>I&#8217;ve lent to people I trusted and never seen the money again. I want agreements the system can enforce — not another favor.</q>
+        <q>I have lent to people I trusted and never seen the money again. I want agreements the system can enforce — not another favor.</q>
         <div class="tuser"><span class="t-ava" aria-hidden="true">R</span><div><b>Robert Brian</b><span>Someone who has lent and lost</span></div></div>
       </div>
       <div class="tcard rv">
         <div class="stars"><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg></div>
-        <q>What if you didn&#8217;t have to personally trust the borrower? That&#8217;s the idea — infrastructure that provides the security.</q>
+        <q>What if you did not have to personally trust the borrower? That is the idea — infrastructure that provides the security.</q>
         <div class="tuser"><span class="t-ava" aria-hidden="true">C</span><div><b>Courtney Henry</b><span>Believes in trust-minimized credit</span></div></div>
       </div>
       <div class="tcard rv">
@@ -1134,7 +1178,7 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
   <div class="wrap">
     <div class="cta-box rv">
       <span class="ring-bg"></span>
-      <h2>Join The People Building<br> Trust-Minimized Lending</h2>
+      <h2>Start Lending With<br> Confidence</h2>
       <p>Infrastructure for trust-minimized peer-to-peer lending — secured by digital assets, enforced by smart contracts, starting with Bitcoin.</p>
       <form class="wl-form" id="waitlist-form" novalidate>
         <div class="wl-row">
