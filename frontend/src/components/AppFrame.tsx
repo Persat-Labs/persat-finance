@@ -53,6 +53,9 @@ export function AppFrame({
             <Link href="/messages" className="hover:text-amber transition">
               Messages
             </Link>
+            <Link href="/admin" className="hover:text-amber transition">
+              Admin
+            </Link>
             {myWallet && (
               <Link href={`/profile/${myWallet}`} className="text-amber hover:text-white transition">
                 {profile?.username ? `@${profile.username}` : "Profile"}
