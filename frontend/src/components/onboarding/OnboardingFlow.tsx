@@ -309,36 +309,42 @@ export function useOnboarding() {
     }
   }, []);
 
-  // Cap autoConnect wait — then decide with whatever wallet state we have
+  // Brand splash: always show logo for 2s, then resolve gate from wallet state
   useEffect(() => {
     if (!mounted || gateReady) return;
     const t = window.setTimeout(() => {
       setGateReady(true);
       // Still no wallet after wait → onboarding (never dashboard)
       if (!publicKey) setShowOnboarding(true);
-    }, 1200);
+    }, 2000);
     return () => window.clearTimeout(t);
   }, [mounted, gateReady, publicKey]);
 
   useEffect(() => {
     if (!mounted) return;
 
+    // Keep splash until the 2s timer flips gateReady (do not short-circuit on early connect)
+    if (!gateReady) {
+      // Still track desired onboarding state so the splash hands off cleanly
+      if (publicKey && !forceShow) setShowOnboarding(false);
+      else if (!publicKey) setShowOnboarding(true);
+      return;
+    }
+
     // Wait briefly for autoConnect so returning Phantom users skip the wall
-    if (connecting) {
+    if (connecting && !publicKey) {
       return;
     }
 
     if (publicKey) {
       // Connected wallet → dashboard (unless user opened Guide *)
       if (!forceShow) setShowOnboarding(false);
-      setGateReady(true);
       return;
     }
 
     // No wallet → always onboarding. Never use session/onboarded flag to show dashboard.
     setShowOnboarding(true);
-    setGateReady(true);
-  }, [mounted, publicKey, connecting, forceShow]);
+  }, [mounted, publicKey, connecting, forceShow, gateReady]);
 
   useEffect(() => {
     const handleTrigger = () => {

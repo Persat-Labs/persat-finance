@@ -294,7 +294,35 @@ svg{display:block}
   background:linear-gradient(180deg,#ffad4d,#ff8a00);
   box-shadow:0 6px 18px -6px rgba(255,138,0,.9),inset 0 1px 0 rgba(255,255,255,.4);
 }
-.nav-toggle{display:none}
+.nav-toggle{display:none;cursor:pointer;border:none;color:#fff;padding:0}
+.nav-toggle:focus-visible{outline:2px solid rgba(255,166,60,.7);outline-offset:2px}
+.nav-drawer{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:40;
+  padding:88px 18px 22px;
+  background:rgba(0,0,0,.92);
+  backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  box-shadow:0 28px 60px -28px rgba(0,0,0,.95);
+}
+/* override UA [hidden]{display:none!important} when open */
+.nav-drawer.open,.nav-drawer.open[hidden]{display:block!important}
+.nav-drawer nav{display:flex;flex-direction:column;gap:6px;max-width:520px;margin:0 auto}
+.nav-drawer a{
+  display:block;padding:14px 16px;border-radius:14px;font-size:15px;font-weight:500;color:#cfcfcf;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+  transition:color .2s,background .2s,border-color .2s;
+}
+.nav-drawer a:hover,.nav-drawer a.active{
+  color:#fff;background:rgba(255,138,0,.12);border-color:rgba(255,166,60,.35);
+}
+.nav-drawer .nav-drawer-cta{
+  margin-top:10px;text-align:center;font-weight:600;color:#fff;
+  background:linear-gradient(180deg,#ffad4d,#ff8a00);
+  border-color:transparent;
+  box-shadow:0 10px 24px -10px rgba(255,138,0,.85);
+}
+body.nav-open{overflow:hidden}
+body.nav-open .nav{z-index:50}
 
 /* ============================================================
    HERO
@@ -680,15 +708,29 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
 /* hide unused chip styles from taking space if any remain */
 .chip{display:none!important}
 
-.disc-list{margin:18px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
-.disc-list li{font-size:13px;color:#9d9d9d;line-height:1.55;padding-left:14px;border-left:2px solid rgba(255,138,0,.45)}
+.disc-list{margin:22px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:16px}
+.disc-list li{font-size:14px;color:#9d9d9d;line-height:1.65;padding:4px 0 4px 16px;border-left:2px solid rgba(255,138,0,.45)}
 .disc-list b{color:#fff;font-weight:600}
-.disc-panel{display:flex;flex-direction:column;gap:10px;padding:20px!important}
-.disc-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
+.disc-panel{
+  display:flex;flex-direction:column;gap:14px;padding:28px!important;min-height:100%;
+  justify-content:center;
+}
+.disc-row{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:16px 18px;border-radius:16px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+}
 .disc-row.on{background:rgba(255,138,0,.12);border-color:rgba(255,166,60,.35)}
-.disc-tag{font-family:var(--font-panel);font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:#fff}
-.disc-meta{font-size:11px;color:#8a8a8a}
-.disc-foot{margin-top:8px;font-size:12px;color:#8a8a8a;text-align:center}
+.disc-tag{font-family:var(--font-panel);font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:#fff}
+.disc-meta{font-size:12px;color:#8a8a8a;text-align:right;line-height:1.35}
+.disc-foot{margin-top:12px;font-size:13px;color:#8a8a8a;text-align:center;line-height:1.5;padding:0 8px}
+.disc-block{margin-top:36px}
+.disc-block .f-wide{
+  grid-template-columns:1.05fr 1fr;gap:48px;align-items:stretch;
+}
+.disc-block .f-wide > div:first-child{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:8px 4px}
+.disc-block .f-wide h3{font-size:clamp(26px,3vw,36px);line-height:1.15;letter-spacing:-.02em;max-width:18ch}
+.disc-block .f-wide p{margin-top:18px;font-size:14.5px;line-height:1.7;max-width:none;color:#a8a8a8}
 
 
 /* ============================================================
@@ -715,26 +757,25 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
   .nav-toggle{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;
     background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1)}
   .nav-toggle svg{width:18px;height:18px}
+  .nav-inner .btn-ghost{display:none}
   .chip{display:none!important}
-
-.disc-list{margin:18px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
-.disc-list li{font-size:13px;color:#9d9d9d;line-height:1.55;padding-left:14px;border-left:2px solid rgba(255,138,0,.45)}
-.disc-list b{color:#fff;font-weight:600}
-.disc-panel{display:flex;flex-direction:column;gap:10px;padding:20px!important}
-.disc-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
-.disc-row.on{background:rgba(255,138,0,.12);border-color:rgba(255,166,60,.35)}
-.disc-tag{font-family:var(--font-panel);font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:#fff}
-.disc-meta{font-size:11px;color:#8a8a8a}
-.disc-foot{margin-top:8px;font-size:12px;color:#8a8a8a;text-align:center}
 
   .dash{flex-direction:column;align-items:center;gap:20px;padding-bottom:60px}
   .p-side,.p-center{width:min(360px,92vw);margin:0}
   .f-wide{grid-template-columns:1fr;gap:28px}
   .f-wide p{max-width:none}
+  .disc-block{margin-top:28px}
+  .disc-block .f-wide{grid-template-columns:1fr;gap:28px}
+  .disc-block .f-wide h3{max-width:none;font-size:clamp(24px,7vw,32px)}
+  .disc-panel{padding:22px!important;gap:12px}
+  .disc-row{padding:14px 16px}
   .f-duo{grid-template-columns:1fr}
   .why-grid{grid-template-columns:1fr}
   .t-grid{grid-template-columns:1fr}
   .logo-row{justify-content:center;gap:34px}
+}
+@media (min-width:921px){
+  .nav-drawer{display:none!important}
 }
 @media (max-width:560px){
   .wrap{padding-inline:18px}
@@ -805,13 +846,27 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
       </nav>
 
       <a class="btn-ghost" href="#waitlist">Start Lending With Confidence</a>
-      <button class="nav-toggle" aria-label="Menu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-drawer">
+        <svg class="nav-icon-open" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <path d="M4 7h16M4 12h16M4 17h16"/>
+        </svg>
+        <svg class="nav-icon-close" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" aria-hidden="true" hidden>
+          <path d="M6 6l12 12M18 6L6 18"/>
         </svg>
       </button>
     </div>
   </header>
+
+  <div class="nav-drawer" id="nav-drawer" hidden>
+    <nav aria-label="Mobile">
+      <a href="#home">Home</a>
+      <a href="#features">Features</a>
+      <a href="#why">Why choose</a>
+      <a href="#testimonials">Testimonials</a>
+      <a href="#faq">FAQ</a>
+      <a class="nav-drawer-cta" href="#waitlist">Start Lending With Confidence</a>
+    </nav>
+  </div>
 
   <!-- ---------- HEADLINE ---------- -->
   <div class="wrap" style="position:relative">
@@ -1040,10 +1095,10 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
     </div>
 
     <!-- discovery -->
-    <div class="fcard rv" style="margin-top:24px">
-      <div class="f-wide" style="grid-template-columns:1fr 1.05fr; gap:32px; align-items:center">
+    <div class="fcard rv disc-block">
+      <div class="f-wide">
         <div>
-          <h3>Discovery Without<br> Trusting A Middleman</h3>
+          <h3>Discovery Without<br>Trusting A Middleman</h3>
           <p>Find counterparties two ways: publish a structured offer on the open marketplace, or share a private deal link with someone you already know. Either path ends in the same place — collateral-backed terms enforced on-chain, not a handshake and a hope.</p>
           <ul class="disc-list">
             <li><b>Marketplace</b> — browse public listings with fixed rates, duration, and LTV. Respond with structured terms only (no free-text DMs required to start).</li>
@@ -1299,6 +1354,53 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
   if(!nav)return;
   var up=function(){nav.classList.toggle('scrolled',window.scrollY>10)};
   window.addEventListener('scroll',up,{passive:true});up();
+})();
+
+/* mobile nav drawer */
+(function(){
+  var btn=document.getElementById('nav-toggle');
+  var drawer=document.getElementById('nav-drawer');
+  if(!btn||!drawer)return;
+  var openIcon=btn.querySelector('.nav-icon-open');
+  var closeIcon=btn.querySelector('.nav-icon-close');
+  var setOpen=function(open){
+    drawer.classList.toggle('open',open);
+    if(open)drawer.removeAttribute('hidden');
+    else drawer.setAttribute('hidden','');
+    btn.setAttribute('aria-expanded',open?'true':'false');
+    btn.setAttribute('aria-label',open?'Close menu':'Open menu');
+    document.body.classList.toggle('nav-open',open);
+    if(openIcon){ if(open) openIcon.setAttribute('hidden',''); else openIcon.removeAttribute('hidden'); }
+    if(closeIcon){ if(open) closeIcon.removeAttribute('hidden'); else closeIcon.setAttribute('hidden',''); }
+  };
+  btn.addEventListener('click',function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(!drawer.classList.contains('open'));
+  });
+  drawer.querySelectorAll('a').forEach(function(a){
+    a.addEventListener('click',function(){setOpen(false);});
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape')setOpen(false);
+  });
+  window.addEventListener('resize',function(){
+    if(window.innerWidth>920)setOpen(false);
+  });
+  /* keep mobile drawer active link in sync with scroll spy */
+  var pillLinks=[].slice.call(document.querySelectorAll('.nav-pill a'));
+  var drawerLinks=[].slice.call(drawer.querySelectorAll('a[href^="#"]'));
+  if(pillLinks.length&&drawerLinks.length){
+    var map={};
+    drawerLinks.forEach(function(a){map[a.getAttribute('href')]=a;});
+    var mo=new MutationObserver(function(){
+      pillLinks.forEach(function(a){
+        var d=map[a.getAttribute('href')];
+        if(d)d.classList.toggle('active',a.classList.contains('active'));
+      });
+    });
+    pillLinks.forEach(function(a){mo.observe(a,{attributes:true,attributeFilter:['class']});});
+  }
 })();
 
 /* subtle parallax on hero glow */
