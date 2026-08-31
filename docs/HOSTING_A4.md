@@ -8,7 +8,7 @@ Persat ships as **two sites** on purpose:
 | --- | --- | --- |
 | `persat.finance` | Waitlist landing | `waitlist/` — **do not** point this site at `frontend/` |
 | `dapp.persat.finance` | Product dApp | `frontend/` |
-| `api.persat.finance` | Protocol-adjacent API (optional at A) | `backend/` |
+| `api.persat.finance` | Protocol-adjacent API (PHP/MySQL on LyteHosting) | `backend/php-deploy/` — see `docs/LYTEHOSTING_API.md` |
 
 ---
 
@@ -25,12 +25,15 @@ Pick **one** and document it on `/known-limitations` + this file’s status line
 
 ### Mode A — API required
 
-- `api.persat.finance` DNS **A/CNAME** → backend host (Fly, Railway, Render, VPS, etc.).
-- TLS cert valid; `GET https://api.persat.finance/health` returns JSON `ok: true`.
+- `api.persat.finance` DNS **A record** → **LyteHosting Shared IP** (not a Netlify site CNAME).
+- Subdomain + document root on LyteHosting cPanel; AutoSSL for HTTPS.
+- Upload `backend/php-deploy/` + import `schema.sql` + `config.local.php` (never in Git).
+- TLS cert valid; `GET https://api.persat.finance/health` returns JSON `ok: true`, `database: ok`.
 - Frontend `NEXT_PUBLIC_BACKEND_URL=https://api.persat.finance`.
 - CSP `connect-src` already allows `https://api.persat.finance` in `frontend/netlify.toml`.
+- Full founder runbook: **`docs/LYTEHOSTING_API.md`**.
 
-**Current DNS (last checked in session):** `api.persat.finance` was **NXDOMAIN**. Until fixed, operate in **Mode W**.
+**DNS note:** Netlify DNS is OK as the *DNS host* for `persat.finance`, but the `api` record must be an **A** to Lyte’s shared IP. Pointing `api` at a Netlify app hostname will not run PHP/MySQL.
 
 ---
 
@@ -61,17 +64,16 @@ Pick **one** and document it on `/known-limitations` + this file’s status line
 - [ ] No accidental base-directory switch to `frontend`  
 - [ ] Optional CTA → `https://dapp.persat.finance` labeled **Devnet**
 
-### 4. API site (`api.persat.finance`) — Mode A only
+### 4. API site (`api.persat.finance`) — Mode A (LyteHosting PHP + MySQL)
 
-- [ ] Create DNS record at Namecheap → Netlify DNS or host IP  
-- [ ] Deploy `backend/` with:
-  - `PORT`
-  - `SOLANA_RPC_URL`
-  - `CLUSTER=devnet`
-  - DB URL only if enabling write routes
-  - `KEEPER_ENABLED` / key path only when ready (B3)
-- [ ] `curl -sS https://api.persat.finance/health | jq`  
-- [ ] CORS allows `https://dapp.persat.finance`
+- [ ] LyteHosting cPanel: create MySQL DB + user; import `backend/php-deploy/schema.sql`  
+- [ ] Upload `backend/php-deploy/` to subdomain docroot; create `config/config.local.php`  
+- [ ] Netlify DNS: **A** `api` → Lyte **Shared IP** (not Netlify site)  
+- [ ] cPanel: addon/subdomain `api.persat.finance` + AutoSSL  
+- [ ] `curl -sS https://api.persat.finance/health` → `database: ok`  
+- [ ] `curl -sS https://api.persat.finance/v1/auth/status` → `mode: database`  
+- [ ] CORS allows `https://dapp.persat.finance`  
+- [ ] Optional later: Node sidecar for auto-faucet mint / keeper (not required for sessions)
 
 ### 5. Merge discipline
 
@@ -111,5 +113,5 @@ Waitlist base still waitlist/: yes
 
 ## Status
 
-- **Chosen mode:** `W — wallet-RPC-only` (default until API DNS exists)
+- **Chosen mode:** moving to **A — LyteHosting PHP/MySQL** (`docs/LYTEHOSTING_API.md`); dApp stays usable in Mode W until `/health` is green
 - **A4 checkbox:** open until founder evidence block above is filled
