@@ -27,7 +27,7 @@ function persat_handle_faucet(string $path, string $method, array $cfg): void
             'claims'                  => $claims,
             'serverDispenseAvailable' => false,
             'mode'                    => 'php_cooldown_only',
-            'note'                    => 'Auto-mint requires optional Node sidecar with PERSAT_DEPLOYER_KEYPAIR. Cooldown is enforced here when DB is up.',
+            'note'                    => 'Cooldown-only on this host. Cooldown is enforced when DB is up.',
         ]);
     }
 
@@ -73,9 +73,9 @@ function persat_handle_faucet(string $path, string $method, array $cfg): void
 
         if ($path === '/v1/faucet/auto') {
             Http::error(
-                'Auto-faucet not configured on PHP host — server needs Node sidecar + PERSAT_DEPLOYER_KEYPAIR.',
+                'Auto-faucet mint is not available on this host yet.',
                 503,
-                ['mode' => 'client_bundle_required']
+                ['mode' => 'cooldown_only']
             );
         }
 
@@ -83,8 +83,8 @@ function persat_handle_faucet(string $path, string $method, array $cfg): void
             'ok'            => true,
             'wallet'        => $wallet,
             'asset'         => $asset,
-            'message'       => 'Faucet claim recorded — dispense via client bundle on /faucet (upload devnet keypair JSON) or deploy Node sidecar for auto-dispense.',
-            'mode'          => 'client_bundle',
+            'message'       => 'Faucet claim recorded.',
+            'mode'          => 'cooldown_only',
             'cooldownHours' => $COOLDOWN_HOURS,
         ]);
     }

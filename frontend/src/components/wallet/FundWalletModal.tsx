@@ -117,25 +117,16 @@ export function FundWalletModal({
         setState({
           busy: false,
           ok: true,
-          message:
-            "Received 1 Devnet SOL. Full SPL pack (tBTC/zBTC/USDC/USDT) needs PERSAT_DEPLOYER_KEYPAIR on the Node API — see docs/FAUCET_AND_KEEPER_LIVE.md.",
+          message: "Received 1 Devnet SOL. Full token pack will unlock when the treasury dispenser is live.",
           explorerUrl: `https://explorer.solana.com/tx/${sig}?cluster=devnet`,
         });
         onSuccess?.();
         return;
-      } catch (airdropErr) {
-        const hint = [
-          typeof claim === "object" && claim && "message" in claim ? claim.message : null,
-          typeof autoRes === "object" && autoRes && "message" in autoRes ? autoRes.message : null,
-          typeof autoRes === "object" && autoRes && "error" in autoRes ? autoRes.error : null,
-          airdropErr instanceof Error ? airdropErr.message : String(airdropErr),
-        ]
-          .filter(Boolean)
-          .join(" · ");
+      } catch {
         setState({
           busy: false,
           ok: false,
-          message: `Could not fund wallet yet. ${hint || "API unreachable / airdrop rate-limited"}. Open /faucet or faucet.solana.com. Full pack: set PERSAT_DEPLOYER_KEYPAIR on Node API (docs/FAUCET_AND_KEEPER_LIVE.md).`,
+          message: "Could not fund wallet yet. Faucet claim recorded — try again shortly, or open /faucet.",
         });
       }
     } catch (err) {

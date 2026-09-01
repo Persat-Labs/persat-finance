@@ -106,7 +106,7 @@ export default function Faucet() {
           await handleDispense(targetPubkey, { sol: 0.5, tbtc: 0.1, zbtc: 0.1, btc: 0.1, usdc: 5000, usdt: 5000 });
           setAutoFaucetState({ busy: false, message: "Server not configured — used client bundle fallback (upload bundle for full auto)." });
         } else {
-          setAutoFaucetState({ busy: false, message: "Auto-faucet requires server configuration. Upload bundle below for manual dispensing, or contact admin to set PERSAT_DEPLOYER_KEYPAIR.", error: res.message });
+          setAutoFaucetState({ busy: false, message: "Auto-faucet mint is not live yet. Try again shortly, or use the public Devnet SOL option below.", error: res.message });
         }
         return;
       }
@@ -244,7 +244,7 @@ export default function Faucet() {
 
                   <div className="mt-4 rounded border border-white/5 bg-white/[0.02] p-3 font-mono text-[11px] text-white/40">
                     <p>💡 Default deposit is BTC — system auto-converts to tBTC/zBTC based on live bridge health (3 signals: pause/status, success rate, liquidity). You can also manually select tBTC or zBTC if you already have them.</p>
-                    <p className="mt-1">Server status: {serverDispenseAvailable === null ? "checking..." : serverDispenseAvailable ? "✅ Auto-dispense configured" : "⚠️ Client bundle fallback (admin needs to set PERSAT_DEPLOYER_KEYPAIR)"}</p>
+                    <p className="mt-1">Server status: {serverDispenseAvailable === null ? "checking..." : serverDispenseAvailable ? "✅ Auto-dispense configured" : "○ Claim recorded — full pack mint not live on API yet"}</p>
                   </div>
                 </div>
               ) : (
