@@ -9,7 +9,7 @@ import { useWalletSession } from "@/lib/session";
 export function WalletButton() {
   const router = useRouter();
   const pathname = usePathname();
-  const { wallet, publicKey, disconnect, connect, connecting } = useWallet();
+  const { publicKey, disconnect, connecting } = useWallet();
   const { setVisible } = useWalletModal();
   const session = useWalletSession();
 
