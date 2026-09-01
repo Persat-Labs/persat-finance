@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS wallet_sessions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS user_profiles (
+  id VARCHAR(36) NOT NULL UNIQUE,
   wallet VARCHAR(44) PRIMARY KEY,
   username VARCHAR(32) NOT NULL UNIQUE,
   display_name VARCHAR(64) NOT NULL,
@@ -79,8 +80,22 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   active_loans INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_username (username)
+  INDEX idx_username (username),
+  INDEX idx_id (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- Upgrade for deployments that imported the previous user_profiles
+-- (which had no `id` column). Run ONCE in phpMyAdmin on a live DB
+-- that already contains the old table. Safe to ignore on a fresh import.
+-- If any rows already exist, backfill ids before adding NOT NULL:
+--   UPDATE user_profiles SET id = LEFT(UUID(), 36) WHERE id IS NULL OR id = '';
+--   ALTER TABLE user_profiles ADD COLUMN id VARCHAR(36) NULL AFTER wallet,
+--     ADD INDEX idx_id (id);
+--   UPDATE user_profiles SET id = LEFT(UUID(), 36) WHERE id IS NULL OR id = '';
+--   ALTER TABLE user_profiles MODIFY id VARCHAR(36) NOT NULL,
+--     ADD UNIQUE KEY unique_user_profile_id (id);
+-- ─────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS direct_messages (
   id VARCHAR(36) PRIMARY KEY,

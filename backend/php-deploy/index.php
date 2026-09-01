@@ -190,6 +190,12 @@ try {
         persat_handle_deal_links($path, $method);
     }
 
+    // ---------- Profiles ----------
+    if (str_starts_with($path, '/v1/profiles')) {
+        require_once __DIR__ . '/routes/profiles.php';
+        persat_handle_profiles($path, $method);
+    }
+
     Http::error('Not found', 404, ['path' => $path]);
 } catch (PDOException $e) {
     Http::error('Database error — check config.local.php and schema import.', 503, [

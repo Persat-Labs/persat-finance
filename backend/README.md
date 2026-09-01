@@ -31,6 +31,7 @@ This backend implements the **recommended hybrid** from `docs/php-mysql-backend-
 - `marketplace_proposals` (id, listing_id, proposer_wallet, principal_atoms DECIMAL(39,0), loan_mint CHECK USDC/USDT, rate_bps, duration_months 1-60, collateral_ltv_bps, status pending/accepted/declined/superseded)
 - `wallet_auth_challenges` (id, wallet, nonce_hash UNIQUE, message TEXT, expires_at, used_at)
 - `wallet_sessions` (id, wallet, token_hash UNIQUE, expires_at, revoked_at)
+- `user_profiles` (id UUID, wallet PRIMARY KEY, username UNIQUE, display_name, bio, avatar_seed, reputation_score, total_deals, active_loans)
 - `faucet_claims` (id, wallet, asset, claimed_at)
 - `waitlist_signups` (id, full_name, email UNIQUE, role_type, region, referral_source)
 

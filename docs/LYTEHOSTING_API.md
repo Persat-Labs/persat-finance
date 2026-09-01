@@ -58,6 +58,7 @@ Netlify serves static/Next sites. It does **not** run your PHP + MySQL API.
 | --- | --- |
 | `GET /health` | Yes |
 | SIWS auth (`/v1/auth/*`) + durable sessions | Yes |
+| **Profiles** (`/v1/profiles/*`, create/read/update + username availability) | Yes |
 | Deal-links create/claim/status | Yes |
 | Marketplace proposals | Yes |
 | Faucet **cooldown** rows | Yes |
@@ -106,7 +107,7 @@ config/
 lib/
   bootstrap.php, Database.php, SolanaCrypto.php, Http.php, Auth.php, Uuid.php
 routes/
-  oracle.php, faucet.php, marketplace.php, deal_links.php
+  oracle.php, faucet.php, marketplace.php, deal_links.php, profiles.php
 ```
 
 **Tools:** cPanel File Manager, or FTP/SFTP (host = shared IP or server hostname from Welcome email).
@@ -190,7 +191,8 @@ CSP already allows `https://api.persat.finance` in `frontend/netlify.toml`.
 2. **Sign in** for session → should succeed (Bearer token stored).
 3. Refresh page → still signed in (`wallet_sessions` row in phpMyAdmin).
 4. Create marketplace proposal or deal-link (if UI path available) → row appears in MySQL.
-5. Faucet: cooldown is tracked; auto-mint may say use client bundle until Node sidecar exists.
+5. Profile: sign in → dApp header shows `@<username>`; `GET /v1/profiles/me` (and the `Network` tab) hits the API, and a `user_profiles` row is created in MySQL. Changing the username persists across browsers, and a second wallet gets `409` on the same handle. See `docs/PROFILES_API.md`.
+6. Faucet: cooldown is tracked; auto-mint may say use client bundle until Node sidecar exists.
 
 ---
 

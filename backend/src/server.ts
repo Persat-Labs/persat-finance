@@ -11,6 +11,7 @@ import { dealLinkRoutes } from "./routes/dealLinks.js";
 import { bridgeRoutes } from "./routes/bridge.js";
 import { oracleRoutes } from "./routes/oracle.js";
 import { faucetRoutes } from "./routes/faucet.js";
+import { profileRoutes } from "./routes/profiles.js";
 import { closeDatabase } from "./database.js";
 import { fetchBtcUsdPrice } from "./services/oracle.js";
 import { getBridgeHealth } from "./services/bridge.js";
@@ -129,6 +130,7 @@ await app.register(oracleRoutes);
 await app.register(faucetRoutes);
 await app.register(marketplaceRoutes);
 await app.register(dealLinkRoutes);
+await app.register(profileRoutes);
 
 // 404 handler
 app.setNotFoundHandler((request, reply) => {

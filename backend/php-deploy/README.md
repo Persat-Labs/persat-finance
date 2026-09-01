@@ -8,6 +8,8 @@ Upload **this folder’s contents** to the document root of `api.persat.finance`
 | `schema.sql` | phpMyAdmin import |
 | `config/config.example.php` | Copy → `config.local.php` on server (gitignored) |
 
-Matches dApp routes in `frontend/src/lib/api.ts` (`/health`, `/v1/auth/*`, deal-links, marketplace, faucet cooldown, oracle).
+Matches dApp routes in `frontend/src/lib/api.ts` (`/health`, `/v1/auth/*`, profiles, deal-links, marketplace, faucet cooldown, oracle).
+
+**Profiles:** `/v1/profiles/me` (GET/PUT, auth), `/v1/profiles/:walletOrUsername` (public), `/v1/profiles/username/:name/available`. Canonical identity = wallet; `id` is a server-issued opaque UUID. Username uniqueness enforced in MySQL.
 
 **Not included:** server-side SPL faucet mint and keeper (Node sidecar later).

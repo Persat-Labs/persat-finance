@@ -105,6 +105,21 @@ export const api = {
   createDealLink: (data: any, token: string) => fetchWithRetry("/v1/deal-links", { method: "POST", body: data, authToken: token }),
   claimDealLink: (linkToken: string, wallet: string) => fetchWithRetry(`/v1/deal-links/${linkToken}/claim`, { method: "POST", body: { wallet } }),
   dealLinkStatus: (linkToken: string) => fetchWithRetry(`/v1/deal-links/${linkToken}/status`),
+
+  // Profiles — canonical identity is the Solana wallet; `id` is a server-issued UUID.
+  profilesMe: (token: string) => fetchWithRetry("/v1/profiles/me", { method: "GET", authToken: token, retries: 0 }),
+  profileGet: (walletOrUsername: string) =>
+    fetchWithRetry(`/v1/profiles/${encodeURIComponent(walletOrUsername)}`, { retries: 0 }),
+  profilesUsernameAvailable: (username: string, wallet?: string | null) => {
+    const params = new URLSearchParams();
+    if (wallet) params.set("wallet", wallet);
+    const qs = params.toString();
+    return fetchWithRetry(
+      `/v1/profiles/username/${encodeURIComponent(username)}/available${qs ? `?${qs}` : ""}`,
+      { retries: 0 },
+    );
+  },
+  profileUpdate: (data: any, token: string) => fetchWithRetry("/v1/profiles/me", { method: "PUT", body: data, authToken: token }),
 };
 
 export function getStoredAuthToken(): string | null {
