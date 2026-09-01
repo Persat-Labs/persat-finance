@@ -2,7 +2,7 @@
 
 **Status:** living checklist (not a go-live claim)  
 **Branch context:** `arena/01a04c34-persat-finance` and successors  
-**Last honest assessment:** 2026-08-29  
+**Last honest assessment:** 2026-09-01  
 
 This document turns the “how far are we?” answer into **owners, evidence paths, and exit criteria**.  
 Nothing here marks mainnet ready. A row is **done** only when its **Evidence** column has a real artifact (tx sig, CI run, report file).
@@ -36,7 +36,7 @@ Until B is done, treat the table above as **target shape**, not a checklist you 
 
 ---
 
-## Current scorecard (2026-08-29)
+## Current scorecard (2026-09-01)
 
 | Layer | State | Cutover-ready? |
 | --- | --- | --- |
@@ -48,7 +48,7 @@ Until B is done, treat the table above as **target shape**, not a checklist you 
 | Audit Pass 3 | Live integration evidence incomplete | **No** |
 | Audit Pass 4 | Empty | **No** |
 | Product UI (home, deals, propose, marketplace, faucet, keeper) | Usable on preview; polish ongoing | Shell yes |
-| Backend API | Health + foundations; writes gated; keeper **stub** | **No** |
+| Backend API | Health + foundations + **profiles API (create/read/update + username availability) via MySQL**; writes gated; keeper **stub** | **No** |
 | Mints | Stand-in SPL (expected on devnet) | Testnet OK |
 | Bridges Threshold/Zeus | Simulated / deferred keys | **No** for real BTC |
 | Oracle Pyth | Feed id real; PriceUpdateV2 path incomplete on some liq paths | Partial |
@@ -299,6 +299,16 @@ Completed toward **A3** (not full A):
 - [x] `security-audits/pass-2/GAPS_B1_PLAN.md` — PDA + state-transition fuzz plan
 - [x] `security-audits/pass-3/B2_TEN_CYCLES.md` — 10-cycle map (1–2 = A; 3–10 = B2)
 - [x] Backend keeper: stub vs live-ready modes (`KEEPER_ENABLED` / `KEEPER_KEYPAIR_PATH`)
+
+**B4 foundation — profiles API + frontend sync (2026-09-01):**
+
+- [x] Add `id` UUID column to `user_profiles` (server-issued opaque id; wallet is still the primary identity) across `backend/php-deploy/schema.sql`, `backend/database/schema.sql`, and `backend/migrations/003_user_profiles.sql`
+- [x] PHP `/v1/profiles/*` routes — `GET /me` (get-or-create default row), `PUT /me` (enforce UNIQUE username → 409), `GET /:walletOrUsername`, `GET /username/:name/available`
+- [x] Node backend route + domain in sync (`backend/src/routes/profiles.ts`, `backend/src/domain/profile.ts`)
+- [x] Frontend API client (`api.ts`) + server-first `userProfile.ts` (fetch by session/wallet, PUT server first, localStorage = cache only) + profile page uses server data
+- [x] Profile domain tests (`backend/test/profile.domain.test.ts`, 6 tests; full backend `npm test` = 17 green), frontend `tsc` + `next build` + `next lint` green
+
+**Next A checklist item (identified, needs founder + devnet wallet):** close **A1/A2** (replace `PENDING` sigs in `cycle-01-happy.md` / `cycle-02-default.md` with real devnet tx signatures) — the profiles API above is the **B4** backend-persistence foundation and is a prerequisite for a truly "open testnet" UX, but A remains blocked on live wallet + RPC evidence, not on backend code.
 
 Still open for **A** (needs live browser + founder):
 

@@ -1,68 +1,170 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { AppFrame } from "@/components/AppFrame";
 import { Button, Card, Input, Modal } from "@/lib/design-system";
 import { useProtocol } from "@/lib/protocol/hooks";
+import { api } from "@/lib/api";
 import {
-  getProfileByWalletOrUsername,
-  saveProfile,
-  isUsernameAvailable,
   UserProfile,
+  profileFromServer,
+  normalizeUsername,
+  checkUsernameAvailable,
+  isUsernameAvailable,
+  saveProfile,
+  cacheProfile,
+  fetchProfileByIdentifier,
 } from "@/lib/profile/userProfile";
+import { useWalletSession } from "@/lib/session";
 import { MessagesDrawer } from "@/components/messaging/MessagesDrawer";
 import { useMarketplaceListings } from "@/lib/marketplace/marketplaceStore";
 
 export default function ProfilePage() {
   const params = useParams<{ id: string }>();
   const { publicKey } = useProtocol();
+  const { token } = useWalletSession();
   const { listings } = useMarketplaceListings();
   const myWallet = publicKey ? publicKey.toBase58() : null;
 
   const rawId = params.id ? decodeURIComponent(params.id) : "";
-  const [profile, setProfile] = useState<UserProfile | null>(() => getProfileByWalletOrUsername(rawId));
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
-
-  // Edit form state
-  const [usernameInput, setUsernameInput] = useState(profile?.username || "");
-  const [displayNameInput, setDisplayNameInput] = useState(profile?.displayName || "");
-  const [bioInput, setBioInput] = useState(profile?.bio || "");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const isMyProfile = Boolean(myWallet && profile && profile.wallet === myWallet);
 
-  // Real-time username availability validation
-  const cleanInput = usernameInput.trim().toLowerCase().replace(/^@/, "");
-  const isUnchanged = profile ? cleanInput === profile.username.toLowerCase() : false;
-  const check = isUsernameAvailable(cleanInput, profile?.wallet);
-  const isAvailable = isUnchanged || check.available;
+  // Load profile from the server (server is source of truth; cache is fallback).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const p = await fetchProfileByIdentifier(rawId, myWallet === rawId ? token : null);
+      if (cancelled) return;
+      setProfile(p);
+      setLoading(false);
+      if (p) {
+        setUsernameInput(p.username);
+        setDisplayNameInput(p.displayName);
+        setBioInput(p.bio);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [rawId, token, myWallet]);
 
-  const handleSave = () => {
+  // Edit form state
+  const [usernameInput, setUsernameInput] = useState("");
+  const [displayNameInput, setDisplayNameInput] = useState("");
+  const [bioInput, setBioInput] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [serverCheck, setServerCheck] = useState<{ available: boolean; reason?: string } | null>(null);
+
+  const cleanInput = normalizeUsername(usernameInput);
+  const isUnchanged = profile ? cleanInput === normalizeUsername(profile.username) : false;
+
+  // Debounce server-authoritative availability.
+  useEffect(() => {
     if (!profile) return;
-    if (!isAvailable) {
+    const local = isUsernameAvailable(cleanInput, profile.wallet);
+    if (cleanInput === "" || !local.available) {
+      setServerCheck(local);
+      return;
+    }
+    if (isUnchanged) {
+      setServerCheck({ available: true });
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const check = await checkUsernameAvailable(cleanInput, profile.wallet);
+      if (!cancelled) setServerCheck(check);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, cleanInput, isUnchanged]);
+
+  const isAvailable = isUnchanged || Boolean(serverCheck?.available && cleanInput);
+
+  const handleSave = useCallback(async () => {
+    if (!profile) return;
+    const clean = normalizeUsername(usernameInput);
+    const check = await checkUsernameAvailable(clean, profile.wallet);
+    if (!check.available) {
       setErrorMessage(check.reason || "Username is not available.");
       return;
     }
 
-    const updated: UserProfile = {
-      ...profile,
-      username: cleanInput,
-      displayName: displayNameInput.trim() || `@${cleanInput}`,
-      bio: bioInput.trim(),
-    };
-
-    const res = saveProfile(updated);
-    if (!res.ok) {
-      setErrorMessage(res.error || "Failed to save profile.");
-      return;
-    }
-
-    setProfile(updated);
     setErrorMessage("");
-    setEditOpen(false);
-  };
+    setSaving(true);
+    let updated: UserProfile;
+    try {
+      if (isMyProfile && token) {
+        // Server-first PUT — only the API can persist a profile.
+        const res = await api.profileUpdate(
+          {
+            username: clean,
+            display_name: displayNameInput.trim() || `@${clean}`,
+            bio: bioInput.trim(),
+            avatar_seed: profile.avatarSeed,
+          },
+          token,
+        );
+        if (res?.profile) {
+          updated = profileFromServer(res.profile);
+        } else if (res?.error) {
+          setErrorMessage(res.error);
+          return;
+        } else {
+          updated = { ...profile, username: clean, displayName: displayNameInput.trim() || `@${clean}`, bio: bioInput.trim() };
+        }
+      } else {
+        updated = {
+          ...profile,
+          username: clean,
+          displayName: displayNameInput.trim() || `@${clean}`,
+          bio: bioInput.trim(),
+        };
+        const saved = saveProfile(updated);
+        if (!saved.ok) {
+          setErrorMessage(saved.error || "Failed to save profile.");
+          return;
+        }
+      }
+      cacheProfile(updated);
+      setProfile(updated);
+      setUsernameInput(updated.username);
+      setDisplayNameInput(updated.displayName);
+      setBioInput(updated.bio);
+      setErrorMessage("");
+      setEditOpen(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("409") || msg.includes("already taken")) {
+        setErrorMessage("That username is already taken.");
+      } else {
+        setErrorMessage(msg);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [profile, usernameInput, displayNameInput, bioInput, isMyProfile, token]);
+
+  if (loading) {
+    return (
+      <AppFrame eyebrow="Profile" title="Loading Profile">
+        <Card className="mt-8 text-center">
+          <p className="font-mono text-sm text-white/60 animate-pulse">Loading profile…</p>
+        </Card>
+      </AppFrame>
+    );
+  }
 
   if (!profile) {
     return (
@@ -100,6 +202,11 @@ export default function ProfilePage() {
                 <p className="mt-1 font-mono text-xs text-white/50">
                   Wallet: {profile.wallet.slice(0, 6)}…{profile.wallet.slice(-6)}
                 </p>
+                {profile.id && (
+                  <p className="mt-0.5 font-mono text-[10px] text-white/30">
+                    User id: {profile.id.slice(0, 8)}…
+                  </p>
+                )}
               </div>
             </div>
 
@@ -112,6 +219,7 @@ export default function ProfilePage() {
                     setDisplayNameInput(profile.displayName);
                     setBioInput(profile.bio);
                     setErrorMessage("");
+                    setServerCheck({ available: true });
                     setEditOpen(true);
                   }}
                   className="text-xs"
@@ -213,7 +321,7 @@ export default function ProfilePage() {
                     ? "✓ Current username"
                     : isAvailable
                     ? `✓ @${cleanInput} is available`
-                    : `✕ ${check.reason}`}
+                    : `✕ ${serverCheck?.reason || "Username not available"}`}
                 </span>
               )}
             </div>
@@ -232,7 +340,7 @@ export default function ProfilePage() {
               />
             </div>
             <p className="mt-1 font-mono text-[10px] text-white/40">
-              Only letters, numbers, and underscores (3-20 characters).
+              Only lowercase letters, numbers, and underscores (3-20 characters).
             </p>
           </div>
 
@@ -263,10 +371,10 @@ export default function ProfilePage() {
 
           <Button
             onClick={handleSave}
-            disabled={!isAvailable || !cleanInput}
+            disabled={!isAvailable || !cleanInput || saving}
             className="w-full py-3.5 text-xs"
           >
-            Save Profile
+            {saving ? "Saving…" : "Save Profile"}
           </Button>
         </div>
       </Modal>

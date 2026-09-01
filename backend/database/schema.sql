@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS wallet_sessions (
 
 -- 5. User Profiles Table (Usernames, Reputation, Bio)
 CREATE TABLE IF NOT EXISTS user_profiles (
+  id VARCHAR(36) NOT NULL UNIQUE,
   wallet VARCHAR(44) PRIMARY KEY,
   username VARCHAR(32) NOT NULL UNIQUE,
   display_name VARCHAR(64) NOT NULL,
@@ -79,7 +80,8 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   active_loans INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_username (username)
+  INDEX idx_username (username),
+  INDEX idx_id (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 6. Direct Messages & Negotiation Table
