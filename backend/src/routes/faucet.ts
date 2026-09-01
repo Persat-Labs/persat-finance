@@ -180,8 +180,8 @@ export async function faucetRoutes(app: FastifyInstance) {
           ok: true,
           wallet,
           asset: assetKey,
-          message: `Server dispense failed: ${(e as Error).message}. Use client bundle as fallback.`,
-          mode: "client_bundle_fallback",
+          message: "Faucet claim recorded. Full pack mint is not available right now — try again shortly.",
+          mode: "cooldown_only",
           error: (e as Error).message,
           cooldownHours: COOLDOWN_HOURS,
         };
@@ -192,8 +192,8 @@ export async function faucetRoutes(app: FastifyInstance) {
       ok: true,
       wallet,
       asset: assetKey,
-      message: "Faucet claim recorded — dispense via client bundle (upload persat-devnet-keypairs-KEEP-SECRET.json) or configure PERSAT_DEPLOYER_KEYPAIR on server for auto-dispense.",
-      mode: "client_bundle",
+      message: "Faucet claim recorded.",
+      mode: "cooldown_only",
       cooldownHours: COOLDOWN_HOURS,
     };
   });
@@ -223,7 +223,7 @@ export async function faucetRoutes(app: FastifyInstance) {
     }
 
     if (!config.deployerConfigured) {
-      return reply.code(503).send({ error: "Auto-faucet not configured — server needs PERSAT_DEPLOYER_KEYPAIR.", mode: "client_bundle_required" });
+      return reply.code(503).send({ error: "Auto-faucet mint is not available on this host yet.", mode: "cooldown_only" });
     }
 
     const cooldown = await checkAndRecordCooldown(wallet, "ALL");

@@ -99,19 +99,21 @@ export default function Faucet() {
         return;
       }
 
-      // Fallback: if server dispense not configured, use client bundle if available
-      if (res?.mode === "client_bundle" || res?.mode === "client_bundle_fallback") {
+      // Cooldown-only / mint not live — optional advanced local dispense if already loaded
+      if (res?.mode === "client_bundle" || res?.mode === "client_bundle_fallback" || res?.mode === "cooldown_only") {
         if (deployerKeypair) {
-          // Auto fallback to client bundle
           await handleDispense(targetPubkey, { sol: 0.5, tbtc: 0.1, zbtc: 0.1, btc: 0.1, usdc: 5000, usdt: 5000 });
-          setAutoFaucetState({ busy: false, message: "Server not configured — used client bundle fallback (upload bundle for full auto)." });
+          setAutoFaucetState({ busy: false, message: "Claim recorded and local dispense completed." });
         } else {
-          setAutoFaucetState({ busy: false, message: "Auto-faucet mint is not live yet. Try again shortly, or use the public Devnet SOL option below.", error: res.message });
+          setAutoFaucetState({
+            busy: false,
+            message: "Faucet claim recorded. Full pack mint is not live yet — try again shortly, or use public Devnet SOL below.",
+          });
         }
         return;
       }
 
-      setAutoFaucetState({ busy: false, message: res?.message || "Claim recorded — check explorer.", explorerUrl: res?.explorerUrl });
+      setAutoFaucetState({ busy: false, message: res?.message || "Faucet claim recorded.", explorerUrl: res?.explorerUrl });
     } catch (err) {
       setAutoFaucetState({ busy: false, message: err instanceof Error ? err.message : String(err), error: String(err) });
     }
