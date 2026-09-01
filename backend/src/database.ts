@@ -102,6 +102,8 @@ export async function requireDatabase(): Promise<UnifiedDb> {
         mysqlSql = mysqlSql.replace(/now\(\) \+ interval '5 minutes'/gi, "DATE_ADD(NOW(), INTERVAL 5 MINUTE)");
         mysqlSql = mysqlSql.replace(/NOW\(\) \+ \(\$\d+ \* INTERVAL '1 minute'\)/gi, "DATE_ADD(NOW(), INTERVAL ? MINUTE)");
         mysqlSql = mysqlSql.replace(/NOW\(\) \+ \(\? \* INTERVAL '1 minute'\)/gi, "DATE_ADD(NOW(), INTERVAL ? MINUTE)");
+        mysqlSql = mysqlSql.replace(/NOW\(\) \+ \(\$\d+ \* INTERVAL '1 hour'\)/gi, "DATE_ADD(NOW(), INTERVAL ? HOUR)");
+        mysqlSql = mysqlSql.replace(/NOW\(\) \+ \(\? \* INTERVAL '1 hour'\)/gi, "DATE_ADD(NOW(), INTERVAL ? HOUR)");
         const [rows] = await pool.query(mysqlSql, params);
         const rowCount = Array.isArray(rows) ? (rows as any[]).length : (rows as any).affectedRows ?? 0;
         return { rows: rows as any[], rowCount };
@@ -118,20 +120,22 @@ export async function requireDatabase(): Promise<UnifiedDb> {
     return {
       type: "pg",
       query: async (sql: string, params?: any[]) => {
-        // Convert MySQL-style ? and UUID() to PG $1 and gen_random_uuid()
+        // Convert MySQL-style ? / UUID() / DATE_ADD to PG $1 / gen_random_uuid() / interval
         let pgSql = sql;
+        // Literal intervals first (no placeholder)
+        pgSql = pgSql.replace(/DATE_ADD\(NOW\(\), INTERVAL\s+(\d+)\s+MINUTE\)/gi, "NOW() + ($1 * INTERVAL '1 minute')");
+        pgSql = pgSql.replace(/DATE_ADD\(NOW\(\), INTERVAL\s+(\d+)\s+HOUR\)/gi, "NOW() + ($1 * INTERVAL '1 hour')");
+        pgSql = pgSql.replace(/DATE_ADD\(NOW\(\), INTERVAL\s+(\d+)\s+DAY\)/gi, "NOW() + ($1 * INTERVAL '1 day')");
+        // Placeholder-based intervals
+        pgSql = pgSql.replace(/DATE_ADD\(NOW\(\), INTERVAL \? MINUTE\)/gi, "NOW() + (? * INTERVAL '1 minute')");
+        pgSql = pgSql.replace(/DATE_ADD\(NOW\(\), INTERVAL \? HOUR\)/gi, "NOW() + (? * INTERVAL '1 hour')");
+        pgSql = pgSql.replace(/UUID\(\)/gi, "gen_random_uuid()");
         if (pgSql.includes("?")) {
-          pgSql = pgSql.replace(/DATE_ADD\(NOW\(\), INTERVAL \? MINUTE\)/gi, "NOW() + (? * INTERVAL '1 minute')");
-          pgSql = pgSql.replace(/UUID\(\)/gi, "gen_random_uuid()");
-          // Convert ? to $1,$2 sequentially
           let idx = 0;
           pgSql = pgSql.replace(/\?/g, () => {
             idx += 1;
             return `$${idx}`;
           });
-        } else {
-          // Already PG style, but ensure UUID() fallback handled
-          pgSql = pgSql.replace(/UUID\(\)/gi, "gen_random_uuid()");
         }
         const result = await pool.query(pgSql, params);
         return { rows: result.rows, rowCount: result.rowCount ?? result.rows.length };

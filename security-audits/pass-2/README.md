@@ -76,3 +76,8 @@ has failed. If one appears, it must be committed alongside the fix.
 
 A roadmap checkbox is not evidence. Pass 2 stays marked partial until items 1 and 2 have executed
 and their results are recorded here.
+
+## B1 execution plan
+
+See [`GAPS_B1_PLAN.md`](./GAPS_B1_PLAN.md) for LiteSVM PDA + deal-state transition fuzz approach,
+target properties, and exit criteria tied to `docs/MAINNET_CUTOVER_3_STEP.md` § B1.

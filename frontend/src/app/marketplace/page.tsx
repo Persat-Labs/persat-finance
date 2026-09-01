@@ -40,6 +40,10 @@ export default function Marketplace() {
 
   const toggleWatch = (listingId: string) => {
     if (!publicKey) return;
+    // Never watch demo/fake ids
+    const lid = listingId.toLowerCase();
+    if (lid.startsWith("demo") || lid.includes("demo-") || lid.startsWith("fake") || lid.startsWith("sample")) return;
+
     const newWatched = new Set(watched);
     if (newWatched.has(listingId)) {
       newWatched.delete(listingId);
@@ -47,22 +51,38 @@ export default function Marketplace() {
       newWatched.add(listingId);
     }
     setWatched(newWatched);
-    // Update localStorage watched deals for home page tracking
+    // Persist for /deals tracking — real listings only
     try {
       const listing = listings.find((l) => l.id === listingId);
       const stored = localStorage.getItem(`persat_watched_${publicKey.toBase58()}`);
       let watchedDeals: any[] = stored ? JSON.parse(stored) : [];
+      // Strip any legacy demo rows
+      watchedDeals = watchedDeals.filter(
+        (d: any) => d?.id && !String(d.id).toLowerCase().startsWith("demo") && !String(d.id).toLowerCase().includes("demo-"),
+      );
       if (newWatched.has(listingId) && listing) {
         if (!watchedDeals.find((d: any) => d.id === listingId)) {
+          const principalNum = Number(String(listing.principal).replace(/,/g, "")) || 0;
+          const months = Number(listing.months) || 12;
+          const dueTs = Date.now() + months * 30 * 24 * 3600 * 1000;
           watchedDeals.push({
             id: listing.id,
+            dealUrlId: listing.dealUrlId || listing.id,
             principal: listing.principal,
             currency: listing.currency,
             collateral: `${listing.collateralBtc} BTC`,
-            earnings: listing.side === "lend" ? `+${(Number(listing.principal) * 0.02).toFixed(2)} ${listing.currency}` : `-${(Number(listing.principal) * 0.02).toFixed(2)}`,
-            dueDate: new Date(Date.now() + listing.months * 30 * 24 * 3600 * 1000).toLocaleDateString(),
-            status: "active",
+            collateralType: "BTC",
+            earnings:
+              listing.side === "lend"
+                ? `+${(principalNum * ((listing.rateBps || 820) / 10000) * (months / 12)).toFixed(2)} ${listing.currency}`
+                : `-${(principalNum * 0.02).toFixed(2)} ${listing.currency}`,
+            dueDate: new Date(dueTs).toLocaleDateString(),
+            dueTimestamp: dueTs,
+            status: "pending",
             role: listing.side === "borrow" ? "lender" : "borrower",
+            createdAt: listing.createdAt || Date.now(),
+            source: "watched",
+            counterparty: listing.creatorWallet,
           });
         }
       } else {

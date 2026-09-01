@@ -1,14 +1,22 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button, Modal } from "@/lib/design-system";
 import { useProtocol } from "@/lib/protocol/hooks";
-import {
-  useDevnetBundle,
-  dispenseTestnetAssets,
-  registerAllMetadata,
-  DispenseResult,
-} from "@/lib/protocol/bundle";
+import { api } from "@/lib/api";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
+type ClaimState = {
+  busy: boolean;
+  ok: boolean | null;
+  message: string;
+  explorerUrl?: string;
+};
+
+/**
+ * One-click test funds — no keypair JSON upload.
+ * Hits POST /v1/faucet/claim + /v1/faucet/auto on the API (server dispenser when
+ * PERSAT_DEPLOYER_KEYPAIR is set). Falls back to public Devnet SOL airdrop.
+ */
 export function FundWalletModal({
   open,
   onClose,
@@ -21,228 +29,182 @@ export function FundWalletModal({
   reason?: string;
 }) {
   const { connection, publicKey } = useProtocol();
-  const { isLoaded: isBundleLoaded, deployerKeypair, loadBundle } = useDevnetBundle();
+  const [serverReady, setServerReady] = useState<boolean | null>(null);
+  const [state, setState] = useState<ClaimState>({ busy: false, ok: null, message: "" });
 
-  const [dispenseState, setDispenseState] = useState<{
-    busy: boolean;
-    result: DispenseResult | null;
-    message: string;
-  }>({ busy: false, result: null, message: "" });
+  useEffect(() => {
+    if (!open || !publicKey) {
+      setServerReady(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .faucetStatus(publicKey.toBase58())
+      .then((res: { serverDispenseAvailable?: boolean }) => {
+        if (!cancelled) setServerReady(Boolean(res?.serverDispenseAvailable));
+      })
+      .catch(() => {
+        if (!cancelled) setServerReady(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, publicKey]);
 
-  const handleDispense = useCallback(
-    async (opts: {
-      sol?: number;
-      tbtc?: number;
-      zbtc?: number;
-      btc?: number;
-      usdc?: number;
-      usdt?: number;
-    }) => {
-      if (!publicKey) return;
+  useEffect(() => {
+    if (!open) setState({ busy: false, ok: null, message: "" });
+  }, [open]);
 
-      if (!deployerKeypair) {
-        setDispenseState({
+  const claimFullPack = useCallback(async () => {
+    if (!publicKey) return;
+    const wallet = publicKey.toBase58();
+    setState({
+      busy: true,
+      ok: null,
+      message: "Requesting full pack from treasury — 0.5 SOL + tBTC + zBTC + BTC + USDC + USDT…",
+    });
+
+    try {
+      // Prefer dedicated auto endpoint when present
+      const autoRes = await api.faucetAuto(wallet, "ALL").catch((err: Error) => ({
+        ok: false as const,
+        error: err.message,
+        message: err.message,
+      }));
+
+      if (autoRes?.ok && (autoRes.signature || autoRes.mode === "server_dispense")) {
+        setState({
           busy: false,
-          result: null,
-          message: "Please load your persat-devnet-keypairs-KEEP-SECRET.json file once to authorize automated test dispenser.",
+          ok: true,
+          message: autoRes.message || "Full pack dispensed to your wallet on Devnet.",
+          explorerUrl: autoRes.explorerUrl,
         });
+        onSuccess?.();
         return;
       }
 
-      setDispenseState({ busy: true, result: null, message: "Dispensing official test assets on Solana Devnet…" });
-      try {
-        const res = await dispenseTestnetAssets({
-          connection,
-          deployerKeypair,
-          recipient: publicKey,
-          solAmount: opts.sol,
-          tbtcAmount: opts.tbtc,
-          zbtcAmount: opts.zbtc,
-          btcAmount: opts.btc,
-          usdcAmount: opts.usdc,
-          usdtAmount: opts.usdt,
-        });
+      const claim = await api.faucetClaim(wallet, "ALL").catch((err: Error) => ({
+        ok: false as const,
+        error: err.message,
+        message: err.message,
+      }));
 
-        if (res.ok) {
-          setDispenseState({
-            busy: false,
-            result: res,
-            message: "Successfully dispensed official test tokens to your wallet on Devnet!",
-          });
-          if (onSuccess) onSuccess();
-        } else {
-          setDispenseState({
-            busy: false,
-            result: res,
-            message: `Dispense error: ${res.error ?? "Failed"}`,
-          });
-        }
-      } catch (err) {
-        setDispenseState({
+      if (claim?.error && String(claim.error).toLowerCase().includes("cooldown")) {
+        setState({ busy: false, ok: false, message: String(claim.error) });
+        return;
+      }
+
+      if (claim?.ok && (claim.mode === "server_dispense" || claim.signature)) {
+        setState({
           busy: false,
-          result: null,
-          message: err instanceof Error ? err.message : String(err),
+          ok: true,
+          message: claim.message || "Full pack dispensed to your wallet on Devnet.",
+          explorerUrl: claim.explorerUrl,
+        });
+        onSuccess?.();
+        return;
+      }
+
+      // API missing deployer key / unreachable — try public SOL airdrop so user isn't stuck
+      try {
+        setState({
+          busy: true,
+          ok: null,
+          message: "Treasury auto-mint not live yet — claiming 1 Devnet SOL from public faucet…",
+        });
+        const sig = await connection.requestAirdrop(publicKey, LAMPORTS_PER_SOL);
+        await connection.confirmTransaction(sig, "confirmed");
+        setState({
+          busy: false,
+          ok: true,
+          message: "Received 1 Devnet SOL. Full token pack will unlock when the treasury dispenser is live.",
+          explorerUrl: `https://explorer.solana.com/tx/${sig}?cluster=devnet`,
+        });
+        onSuccess?.();
+        return;
+      } catch {
+        setState({
+          busy: false,
+          ok: false,
+          message: "Could not fund wallet yet. Faucet claim recorded — try again shortly, or open /faucet.",
         });
       }
-    },
-    [connection, deployerKeypair, publicKey, onSuccess],
-  );
+    } catch (err) {
+      setState({
+        busy: false,
+        ok: false,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }, [connection, publicKey, onSuccess]);
 
   return (
-    <Modal open={open} onClose={onClose} title="Official Test Token Dispenser">
+    <Modal open={open} onClose={onClose} title="Claim Test Funds">
       <div className="space-y-5">
-        <p className="text-sm text-white/80 leading-6">
-          {reason || "Dispense official testnet collateral and stablecoins directly into your wallet. All assets are minted on Solana Devnet for non-custodial testing."}
+        <p className="text-sm leading-6 text-white/80">
+          {reason ||
+            "One click funds your connected wallet on Solana Devnet — no file upload, no keypair JSON. Full pack when the API treasury is configured; otherwise public Devnet SOL."}
         </p>
 
         {publicKey ? (
           <div className="space-y-4">
-            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 font-mono text-xs text-white/60 flex items-center justify-between">
-              <span>Connected Target:</span>
-              <span className="text-white font-semibold">{publicKey.toBase58().slice(0, 6)}…{publicKey.toBase58().slice(-4)}</span>
+            <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] p-3 font-mono text-xs text-white/60">
+              <span>Connected</span>
+              <span className="font-semibold text-white">
+                {publicKey.toBase58().slice(0, 6)}…{publicKey.toBase58().slice(-4)}
+              </span>
             </div>
 
-            {!isBundleLoaded && (
-              <div className="rounded-xl border border-amber/30 bg-amber/5 p-3.5 space-y-2 text-xs">
-                <p className="text-amber font-semibold">One-Time Testnet Dispenser Authorization</p>
-                <p className="text-white/70">
-                  Select your local <code className="text-amber">persat-devnet-keypairs-KEEP-SECRET.json</code> to activate automated in-app funding (runs 100% in local browser memory):
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 font-mono text-[11px] text-white/50">
+              {serverReady === null && <p>Checking treasury dispenser…</p>}
+              {serverReady === true && (
+                <p className="text-emerald-400">● Server auto-dispense available — full pack ready</p>
+              )}
+              {serverReady === false && (
+                <p className="text-amber">
+                  ○ Full SPL pack needs API deployer key. You can still claim public Devnet SOL in one click.
                 </p>
-                <label className="inline-block cursor-pointer rounded-full border border-amber/50 bg-amber/15 px-4 py-2 font-mono text-[11px] text-amber hover:bg-amber/25 transition">
-                  Choose Keypair JSON
-                  <input
-                    type="file"
-                    accept=".json,application/json"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        const text = event.target?.result as string;
-                        if (text) loadBundle(text);
-                      };
-                      reader.readAsText(file);
-                    }}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Primary Action: Dispense Full Pack with ALL Assets */}
-            <Button
-              className="w-full py-4 text-xs font-semibold"
-              disabled={!isBundleLoaded || dispenseState.busy}
-              onClick={() =>
-                handleDispense({
-                  sol: 0.5,
-                  tbtc: 0.1,
-                  zbtc: 0.1,
-                  btc: 0.1,
-                  usdc: 5000,
-                  usdt: 5000,
-                })
-              }
-            >
-              {dispenseState.busy
-                ? "Dispensing All Tokens On Devnet…"
-                : "⚡ Dispense Full Pack (SOL + tBTC + zBTC + BTC + USDC + USDT)"}
+            <Button className="w-full py-4 text-xs font-semibold" disabled={state.busy} onClick={() => void claimFullPack()}>
+              {state.busy ? "Funding wallet…" : "⚡ Claim Full Pack — One Click"}
             </Button>
 
-            {/* Metaplex Logo & Name Registration Button */}
-            {isBundleLoaded && (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!deployerKeypair) return;
-                  setDispenseState({ busy: true, result: null, message: "Writing official metadata & logos on-chain…" });
-                  const res = await registerAllMetadata({ connection, deployerKeypair });
-                  setDispenseState({
-                    busy: false,
-                    result: res.ok ? { ok: true, explorerUrl: res.explorerUrl } : { ok: false, error: res.message },
-                    message: res.message,
-                  });
-                }}
-                className="w-full rounded-xl border border-white/15 bg-white/[0.03] py-2.5 font-mono text-[11px] text-white/70 hover:border-amber hover:text-white transition flex items-center justify-center gap-2"
-              >
-                <span>🏷️</span>
-                <span>Register Official Logos &amp; Names on Phantom</span>
-              </button>
-            )}
+            <p className="text-center font-mono text-[10px] text-white/40">
+              0.5 SOL · 0.1 tBTC · 0.1 zBTC · 0.1 BTC · 5k USDC · 5k USDT · 24h cooldown
+            </p>
 
-            {/* Granular Chips for Each Asset */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 font-mono text-[11px]">
-              <Button
-                variant="secondary"
-                disabled={!isBundleLoaded || dispenseState.busy}
-                onClick={() => handleDispense({ sol: 0.5 })}
-                className="py-2 text-[11px]"
-              >
-                + 0.5 SOL
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={!isBundleLoaded || dispenseState.busy}
-                onClick={() => handleDispense({ tbtc: 0.1 })}
-                className="py-2 text-[11px]"
-              >
-                + 0.1 tBTC
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={!isBundleLoaded || dispenseState.busy}
-                onClick={() => handleDispense({ zbtc: 0.1 })}
-                className="py-2 text-[11px]"
-              >
-                + 0.1 zBTC
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={!isBundleLoaded || dispenseState.busy}
-                onClick={() => handleDispense({ btc: 0.1 })}
-                className="py-2 text-[11px]"
-              >
-                + 0.1 BTC
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={!isBundleLoaded || dispenseState.busy}
-                onClick={() => handleDispense({ usdc: 5000 })}
-                className="py-2 text-[11px]"
-              >
-                + 5k USDC
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={!isBundleLoaded || dispenseState.busy}
-                onClick={() => handleDispense({ usdt: 5000 })}
-                className="py-2 text-[11px]"
-              >
-                + 5k USDT
-              </Button>
-            </div>
-
-            {dispenseState.message && (
+            {state.message && (
               <div
                 className={`rounded-xl p-3 font-mono text-xs ${
-                  dispenseState.result?.ok
+                  state.ok
                     ? "border border-emerald-500/30 bg-emerald-500/10 text-white"
-                    : "border border-amber/30 bg-black/40 text-amber"
+                    : state.ok === false
+                      ? "border border-amber/30 bg-black/40 text-amber"
+                      : "border border-white/10 bg-white/[0.03] text-white/70"
                 }`}
               >
-                <p>{dispenseState.message}</p>
-                {dispenseState.result?.explorerUrl && (
+                <p>{state.message}</p>
+                {state.explorerUrl && (
                   <a
-                    href={dispenseState.result.explorerUrl}
+                    href={state.explorerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-1 block text-amber underline hover:text-white"
                   >
-                    View Confirmation on Solana Explorer ↗
+                    View on Solana Explorer ↗
                   </a>
                 )}
               </div>
             )}
+
+            <p className="text-center font-mono text-[11px] text-white/40">
+              Prefer the full faucet page?{" "}
+              <a href="/faucet" className="text-amber hover:underline">
+                Open /faucet →
+              </a>
+            </p>
           </div>
         ) : (
           <div className="py-4 text-center">
@@ -254,7 +216,7 @@ export function FundWalletModal({
           <button
             type="button"
             onClick={onClose}
-            className="font-ui text-xs uppercase tracking-wider text-white/50 hover:text-white transition"
+            className="font-ui text-xs uppercase tracking-wider text-white/50 transition hover:text-white"
           >
             Maybe Later — Let Me Explore First
           </button>

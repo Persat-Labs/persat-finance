@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireDatabase } from "../database.js";
 import { createDealLinkToken, hashDealLinkToken } from "../domain/dealLinks.js";
-import { requireWalletSession } from "../middleware/auth.js";
+import { getRequestWallet, requireWalletSession } from "../middleware/auth.js";
 
 const createSchema = z.object({
   dealId: z.string().min(1).max(128),
@@ -21,20 +21,39 @@ export async function dealLinkRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Invalid deal-link request", details: parsed.error.flatten() });
     }
     try {
+      const sessionWallet = getRequestWallet(request);
+      if (!sessionWallet) {
+        return reply.code(401).send({ error: "Wallet session required." });
+      }
+      // Bind initiator to session — DevTools cannot mint links as another wallet
+      if (parsed.data.initiatorWallet !== sessionWallet) {
+        return reply.code(403).send({
+          error: "initiatorWallet does not match authenticated session.",
+          sessionWallet,
+        });
+      }
       const db = await requireDatabase();
       const { token, tokenHash } = createDealLinkToken();
       const p = parsed.data;
 
-      const existing = await db.query(`SELECT id FROM deal_links WHERE deal_id = ? AND claimed_at IS NULL AND expires_at > NOW() LIMIT 1`, [p.dealId]);
+      const existing = await db.query(
+        `SELECT id FROM deal_links WHERE deal_id = ? AND claimed_at IS NULL AND expires_at > NOW() LIMIT 1`,
+        [p.dealId],
+      );
       if (existing.rowCount === 1) {
         return reply.code(409).send({ error: "An active deal link already exists for this deal." });
       }
 
       await db.query(
         `INSERT INTO deal_links (id, deal_id, token_hash, initiator_wallet, expires_at) VALUES (UUID(), ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE))`,
-        [p.dealId, tokenHash, p.initiatorWallet, p.expiresInMinutes],
+        [p.dealId, tokenHash, sessionWallet, p.expiresInMinutes],
       );
-      return reply.code(201).send({ token, expiresInMinutes: p.expiresInMinutes, dealId: p.dealId });
+      return reply.code(201).send({
+        token,
+        expiresInMinutes: p.expiresInMinutes,
+        dealId: p.dealId,
+        initiatorWallet: sessionWallet,
+      });
     } catch (error) {
       request.log.error(error, "[deal-links] create failed");
       if ((error as Error).message.includes("not configured")) {

@@ -1,27 +1,47 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireDatabase } from "../database.js";
-import { createChallenge, createSessionToken, verifySolanaMessage } from "../domain/walletAuth.js";
+import {
+  issueChallenge,
+  lookupSessionWallet,
+  revokeSession,
+  sessionBackendMode,
+  verifyChallengeAndCreateSession,
+} from "../domain/sessionStore.js";
+import { requireWalletSession, getRequestWallet } from "../middleware/auth.js";
 
 const walletSchema = z.object({ wallet: z.string().min(32).max(44) });
-const verifySchema = z.object({ challengeId: z.string().uuid(), signature: z.string().min(64) });
+const verifySchema = z.object({
+  challengeId: z.string().uuid(),
+  signature: z.string().min(64),
+  /** Optional client-reported wallet — must match challenge wallet after verify */
+  wallet: z.string().min(32).max(44).optional(),
+});
 
 export async function walletAuthRoutes(app: FastifyInstance) {
+  /** Public: how sessions work + current store mode (no secrets). */
+  app.get("/v1/auth/status", async () => ({
+    ok: true,
+    mode: sessionBackendMode(),
+    scheme: "SIWS-challenge + Bearer session token",
+    notes: [
+      "DOM/Inspect edits never grant authority.",
+      "On-chain actions require a wallet-signed Solana transaction.",
+      "API writes require Authorization: Bearer <session> bound to the signing wallet.",
+      "Session is issued only after verifySolanaMessage on a one-time challenge.",
+    ],
+  }));
+
   app.post("/v1/auth/challenge", async (request, reply) => {
     const parsed = walletSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: "Invalid Solana wallet" });
     try {
-      const db = await requireDatabase();
-      const challenge = createChallenge(parsed.data.wallet, process.env.NEXT_PUBLIC_APP_URL ?? "https://persat.finance");
-      // MySQL and PG compatible — use ? placeholders, wrapper converts $1 to ?
-      await db.query(
-        "INSERT INTO wallet_auth_challenges (id, wallet, nonce_hash, message, expires_at) VALUES (UUID(), ?, ?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE))",
-        [parsed.data.wallet, challenge.nonceHash, challenge.message],
-      );
-      // For MySQL, we need to fetch the inserted row — use wallet + nonce_hash to get id
-      const fetch = await db.query("SELECT id, expires_at FROM wallet_auth_challenges WHERE wallet = ? AND nonce_hash = ? ORDER BY created_at DESC LIMIT 1", [parsed.data.wallet, challenge.nonceHash]);
-      const row = fetch.rows[0] || { id: "unknown", expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() };
-      return { challengeId: row.id, message: challenge.message, expiresAt: row.expires_at };
+      const challenge = await issueChallenge(parsed.data.wallet);
+      return {
+        challengeId: challenge.challengeId,
+        message: challenge.message,
+        expiresAt: challenge.expiresAt,
+        mode: challenge.mode,
+      };
     } catch (error) {
       request.log.error(error);
       return reply.code(503).send({ error: "Wallet authentication is unavailable." });
@@ -32,19 +52,49 @@ export async function walletAuthRoutes(app: FastifyInstance) {
     const parsed = verifySchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: "Invalid authentication response" });
     try {
-      const db = await requireDatabase();
-      // Fetch challenge
-      const result = await db.query("SELECT wallet, message FROM wallet_auth_challenges WHERE id = ? AND used_at IS NULL AND expires_at > NOW() LIMIT 1", [parsed.data.challengeId]);
-      if (result.rowCount !== 1 || !verifySolanaMessage(result.rows[0].wallet, result.rows[0].message, parsed.data.signature)) {
-        return reply.code(401).send({ error: "Signature verification failed." });
+      const result = await verifyChallengeAndCreateSession(parsed.data.challengeId, parsed.data.signature);
+      if ("error" in result) return reply.code(result.status).send({ error: result.error });
+      if (parsed.data.wallet && parsed.data.wallet !== result.wallet) {
+        return reply.code(401).send({ error: "Wallet mismatch — sign with the connected account only." });
       }
-      await db.query("UPDATE wallet_auth_challenges SET used_at = NOW() WHERE id = ?", [parsed.data.challengeId]);
-      const session = createSessionToken();
-      await db.query("INSERT INTO wallet_sessions (id, wallet, token_hash, expires_at) VALUES (UUID(), ?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))", [result.rows[0].wallet, session.tokenHash]);
-      return { token: session.token, wallet: result.rows[0].wallet, expiresInSeconds: 86400 };
+      return {
+        token: result.token,
+        wallet: result.wallet,
+        expiresInSeconds: result.expiresInSeconds,
+        mode: result.mode,
+      };
     } catch (error) {
       request.log.error(error);
       return reply.code(503).send({ error: "Wallet authentication is unavailable." });
     }
+  });
+
+  /** Who am I — proves Bearer token maps to a wallet. */
+  app.get("/v1/auth/me", { preHandler: [requireWalletSession] }, async (request) => {
+    return {
+      wallet: getRequestWallet(request),
+      mode: sessionBackendMode(),
+      authenticated: true,
+    };
+  });
+
+  /** Logout — revoke this Bearer token. */
+  app.post("/v1/auth/logout", async (request, reply) => {
+    const auth = request.headers.authorization;
+    if (auth?.startsWith("Bearer ")) {
+      await revokeSession(auth.slice(7).trim());
+    }
+    return reply.code(204).send();
+  });
+
+  /** Dev/helper: resolve token without exposing hash (auth required). */
+  app.post("/v1/auth/introspect", async (request, reply) => {
+    const auth = request.headers.authorization;
+    if (!auth?.startsWith("Bearer ")) {
+      return reply.code(401).send({ active: false });
+    }
+    const wallet = await lookupSessionWallet(auth.slice(7).trim());
+    if (!wallet) return reply.code(401).send({ active: false });
+    return { active: true, wallet, mode: sessionBackendMode() };
   });
 }

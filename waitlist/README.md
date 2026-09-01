@@ -1,5 +1,7 @@
 # Persat Finance waitlist
 
+**Voice:** see `docs/POSITIONING.md` — vision = trust-minimized P2P lending infrastructure; pilot = Bitcoin first collateral.
+
 A single-file, amber sci-fi landing page for Persat Finance. The original page's visual system is kept in `index.html`: the same Tailwind utility classes, fonts, colors, spacing, component patterns, WebGL background, SVG beams, GSAP boot sequence, glow cards, and reveal animations remain in place. Only the copy and the waitlist form were replaced.
 
 ## Architecture

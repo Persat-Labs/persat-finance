@@ -17,7 +17,7 @@ export const config = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   /** Devnet for MVP. See contracts/config/devnet.json for why not Solana testnet. */
   cluster: process.env.SOLANA_CLUSTER ?? "devnet",
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://persat.finance",
+  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://dapp.persat.finance",
   rpcUrl: process.env.SOLANA_RPC_URL ?? "https://api.devnet.solana.com",
   databaseUrl: process.env.PERSAT_DATABASE_URL,
   adminApiKey: process.env.ADMIN_API_KEY,

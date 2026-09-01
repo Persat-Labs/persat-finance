@@ -16,6 +16,9 @@ Persat Finance is non-custodial Bitcoin-backed lending infrastructure on Solana.
 | Working on protocol architecture | `docs/Persat_Finance_Technical_Architecture.docx` and [`docs/technical-architecture.md`](docs/technical-architecture.md) |
 | Setting up local services | [`GO_LIVE_AND_SCALE.md`](GO_LIVE_AND_SCALE.md) |
 | Reviewing existing implementation status | [`WHAT_WE_BUILT.md`](WHAT_WE_BUILT.md) and [`MILESTONES_ACHIEVED.md`](MILESTONES_ACHIEVED.md) |
+| Testnet completion → 3-step mainnet cutover | [`docs/MAINNET_CUTOVER_3_STEP.md`](docs/MAINNET_CUTOVER_3_STEP.md) |
+| A1/A2 live cycle runbook (browser sigs) | [`ops/handoff/A1-A2-live-cycle-runbook.md`](ops/handoff/A1-A2-live-cycle-runbook.md) |
+| A4 hosting (dApp / API / waitlist) | [`docs/HOSTING_A4.md`](docs/HOSTING_A4.md) |
 
 ## Repository map
 

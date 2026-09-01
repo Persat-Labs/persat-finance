@@ -3,7 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Persat Finance — The Global Trust Layer For Bitcoin-Backed Lending</title>
+<title>Persat Finance — What If You Could Lend to Anyone?</title>
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="theme-color" content="#000000">
 <script>
 /* Stale-deploy cleanup: unregister any service worker or cache left over from
    a previous deploy of this site so visitors always see the current design. */
@@ -92,7 +97,7 @@ svg{display:block}
 
 .eyebrow{font-family:var(--font-ui);font-size:15px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
 .sec-title{
-  font-family:var(--font-finance);font-size:clamp(30px,4.2vw,50px);line-height:1.12;font-weight:400;letter-spacing:.025em;text-align:center;text-transform:uppercase;
+  font-family:var(--font-finance),"Segoe UI",system-ui,sans-serif;font-size:clamp(30px,4.2vw,50px);line-height:1.12;font-weight:400;letter-spacing:.025em;text-align:center;text-transform:uppercase;
   text-wrap:balance;text-shadow:0 0 34px rgba(255,138,0,.12);
 }
 .sec-sub{text-align:center;color:var(--muted);font-size:14px;margin-top:14px}
@@ -104,7 +109,7 @@ svg{display:block}
   font-family:var(--font-ui);letter-spacing:.075em;text-transform:uppercase;
 }
 .p-head h3,.fcard h3,.fcard h4,.wl h5,.qa summary,.cta-box h2{
-  font-family:var(--font-panel);font-weight:400;letter-spacing:.035em;text-transform:uppercase;
+  font-family:var(--font-panel),"Segoe UI",system-ui,sans-serif;font-weight:400;letter-spacing:.035em;text-transform:uppercase;
 }
 .stat b,.bal b,.xval,.mkt-price,.metric-number{font-family:var(--font-brand);font-weight:400;letter-spacing:.035em}
 .logoipsum span{font-family:var(--font-finance);font-weight:400;letter-spacing:.04em;text-transform:uppercase}
@@ -289,7 +294,35 @@ svg{display:block}
   background:linear-gradient(180deg,#ffad4d,#ff8a00);
   box-shadow:0 6px 18px -6px rgba(255,138,0,.9),inset 0 1px 0 rgba(255,255,255,.4);
 }
-.nav-toggle{display:none}
+.nav-toggle{display:none;cursor:pointer;border:none;color:#fff;padding:0}
+.nav-toggle:focus-visible{outline:2px solid rgba(255,166,60,.7);outline-offset:2px}
+.nav-drawer{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:40;
+  padding:88px 18px 22px;
+  background:rgba(0,0,0,.92);
+  backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  box-shadow:0 28px 60px -28px rgba(0,0,0,.95);
+}
+/* override UA [hidden]{display:none!important} when open */
+.nav-drawer.open,.nav-drawer.open[hidden]{display:block!important}
+.nav-drawer nav{display:flex;flex-direction:column;gap:6px;max-width:520px;margin:0 auto}
+.nav-drawer a{
+  display:block;padding:14px 16px;border-radius:14px;font-size:15px;font-weight:500;color:#cfcfcf;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+  transition:color .2s,background .2s,border-color .2s;
+}
+.nav-drawer a:hover,.nav-drawer a.active{
+  color:#fff;background:rgba(255,138,0,.12);border-color:rgba(255,166,60,.35);
+}
+.nav-drawer .nav-drawer-cta{
+  margin-top:10px;text-align:center;font-weight:600;color:#fff;
+  background:linear-gradient(180deg,#ffad4d,#ff8a00);
+  border-color:transparent;
+  box-shadow:0 10px 24px -10px rgba(255,138,0,.85);
+}
+body.nav-open{overflow:hidden}
+body.nav-open .nav{z-index:50}
 
 /* ============================================================
    HERO
@@ -600,7 +633,7 @@ svg{display:block}
 .qa summary::-webkit-details-marker{display:none}
 .qa .pm{width:26px;height:26px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
   background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);transition:transform .3s,background .3s}
-.qa[open] .pm{transform:rotate(45deg);background:linear-gradient(180deg,#ffaa45,#ef8910);border-color:transparent}
+.qa[open] .pm{transform:rotate(180deg);background:linear-gradient(180deg,#ffaa45,#ef8910);border-color:transparent}
 .qa .pm svg{width:12px;height:12px}
 .qa .ans{padding:0 22px 20px;font-size:13px;color:#9b9b9b;line-height:1.7;max-width:92%}
 
@@ -668,6 +701,38 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
 .wl-note.err{color:#ffba69}
 @media (max-width:560px){.wl-row{grid-template-columns:1fr}}
 
+
+.ava-letter{display:grid!important;place-items:center;font-family:var(--font-ui);font-size:10px;font-weight:600;color:#fff;background:linear-gradient(150deg,#ffad4d,#ff8a00)!important;border:none!important}
+.ava-letter::after{display:none!important}
+.t-ava{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;font-family:var(--font-ui);font-size:14px;font-weight:600;color:#fff;background:linear-gradient(150deg,#ffad4d,#ff8a00);box-shadow:0 0 14px rgba(255,138,0,.35)}
+/* hide unused chip styles from taking space if any remain */
+.chip{display:none!important}
+
+.disc-list{margin:22px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:16px}
+.disc-list li{font-size:14px;color:#9d9d9d;line-height:1.65;padding:4px 0 4px 16px;border-left:2px solid rgba(255,138,0,.45)}
+.disc-list b{color:#fff;font-weight:600}
+.disc-panel{
+  display:flex;flex-direction:column;gap:14px;padding:28px!important;min-height:100%;
+  justify-content:center;
+}
+.disc-row{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:16px 18px;border-radius:16px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+}
+.disc-row.on{background:rgba(255,138,0,.12);border-color:rgba(255,166,60,.35)}
+.disc-tag{font-family:var(--font-panel);font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:#fff}
+.disc-meta{font-size:12px;color:#8a8a8a;text-align:right;line-height:1.35}
+.disc-foot{margin-top:12px;font-size:13px;color:#8a8a8a;text-align:center;line-height:1.5;padding:0 8px}
+.disc-block{margin-top:36px}
+.disc-block .f-wide{
+  grid-template-columns:1.05fr 1fr;gap:48px;align-items:stretch;
+}
+.disc-block .f-wide > div:first-child{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:8px 4px}
+.disc-block .f-wide h3{font-size:clamp(26px,3vw,36px);line-height:1.15;letter-spacing:-.02em;max-width:18ch}
+.disc-block .f-wide p{margin-top:18px;font-size:14.5px;line-height:1.7;max-width:none;color:#a8a8a8}
+
+
 /* ============================================================
    REVEAL ANIMATION
    ============================================================ */
@@ -692,15 +757,25 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
   .nav-toggle{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;
     background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1)}
   .nav-toggle svg{width:18px;height:18px}
-  .chip{display:none}
+  .nav-inner .btn-ghost{display:none}
+  .chip{display:none!important}
+
   .dash{flex-direction:column;align-items:center;gap:20px;padding-bottom:60px}
   .p-side,.p-center{width:min(360px,92vw);margin:0}
   .f-wide{grid-template-columns:1fr;gap:28px}
   .f-wide p{max-width:none}
+  .disc-block{margin-top:28px}
+  .disc-block .f-wide{grid-template-columns:1fr;gap:28px}
+  .disc-block .f-wide h3{max-width:none;font-size:clamp(24px,7vw,32px)}
+  .disc-panel{padding:22px!important;gap:12px}
+  .disc-row{padding:14px 16px}
   .f-duo{grid-template-columns:1fr}
   .why-grid{grid-template-columns:1fr}
   .t-grid{grid-template-columns:1fr}
   .logo-row{justify-content:center;gap:34px}
+}
+@media (min-width:921px){
+  .nav-drawer{display:none!important}
 }
 @media (max-width:560px){
   .wrap{padding-inline:18px}
@@ -770,37 +845,36 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
         <a href="#faq">FAQ</a>
       </nav>
 
-      <a class="btn-ghost" href="#waitlist">Join Waitlist</a>
-      <button class="nav-toggle" aria-label="Menu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+      <a class="btn-ghost" href="#waitlist">Start Lending With Confidence</a>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-drawer">
+        <svg class="nav-icon-open" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <path d="M4 7h16M4 12h16M4 17h16"/>
+        </svg>
+        <svg class="nav-icon-close" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" aria-hidden="true" hidden>
+          <path d="M6 6l12 12M18 6L6 18"/>
         </svg>
       </button>
     </div>
   </header>
 
+  <div class="nav-drawer" id="nav-drawer" hidden>
+    <nav aria-label="Mobile">
+      <a href="#home">Home</a>
+      <a href="#features">Features</a>
+      <a href="#why">Why choose</a>
+      <a href="#testimonials">Testimonials</a>
+      <a href="#faq">FAQ</a>
+      <a class="nav-drawer-cta" href="#waitlist">Start Lending With Confidence</a>
+    </nav>
+  </div>
+
   <!-- ---------- HEADLINE ---------- -->
   <div class="wrap" style="position:relative">
-    <span class="chip c-bitora">Bitcoin
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></span>
-    </span>
-    <span class="chip c-chainly">Stablecoins
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></span>
-    </span>
-    <span class="chip c-coinza">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6" fill="#fff" stroke="none"/></svg></span>
-      Solana
-    </span>
-    <span class="chip c-nexbit">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4" fill="#fff" stroke="none"/></svg></span>
-      Escrow
-    </span>
-
     <div class="hero-inner">
-      <h1>Step Into The Future Of<br> Bitcoin-Backed Lending</h1>
-      <p class="lede">Borrow against your Bitcoin, or lend your stablecoins — without giving up custody.</p>
+      <h1>What If You Could<br> Lend to Anyone?</h1>
+      <p class="lede">Infrastructure for a world where anyone can lend to anyone, secured by digital assets and enforced by smart contracts, starting with Bitcoin.</p>
       <div class="cta">
-        <a class="btn-primary" href="#waitlist">Join the Waitlist
+        <a class="btn-primary" href="#waitlist">Start Lending With Confidence
           <span class="arw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
         </a>
       </div>
@@ -908,13 +982,13 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
 <!-- ===================== LOGO STRIP ===================== -->
 <section class="logos">
   <div class="wrap">
-    <p class="cap rv">Non-Custodial Credit Infrastructure Built On <b>Solana &amp; Anchor</b></p>
+    <p class="cap rv">Lending infrastructure where trust lives in the system — piloting with <b>Bitcoin</b> on Solana</p>
     <div class="logo-row rv">
-      <span class="logoipsum"><svg viewBox="0 0 24 24" fill="#cfcfcf"><path d="M12 2 3 5v7c0 5 3.8 8.6 9 10 5.2-1.4 9-5 9-10V5l-9-3zm-1 6h2v3h3v2h-3v3h-2v-3H8v-2h3V8z"/></svg><span>Solana</span></span>
-      <span class="logoipsum"><svg viewBox="0 0 24 24" fill="#cfcfcf"><path d="M12 2 3 5v7c0 5 3.8 8.6 9 10 5.2-1.4 9-5 9-10V5l-9-3zm-1 6h2v3h3v2h-3v3h-2v-3H8v-2h3V8z"/></svg><span>Anchor</span></span>
-      <span class="logoipsum"><svg viewBox="0 0 24 24" fill="#cfcfcf"><path d="M12 2 3 5v7c0 5 3.8 8.6 9 10 5.2-1.4 9-5 9-10V5l-9-3zm-1 6h2v3h3v2h-3v3h-2v-3H8v-2h3V8z"/></svg><span>Pyth</span></span>
-      <span class="logoipsum"><svg viewBox="0 0 24 24" fill="#cfcfcf"><path d="M12 2 3 5v7c0 5 3.8 8.6 9 10 5.2-1.4 9-5 9-10V5l-9-3zm-1 6h2v3h3v2h-3v3h-2v-3H8v-2h3V8z"/></svg><span>Bitcoin</span></span>
-      <span class="logoipsum"><svg viewBox="0 0 24 24" fill="#cfcfcf"><path d="M12 2 3 5v7c0 5 3.8 8.6 9 10 5.2-1.4 9-5 9-10V5l-9-3zm-1 6h2v3h3v2h-3v3h-2v-3H8v-2h3V8z"/></svg><span>USDC</span></span>
+      <span class="logoipsum"><svg viewBox="0 0 24 24" fill="none" stroke="#cfcfcf" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="#cfcfcf" stroke="none"/></svg><span>Solana</span></span>
+      <span class="logoipsum"><svg viewBox="0 0 24 24" fill="none" stroke="#cfcfcf" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="#cfcfcf" stroke="none"/></svg><span>Anchor</span></span>
+      <span class="logoipsum"><svg viewBox="0 0 24 24" fill="none" stroke="#cfcfcf" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="#cfcfcf" stroke="none"/></svg><span>Pyth</span></span>
+      <span class="logoipsum"><svg viewBox="0 0 24 24" fill="none" stroke="#cfcfcf" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="#cfcfcf" stroke="none"/></svg><span>Bitcoin</span></span>
+      <span class="logoipsum"><svg viewBox="0 0 24 24" fill="none" stroke="#cfcfcf" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="#cfcfcf" stroke="none"/></svg><span>USDC</span></span>
     </div>
   </div>
 </section>
@@ -924,16 +998,16 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
   <div class="edge-glow right"></div>
   <div class="wrap">
     <div class="feat-head rv">
-      <h2 class="sec-title">Powerful Features<br> For Smarter Bitcoin Lending</h2>
-      <p class="sec-sub">Borrow against your Bitcoin, or lend your stablecoins — without giving up custody.</p>
+      <h2 class="sec-title">Built So You Do Not Have To<br> Personally Trust The Borrower</h2>
+      <p class="sec-sub">Infrastructure for trust-minimized peer-to-peer lending — secured by digital assets, enforced by smart contracts, starting with Bitcoin.</p>
     </div>
 
     <!-- wide card -->
     <div class="fcard f-wide rv">
       <div>
-        <h3>Tools For Better<br> Bitcoin-Backed Credit</h3>
-        <p>A credit marketplace where borrowers and lenders agree terms directly — no custodian, no selling.</p>
-        <a class="btn-primary" href="#waitlist">Join the Waitlist
+        <h3>Credit That Does Not<br> Depend On Personal Trust</h3>
+        <p>Agree terms peer-to-peer. Collateral secures the loan. Smart contracts enforce the agreement — so repayment is not a favor, it is infrastructure.</p>
+        <a class="btn-primary" href="#waitlist">Start Lending With Confidence
           <span class="arw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
         </a>
       </div>
@@ -969,29 +1043,29 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
           <span class="halo"></span>
           <div class="stack">
             <div class="srow">
-              <span class="ava"><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAkGBwgHBgkIBwgKCgkLDRYPDQwMDRsUFRAWIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5Ojf/2wBDAQoKCg0MDRoPDxo3JR8lNzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzf/wAARCABgAGADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCmBxTgKAKcBQMAKXFOUVna9qiaTYmY4MrfLGp6Z9TQBHrOsxaYoRYzNORny1YDaPU+lYZ8T6jOQsNrHET0JUsD9DmufihuL6WSWRtyOSz7j1rbsLNxbhLexmkVuygn8RWbkaRhc0IddvYin2qKJg3p8v8A+r8a0rTW7K5lWAs0MzdElGM/Q9DXPPo+sTNtFrNgdCwOfzrG1W0v7MYvrd1XOQSOM+o9DSU9bXHKm0r2PTMU2sjwrqn9p6eFlYG4gwsnPLDs1bJFamRGRTGFS4phFAiQU4UgpwoGKMVyHjgGe8s4FbA2n8yf/rV2ArkPGKN/a9j5Yy8igD6hsf1pS2HHc7DwZ4UtbGJHulSefg5YZVfoK9EtbRAgIA+gHSuZ0q5gtbeNbu4jiYKASzY7c10em39ldjFpeRSkdQjZrzVeUrs9Z2jFJEd7boA3auL8RWMdzbSxTKGjbg57V2GvahYWMfmXc4QfSuR1LVbC4h/0eRir9GZCAfzpOLUrofMnGzPP/C8Qs9dMC/xROuR3wQa7HFchpEDQeL5UbkAOQfYjj+ddfXpQd0eTNWYh60xqcTUbGqIJBThTRS5NAx2abfaZHeWttdFcvbXKHOOQMjP4dDSjmrtpKFsr1C2D5W4D1IrKt8OhtQa57MmOnXJm822EALjLSSpvIPYAHtVnTtOnsZVuWdQwPzbIwitk/wAsVr6PPCbcNK2FA59qbq1/Anl+aTGh4GVJPX0rhu7WPSUVe5mapbNqOrurOwWNRhFGfx5qjcaTfEL511JPEM7klTA9selaF1qNlFrqm3mEm5V4A/rWhqV5E9o5BwyjkelDbWg7J6nD2tkiX97OQMhUUH1xn/61Tk1HBIGlu88sXXHtxzT2NdtFO2p5uIaukhpNMalJFMJrc5yYdKUGmA8U4dKAHrSSDejL6gikDYpC3pSAv6Zc+fZiLzdkhXg+jL1H+fSrUGkmaYxanOiv/A5ZyHB/A4PtXN30U1pCNQt8mMkmVR2YdG/oa6jStVh1KwjYSssxHylQDXBKPJJnqU58yV+xX1PQLO2UNFcJLN/AqFmJP14xVO4iOl2ZS5ufMnlAGF4C5OTjPPGK15JDaZkv7h5FH90AD8a4XULuTWdWkijZti8M390eg96PifkObUVpuaOnnekk3aRyV+g4qdjVaxmR4NiDb5TGPH0OKlZq74qySPLk7tsCaYxprNTS1MRY3UZqMNU0URbluB6VdOnKo7RRMpqKuxBljgcmnNGytjIIxmrUUQ2kL8vHFNK8k47CvWoYKMFeWrOGpiJS0WiLelFJEe1lAOfmUHuO4/z61iz6Pe6XfMdJnEaOdwjcfKPp6VanuI7OL7RLMkPlkFXc4GfT8a3oZYtRs1f+Mda8TMaDoVnNbS/M9jA1VWpKL3icffxa9KgjvbiNEOfuDk1Z0+wi03TyxGCRuYnqfrW6bJZDhmZ+3zdhWP4hvbaCMi4k8u2VgGIGc+wHeuOmpVZKEep0z5aSc5GNbtJCisOGfLsP94k/yIrR+cjkcjriqTyJO/mxMGR+VK9CO1a8SZZ/Y/0FfUPCU5RSfTqfO+3mpXKBNJuq5cW4JyBg+1UZFZDyOPWvOrYWdLXdHXTrRn6mhFGF5Iy3r6VajXuaQJg49qdJlF3DtzXsU6caatE8+c5Sd2Oc+Xhh070swxGXUFsc4UZJ+lBcYRjyp60+PMZ2fw9VP9K1IOcn0G61WUz6i3llf9RCDkR/X1J7mr9vc31lc7yNyhQrxqMcAYzx/PvWuH5waZOisA3Rl6MOorKdKnNOMldM0jVnBqUXsXTfQf2VNeRunyxkgt0z2zXCPYzas5e4cspPp0H0rb+wrdoZZJx5e8/uVyOf7x7VejhSJAqKAo7VyYPBQw/N1u/wOnFYyVe3Sxg2mjy2j+WnNuW3AE/c55FbEY2h2Prmp26YFR9xx3rvSS2OJtsD93mq00YOferBbMmKY+GYgdhzQ9Rp2P/Z" alt="Robert Brian"></span>
+              <span class="ava ava-letter" aria-label="Robert Brian">RB</span>
               <span class="nm">Robert Brian<span>Borrower</span></span>
               <span class="vl">$24,500.00<span>1.85 BTC locked</span></span>
             </div>
             <div class="srow">
-              <span class="ava"><img src="data:image/jpeg;base64,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" alt="Courtney Henry"></span>
+              <span class="ava ava-letter" aria-label="Courtney Henry">CH</span>
               <span class="nm">Courtney Henry<span>Lender</span></span>
               <span class="vl">$12,000.00<span>USDC lent</span></span>
             </div>
             <div class="srow">
-              <span class="ava"><img src="data:image/jpeg;base64,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" alt="Cody Fisher"></span>
+              <span class="ava ava-letter" aria-label="Cody Fisher">CF</span>
               <span class="nm">Cody Fisher<span>Borrower</span></span>
               <span class="vl">$5,150.75<span>0.42 BTC locked</span></span>
             </div>
             <div class="srow">
-              <span class="ava"><img src="data:image/jpeg;base64,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" alt="Darlene Robertson"></span>
+              <span class="ava ava-letter" aria-label="Darlene Robertson">DR</span>
               <span class="nm">Darlene Robertson<span>Lender</span></span>
               <span class="vl">$8,320.00<span>USDC lent</span></span>
             </div>
           </div>
         </div>
-        <h4>Direct, Peer-To-Peer Terms</h4>
-        <p class="desc">Two willing parties agree, secure, and settle a loan — enforced automatically by smart contracts.</p>
+        <h4>Anyone Can Lend To Anyone</h4>
+        <p class="desc">Two parties agree terms. Collateral backs the credit. The protocol enforces repayment, default, and release — transparently and automatically.</p>
       </div>
 
       <div class="fcard rv">
@@ -1015,8 +1089,30 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
             </span>
           </div>
         </div>
-        <h4>Non-Custodial By Design</h4>
-        <p class="desc">Collateral and loans stay locked in program-controlled escrow. No company holds your assets at any point.</p>
+        <h4>Infrastructure Holds The Rules</h4>
+        <p class="desc">Assets lock in program-controlled vaults — not company wallets. You do not hand custody to Persat; the system holds the agreement.</p>
+      </div>
+    </div>
+
+    <!-- discovery -->
+    <div class="fcard rv disc-block">
+      <div class="f-wide">
+        <div>
+          <h3>Discovery Without<br>Trusting A Middleman</h3>
+          <p>Find counterparties two ways: publish a structured offer on the open marketplace, or share a private deal link with someone you already know. Either path ends in the same place — collateral-backed terms enforced on-chain, not a handshake and a hope.</p>
+          <ul class="disc-list">
+            <li><b>Marketplace</b> — browse public listings with fixed rates, duration, and LTV. Respond with structured terms only (no free-text DMs required to start).</li>
+            <li><b>Private deal links</b> — invite one counterparty with a single-use link. They claim it, confirm terms, and lock collateral in program vaults.</li>
+            <li><b>Same enforcement</b> — discovery is how you meet; smart contracts are how the agreement holds.</li>
+          </ul>
+        </div>
+        <div class="chartcard disc-panel">
+          <div class="disc-row"><span class="disc-tag">Marketplace</span><span class="disc-meta">Open discovery</span></div>
+          <div class="disc-row on"><span class="disc-tag">Private link</span><span class="disc-meta">Invite only · single-use</span></div>
+          <div class="disc-row"><span class="disc-tag">On-chain terms</span><span class="disc-meta">Rate · duration · LTV</span></div>
+          <div class="disc-row"><span class="disc-tag">Vault escrow</span><span class="disc-meta">Program-controlled</span></div>
+          <p class="disc-foot">Highway first. Bitcoin is the pilot vehicle on that road.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -1027,34 +1123,34 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
   <div class="edge-glow left"></div>
   <div class="wrap">
     <div class="rv">
-      <h2 class="sec-title">Why Bitcoiners Choose<br> The Persat Protocol</h2>
-      <p class="sec-sub">Borrow against your Bitcoin, or lend your stablecoins — without giving up custody.</p>
+      <h2 class="sec-title">Why Start With Bitcoin —<br> And Where We Are Going</h2>
+      <p class="sec-sub">Infrastructure for trust-minimized peer-to-peer lending — secured by digital assets, enforced by smart contracts, starting with Bitcoin.</p>
     </div>
 
     <div class="why-grid">
       <div class="stat-grid rv">
-        <div class="stat"><b>$1.29T+</b><span>Bitcoin market cap ready to work as collateral</span></div>
-        <div class="stat"><b>95%+</b><span>Of long-term Bitcoin sits completely idle</span></div>
-        <div class="stat"><b>$315B+</b><span>Held in stablecoins — most of it unused</span></div>
+        <div class="stat"><b>Trust</b><span>Today lending still depends on knowing the person</span></div>
+        <div class="stat"><b>BTC first</b><span>Clear demand: unlock liquidity without selling</span></div>
+        <div class="stat"><b>Open</b><span>Architecture built for more assets over time</span></div>
         <div class="stat"><b>0</b><span>Companies holding your assets at any point</span></div>
       </div>
 
       <div class="why-list rv">
         <div class="wl">
           <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg></span>
-          <div><h5>Non-Custodial Escrow</h5><p>Bitcoin and stablecoins lock into program-controlled vaults, never company wallets.</p></div>
+          <div><h5>Collateral-Backed Credit</h5><p>Digital assets secure the loan so confidence comes from the structure — not personal promises alone.</p></div>
         </div>
         <div class="wl">
           <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z"/></svg></span>
-          <div><h5>Audited Smart Contracts</h5><p>Anchor programs with strict overflow checks and deterministic onchain enforcement.</p></div>
+          <div><h5>Programmable Agreements</h5><p>Terms live on-chain. Enforcement is transparent and automatic — the infrastructure keeps the deal honest.</p></div>
         </div>
         <div class="wl">
           <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"><path d="M4 19h16M7 16V9M12 16V5M17 16v-5"/></svg></span>
-          <div><h5>Live Price Oracles</h5><p>Pyth-powered feeds keep every position marked to market around the clock.</p></div>
+          <div><h5>Transparent Enforcement</h5><p>Oracles and vault rules keep positions honest so neither side depends on a middleman's goodwill.</p></div>
         </div>
         <div class="wl">
           <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"><path d="M12 21s-7-4.5-7-10a7 7 0 1 1 14 0c0 5.5-7 10-7 10z"/><circle cx="12" cy="11" r="2.6"/></svg></span>
-          <div><h5>Global Marketplace</h5><p>Borrowers and lenders meet from anywhere in the world, without intermediaries.</p></div>
+          <div><h5>Open Lending Infrastructure</h5><p>A highway for peer-to-peer credit. Bitcoin is the first vehicle — not the only road we'll build.</p></div>
         </div>
       </div>
     </div>
@@ -1065,25 +1161,25 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
 <section class="testi" id="testimonials">
   <div class="wrap">
     <div class="rv">
-      <h2 class="sec-title">Trusted By Early Believers<br> Around The World</h2>
-      <p class="sec-sub">Borrow against your Bitcoin, or lend your stablecoins — without giving up custody.</p>
+      <h2 class="sec-title">The Problem People Already<br> Feel — And The Why</h2>
+      <p class="sec-sub">Infrastructure for trust-minimized peer-to-peer lending — secured by digital assets, enforced by smart contracts, starting with Bitcoin.</p>
     </div>
 
     <div class="t-grid">
       <div class="tcard rv">
         <div class="stars"><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg></div>
-        <q>I&#8217;ve held Bitcoin for years without touching it. Persat finally lets me put it to work without giving up my keys.</q>
-        <div class="tuser"><img src="data:image/jpeg;base64,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" alt=""><div><b>Robert Brian</b><span>Bitcoin Holder, Early Access</span></div></div>
+        <q>I have lent to people I trusted and never seen the money again. I want agreements the system can enforce — not another favor.</q>
+        <div class="tuser"><span class="t-ava" aria-hidden="true">R</span><div><b>Robert Brian</b><span>Someone who has lent and lost</span></div></div>
       </div>
       <div class="tcard rv">
         <div class="stars"><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg></div>
-        <q>Stablecoin yield without handing funds to a company is exactly what onchain finance promised. Can&#8217;t wait for testnet.</q>
-        <div class="tuser"><img src="data:image/jpeg;base64,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" alt=""><div><b>Courtney Henry</b><span>Stablecoin Lender, Early Access</span></div></div>
+        <q>What if you did not have to personally trust the borrower? That is the idea — infrastructure that provides the security.</q>
+        <div class="tuser"><span class="t-ava" aria-hidden="true">C</span><div><b>Courtney Henry</b><span>Believes in trust-minimized credit</span></div></div>
       </div>
       <div class="tcard rv">
         <div class="stars"><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg><svg viewBox="0 0 24 24" fill="#ffaa45"><path d="M12 2l2.9 6.3 6.8.8-5 4.6 1.3 6.8L12 17.2 6 20.5l1.3-6.8-5-4.6 6.8-.8L12 2z"/></svg></div>
-        <q>Agree, lock, settle — all enforced by smart contracts. No custodian in sight. This is how credit should work.</q>
-        <div class="tuser"><img src="data:image/jpeg;base64,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" alt=""><div><b>Cody Fisher</b><span>Early Access Tester</span></div></div>
+        <q>Bitcoin is how we start — holders already need liquidity without selling. The bigger vision is lending anyone can use with confidence.</q>
+        <div class="tuser"><span class="t-ava" aria-hidden="true">C</span><div><b>Cody Fisher</b><span>Sees Bitcoin as the first pilot</span></div></div>
       </div>
     </div>
   </div>
@@ -1094,39 +1190,39 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
   <div class="wrap">
     <div class="rv">
       <h2 class="sec-title">Frequently Asked<br> Questions</h2>
-      <p class="sec-sub">Borrow against your Bitcoin, or lend your stablecoins — without giving up custody.</p>
+      <p class="sec-sub">Infrastructure for trust-minimized peer-to-peer lending — secured by digital assets, enforced by smart contracts, starting with Bitcoin.</p>
     </div>
 
     <div class="faq-list">
       <details class="qa rv" open>
         <summary>How do I get started with Persat?
-          <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+          <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
         </summary>
-        <p class="ans">Join the waitlist below. As testnet approaches, early members get first access to borrow against their Bitcoin or lend stablecoins — with priority by position on the list.</p>
+        <p class="ans">Join the waitlist below. Early members get first access to the Bitcoin pilot — our first market for trust-minimized, collateral-backed lending — with priority by position on the list.</p>
       </details>
       <details class="qa rv">
         <summary>Who holds my assets during a loan?
-          <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+          <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
         </summary>
-        <p class="ans">No one but the program. Bitcoin collateral and stablecoin loans sit in smart-contract escrow on Solana — Persat never takes custody of anything.</p>
+        <p class="ans">The infrastructure holds the rules. Collateral and loans sit in smart-contract vaults on Solana — not company wallets. Confidence comes from enforcement, not from trusting Persat with your keys.</p>
       </details>
       <details class="qa rv">
-        <summary>What can I borrow against?
-          <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        <summary>Why start with Bitcoin?
+          <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
         </summary>
-        <p class="ans">Bitcoin. Lock it as collateral, borrow stablecoins against it on agreed terms, and repay any time to unlock it — no selling, no custodian.</p>
+        <p class="ans">Bitcoin is our first collateral asset because holders already need liquidity without selling. Lock BTC, borrow against agreed terms, repay to unlock — while the broader infrastructure stays open to more assets later.</p>
       </details>
       <details class="qa rv">
-        <summary>What can I lend?
-          <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        <summary>What is Persat building overall?
+          <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
         </summary>
-        <p class="ans">Stablecoins. Lend into terms you agree with directly, secured by the borrower&#8217;s locked Bitcoin — enforced automatically by smart contracts.</p>
+        <p class="ans">Infrastructure for lending and borrowing between people who do not need to personally trust one another — collateral-backed credit, programmable agreements, transparent enforcement. Bitcoin is the first vehicle on that highway.</p>
       </details>
       <details class="qa rv">
         <summary>When is testnet?
-          <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+          <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
         </summary>
-        <p class="ans">Soon. Waitlist members are notified first, region by region, the moment testnet opens — followed by mainnet later this cycle.</p>
+        <p class="ans">The Bitcoin pilot is live on Solana devnet for early access. Waitlist members are notified as access expands — mainnet only after the model is proven.</p>
       </details>
     </div>
   </div>
@@ -1137,8 +1233,8 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
   <div class="wrap">
     <div class="cta-box rv">
       <span class="ring-bg"></span>
-      <h2>Be First On Persat —<br> Join The Waitlist Today</h2>
-      <p>Borrow against your Bitcoin, or lend your stablecoins — without giving up custody.</p>
+      <h2>Start Lending With<br> Confidence</h2>
+      <p>Infrastructure for trust-minimized peer-to-peer lending — secured by digital assets, enforced by smart contracts, starting with Bitcoin.</p>
       <form class="wl-form" id="waitlist-form" novalidate>
         <div class="wl-row">
           <div class="wl-field">
@@ -1154,10 +1250,10 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
           <label for="wf-role">I am a…</label>
           <select id="wf-role" name="role_type" required>
             <option value="" selected disabled>Select one…</option>
-            <option>Bitcoin Holder (Borrower)</option>
-            <option>Stablecoin Holder (Lender)</option>
-            <option>Both</option>
-            <option>Just Curious</option>
+            <option>I want to lend (or have lent before)</option>
+            <option>I hold Bitcoin and need liquidity</option>
+            <option>Both — lend and borrow</option>
+            <option>Building / curious about the infrastructure</option>
           </select>
         </div>
         <div class="wl-row">
@@ -1187,7 +1283,7 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
           </div>
         </div>
         <input class="wl-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <button class="btn-primary wl-submit" type="submit">Join the Waitlist
+        <button class="btn-primary wl-submit" type="submit">Start Lending With Confidence
           <span class="arw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
         </button>
         <p class="wl-note" id="wl-note" role="status"></p>
@@ -1205,7 +1301,7 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
           <img class="brand-logo" src="assets/persatlogo.png" alt="Persat Finance">
           Persat
         </a>
-        <p>The global trust layer for Bitcoin-backed lending — credit without custodians.</p>
+        <p>Infrastructure for a world where anyone can lend to anyone — secured by digital assets, enforced by smart contracts, starting with Bitcoin.</p>
       </div>
       <div class="f-cols">
         <div class="f-col"><h6>Product</h6><a href="#features">Features</a><a href="#why">Why choose</a><a href="#faq">FAQ</a><a href="#waitlist">Waitlist</a></div>
@@ -1258,6 +1354,53 @@ footer{border-top:1px solid rgba(255,255,255,.07);padding:44px 0 40px;position:r
   if(!nav)return;
   var up=function(){nav.classList.toggle('scrolled',window.scrollY>10)};
   window.addEventListener('scroll',up,{passive:true});up();
+})();
+
+/* mobile nav drawer */
+(function(){
+  var btn=document.getElementById('nav-toggle');
+  var drawer=document.getElementById('nav-drawer');
+  if(!btn||!drawer)return;
+  var openIcon=btn.querySelector('.nav-icon-open');
+  var closeIcon=btn.querySelector('.nav-icon-close');
+  var setOpen=function(open){
+    drawer.classList.toggle('open',open);
+    if(open)drawer.removeAttribute('hidden');
+    else drawer.setAttribute('hidden','');
+    btn.setAttribute('aria-expanded',open?'true':'false');
+    btn.setAttribute('aria-label',open?'Close menu':'Open menu');
+    document.body.classList.toggle('nav-open',open);
+    if(openIcon){ if(open) openIcon.setAttribute('hidden',''); else openIcon.removeAttribute('hidden'); }
+    if(closeIcon){ if(open) closeIcon.removeAttribute('hidden'); else closeIcon.setAttribute('hidden',''); }
+  };
+  btn.addEventListener('click',function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(!drawer.classList.contains('open'));
+  });
+  drawer.querySelectorAll('a').forEach(function(a){
+    a.addEventListener('click',function(){setOpen(false);});
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape')setOpen(false);
+  });
+  window.addEventListener('resize',function(){
+    if(window.innerWidth>920)setOpen(false);
+  });
+  /* keep mobile drawer active link in sync with scroll spy */
+  var pillLinks=[].slice.call(document.querySelectorAll('.nav-pill a'));
+  var drawerLinks=[].slice.call(drawer.querySelectorAll('a[href^="#"]'));
+  if(pillLinks.length&&drawerLinks.length){
+    var map={};
+    drawerLinks.forEach(function(a){map[a.getAttribute('href')]=a;});
+    var mo=new MutationObserver(function(){
+      pillLinks.forEach(function(a){
+        var d=map[a.getAttribute('href')];
+        if(d)d.classList.toggle('active',a.classList.contains('active'));
+      });
+    });
+    pillLinks.forEach(function(a){mo.observe(a,{attributes:true,attributeFilter:['class']});});
+  }
 })();
 
 /* subtle parallax on hero glow */

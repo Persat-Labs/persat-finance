@@ -218,7 +218,7 @@ export default function KeeperPage() {
                 {operatorKeypair ? (
                   <span>Authorized keeper active: <code className="text-amber">{operatorPubkey?.slice(0, 12)}…</code>. Actions signed directly, no wallet popups. Autonomous mode will progress states automatically.</span>
                 ) : (
-                  <span>Load <code className="text-amber">persat-devnet-keypairs-KEEP-SECRET.json</code> bundle on <a href="/faucet" className="text-amber underline">Faucet</a> to enable auto-signing, or connect operator wallet. Operator = gov signer 1 = <code className="text-white">{OPERATOR.toBase58().slice(0, 8)}…</code></span>
+                  <span>Connect the operator wallet (gov signer 1) to run keeper actions, or enable the Node keeper with <code className="text-amber">KEEPER_ENABLED=1</code> + <code className="text-amber">KEEPER_KEYPAIR_PATH</code> on the API host. Operator = <code className="text-white">{OPERATOR.toBase58().slice(0, 8)}…</code></span>
                 )}
               </p>
 
@@ -246,7 +246,7 @@ export default function KeeperPage() {
                 <Input value={query} onChange={(e) => setQuery(e.target.value.trim())} placeholder="Paste deal link id (base64url)" />
                 <Button onClick={() => { const id = dealIdFromUrl(query); setDealId(id); if (id) addLog(`Query ${query.slice(0, 12)}… parsed`); else addLog(`Invalid deal id format`); }}>Load</Button>
               </div>
-              {!isOperator && publicKey && !operatorKeypair && <p className="mt-4 rounded border border-amber/20 bg-amber/5 p-3 font-mono text-xs text-amber">Connected wallet not operator. Load bundle on /faucet or switch to operator wallet. Devnet operator is gov signer 1.</p>}
+              {!isOperator && publicKey && !operatorKeypair && <p className="mt-4 rounded border border-amber/20 bg-amber/5 p-3 font-mono text-xs text-amber">Connected wallet is not the operator. Switch to gov signer 1, or run the API keeper with KEEPER_ENABLED=1 + KEEPER_KEYPAIR_PATH.</p>}
 
               {dealId && deal && (
                 <div className="mt-6 space-y-3">

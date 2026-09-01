@@ -77,13 +77,9 @@ export default function Faucet() {
     setAutoFaucetState({ busy: true, message: "Requesting full pack from server — 0.5 SOL + 0.1 tBTC + 0.1 zBTC + 0.1 BTC + 5k USDC + 5k USDT..." });
     setCooldownInfo(null);
     try {
+      // Prefer server auto-mint, then claim (cooldown + optional dispense)
+      const autoRes = await api.faucetAuto(targetPubkey.toBase58(), "ALL").catch(() => null);
       const res = await api.faucetClaim(targetPubkey.toBase58(), "ALL").catch(() => null);
-      // Try auto endpoint first
-      const autoRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || ""}/v1/faucet/auto`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet: targetPubkey.toBase58(), asset: "ALL" }),
-      }).then(r => r.json()).catch(() => null);
 
       if (autoRes?.ok && autoRes?.signature) {
         setAutoFaucetState({ busy: false, message: `✅ Auto-dispensed full pack to ${targetPubkey.toBase58().slice(0, 4)}…${targetPubkey.toBase58().slice(-4)}!`, explorerUrl: autoRes.explorerUrl });
@@ -103,19 +99,21 @@ export default function Faucet() {
         return;
       }
 
-      // Fallback: if server dispense not configured, use client bundle if available
-      if (res?.mode === "client_bundle" || res?.mode === "client_bundle_fallback") {
+      // Cooldown-only / mint not live — optional advanced local dispense if already loaded
+      if (res?.mode === "client_bundle" || res?.mode === "client_bundle_fallback" || res?.mode === "cooldown_only") {
         if (deployerKeypair) {
-          // Auto fallback to client bundle
           await handleDispense(targetPubkey, { sol: 0.5, tbtc: 0.1, zbtc: 0.1, btc: 0.1, usdc: 5000, usdt: 5000 });
-          setAutoFaucetState({ busy: false, message: "Server not configured — used client bundle fallback (upload bundle for full auto)." });
+          setAutoFaucetState({ busy: false, message: "Claim recorded and local dispense completed." });
         } else {
-          setAutoFaucetState({ busy: false, message: "Auto-faucet requires server configuration. Upload bundle below for manual dispensing, or contact admin to set PERSAT_DEPLOYER_KEYPAIR.", error: res.message });
+          setAutoFaucetState({
+            busy: false,
+            message: "Faucet claim recorded. Full pack mint is not live yet — try again shortly, or use public Devnet SOL below.",
+          });
         }
         return;
       }
 
-      setAutoFaucetState({ busy: false, message: res?.message || "Claim recorded — check explorer.", explorerUrl: res?.explorerUrl });
+      setAutoFaucetState({ busy: false, message: res?.message || "Faucet claim recorded.", explorerUrl: res?.explorerUrl });
     } catch (err) {
       setAutoFaucetState({ busy: false, message: err instanceof Error ? err.message : String(err), error: String(err) });
     }
@@ -127,7 +125,7 @@ export default function Faucet() {
       opts: { sol?: number; tbtc?: number; zbtc?: number; btc?: number; usdc?: number; usdt?: number },
     ) => {
       if (!deployerKeypair) {
-        setDispenseState({ busy: false, result: null, message: "Upload persat-devnet-keypairs-KEEP-SECRET.json first to activate dispenser (advanced devs). For normal users, use Auto-Faucet above — no upload needed." });
+        setDispenseState({ busy: false, result: null, message: "Use One-Click Auto-Faucet above (no upload). Advanced local mint only if you load a deployer bundle yourself." });
         return;
       }
 
@@ -206,7 +204,7 @@ export default function Faucet() {
           <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-emerald-400">● One-Click Auto (No Bundle Needed)</span>
           <span className="rounded-full border border-white/10 bg-white/[0.02] px-2.5 py-1 text-white/50">BTC Default → Auto tBTC/zBTC</span>
           <span className="rounded-full border border-white/10 bg-white/[0.02] px-2.5 py-1 text-white/50">24h Cooldown</span>
-          <span className="rounded-full border border-amber/20 bg-amber/10 px-2.5 py-1 text-amber">Cuaniex + Detra Clean</span>
+          <span className="rounded-full border border-amber/20 bg-amber/10 px-2.5 py-1 text-amber">Inter + Plus Jakarta · Antialiased</span>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-3">
@@ -248,7 +246,7 @@ export default function Faucet() {
 
                   <div className="mt-4 rounded border border-white/5 bg-white/[0.02] p-3 font-mono text-[11px] text-white/40">
                     <p>💡 Default deposit is BTC — system auto-converts to tBTC/zBTC based on live bridge health (3 signals: pause/status, success rate, liquidity). You can also manually select tBTC or zBTC if you already have them.</p>
-                    <p className="mt-1">Server status: {serverDispenseAvailable === null ? "checking..." : serverDispenseAvailable ? "✅ Auto-dispense configured" : "⚠️ Client bundle fallback (admin needs to set PERSAT_DEPLOYER_KEYPAIR)"}</p>
+                    <p className="mt-1">Server status: {serverDispenseAvailable === null ? "checking..." : serverDispenseAvailable ? "✅ Auto-dispense configured" : "○ Claim recorded — full pack mint not live on API yet"}</p>
                   </div>
                 </div>
               ) : (

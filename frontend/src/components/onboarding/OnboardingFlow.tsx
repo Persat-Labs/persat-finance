@@ -1,11 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/lib/design-system";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useProtocol } from "@/lib/protocol/hooks";
 import { useProfile } from "@/lib/profile/userProfile";
+import { getStoredAuthToken } from "@/lib/api";
 
-const ONBOARDING_KEY = "persat_onboarding_completed_v1";
+/** Bumped when gate rules change so stale "skipped" flags don't unlock the dashboard */
+export const ONBOARDING_KEY = "persat_onboarding_completed_v2";
+export const AUTH_WALLET_KEY = "persat_auth_wallet_v1";
+/** Legacy keys cleared on mount so old skips cannot hide onboarding */
+const LEGACY_ONBOARDING_KEYS = ["persat_onboarding_completed_v1"];
 
 interface SlideData {
   icon: string;
@@ -16,27 +22,40 @@ interface SlideData {
 
 const SLIDES: SlideData[] = [
   {
+    icon: "🤝",
+    title: "What if you could lend to anyone?",
+    tagline: "The Problem Is Trust",
+    description:
+      "Most of us have lent money because we trusted someone — and too often it never came back. The problem isn't that people won't lend. It's that lending still depends on personal trust.",
+  },
+  {
     icon: "🛡️",
-    title: "Secure. Private. Yours.",
-    tagline: "Bank-Grade Non-Custodial Protocol",
+    title: "Infrastructure, not favors.",
+    tagline: "Trust-Minimized Credit",
     description:
-      "Your data is protected with bank-level security. Your Bitcoin stays locked in cryptographically verified smart contract vaults on Solana. We never take custody of your keys or funds.",
+      "Persat is building infrastructure so you don't have to personally trust the borrower. Credit is secured by digital assets. Terms are programmable. Enforcement is transparent — on smart contracts.",
   },
   {
-    icon: "📊",
-    title: "Track. Analyze. Grow.",
-    tagline: "Instant Overcollateralized Liquidity",
+    icon: "₿",
+    title: "Bitcoin is the first vehicle.",
+    tagline: "Current Pilot",
     description:
-      "Get insights that help you make smarter decisions and grow your finances. Access instant USDC and USDT stablecoin loans against your BTC collateral without selling your stack.",
-  },
-  {
-    icon: "🚀",
-    title: "Let's launch your goals!",
-    tagline: "Decentralized Peer-to-Peer Marketplace",
-    description:
-      "Join thousands of people who are already building a better future. Lend stablecoins directly to borrowers at fixed annual rates or borrow with zero counterparty risk.",
+      "We're piloting with Bitcoin because holders already need liquidity without selling. That's the first market — not the final destination. The highway is open lending infrastructure.",
   },
 ];
+
+function PersatLogo({ size = 32, className = "" }: { size?: number; className?: string }) {
+  return (
+    <Image
+      src="/persatlogo.png"
+      alt="Persat Finance"
+      width={size}
+      height={size}
+      className={`object-contain ${className}`}
+      priority
+    />
+  );
+}
 
 export function OnboardingFlow({
   onComplete,
@@ -59,28 +78,33 @@ export function OnboardingFlow({
     } catch {
       //
     }
+    // Without a wallet, stay on the final "Connect" step — never dump to dashboard
+    if (!publicKey) {
+      setCurrentStep(3);
+      return;
+    }
     onComplete();
   };
 
   const isFinalStep = currentStep === 3;
   const currentSlide = SLIDES[currentStep];
 
+  // z-40 sits below wallet-adapter modal (z-10050) so Connect can open the picker
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-0 sm:p-4 backdrop-blur-2xl animate-reveal">
-      {/* Full-screen on mobile (covers 100% of viewport without half-screens), sleek centered card on desktop */}
-      <div className="glass sheen relative flex h-full w-full flex-col justify-between overflow-y-auto border-0 sm:border border-white/15 bg-black/95 p-6 sm:p-10 sm:h-auto sm:max-w-lg sm:rounded-[28px] shadow-2xl">
-        {/* Top Header: Brand + Dismiss Asterisk */}
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black p-0 sm:p-4 animate-reveal">
+      {/* Full-screen on mobile; no dashboard or bottom tabs visible underneath */}
+      <div className="relative flex h-full w-full flex-col justify-between overflow-y-auto border-0 bg-black p-6 sm:border sm:border-white/15 sm:bg-black/95 sm:p-10 sm:h-auto sm:max-w-lg sm:rounded-[28px] sm:shadow-2xl sm:backdrop-blur-2xl">
+        {/* Top Header: real brand logo + Dismiss */}
         <div className="flex items-center justify-between pb-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-amber/30 to-orange/40 font-bold text-sm text-white">
-              ⚡
-            </div>
+          <div className="flex items-center gap-2.5">
+            <PersatLogo size={36} className="h-9 w-9" />
             <span className="font-brand-persat text-xl uppercase tracking-[.25em] text-white">
               persat
             </span>
           </div>
 
           <button
+            type="button"
             onClick={handleFinish}
             className="flex h-8 w-8 items-center justify-center font-mono text-lg text-white/40 hover:text-amber transition"
             title="Skip for now"
@@ -92,10 +116,8 @@ export function OnboardingFlow({
         {/* Content Body */}
         <div className="my-auto py-6">
           {!isFinalStep ? (
-            /* Steps 0, 1, 2: The 3 Slides matching reference image */
             <div className="flex flex-col items-center text-center animate-reveal" key={currentStep}>
-              {/* 3D-Style Illustrated Icon */}
-              <div className="flex h-28 w-28 items-center justify-center rounded-3xl border border-white/15 bg-white/[0.04] text-5xl shadow-[0_0_35px_rgba(255,138,0,0.18)] mb-8">
+              <div className="mb-8 flex h-28 w-28 items-center justify-center rounded-3xl border border-white/15 bg-white/[0.04] text-5xl shadow-[0_0_35px_rgba(255,138,0,0.18)]">
                 {currentSlide.icon}
               </div>
 
@@ -108,14 +130,13 @@ export function OnboardingFlow({
               </p>
             </div>
           ) : (
-            /* Step 3: The Final One - Exact requested Trust Layer screen */
             <div className="flex flex-col items-center text-center animate-reveal">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-amber/30 bg-gradient-to-br from-amber/20 to-orange/30 text-3xl shadow-[0_0_30px_rgba(255,171,0,0.25)] mb-6">
-                ⚡
+              {/* Final slide: bare transparent logo — no chrome / glow box */}
+              <div className="mb-6 flex items-center justify-center">
+                <PersatLogo size={88} className="h-[88px] w-[88px]" />
               </div>
 
               {publicKey ? (
-                /* Connected State: Celebration & Actions */
                 <div className="space-y-4 w-full">
                   <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 font-mono text-[11px] text-emerald-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -123,7 +144,7 @@ export function OnboardingFlow({
                   </div>
 
                   <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                    Welcome to Persat Finance! 🎉
+                    Welcome to Persat Finance!
                   </h2>
 
                   <p className="font-mono text-xs text-amber">
@@ -131,7 +152,7 @@ export function OnboardingFlow({
                   </p>
 
                   <p className="text-sm leading-6 text-white/70 max-w-sm mx-auto">
-                    Your non-custodial terminal is active on Solana Devnet. You can request test funds now or head straight to your dashboard.
+                    Your terminal is live on Solana Devnet — the Bitcoin pilot of Persat&apos;s lending infrastructure. Request test funds or open the dashboard.
                   </p>
 
                   <div className="pt-4 space-y-3">
@@ -142,7 +163,7 @@ export function OnboardingFlow({
                         onOpenFunding();
                       }}
                     >
-                      ⚡ Request Test Funds (SOL + BTC + USDC)
+                      Request Test Funds (SOL + BTC + USDC)
                     </Button>
 
                     <Button variant="secondary" className="w-full py-3 text-xs" onClick={handleFinish}>
@@ -151,20 +172,25 @@ export function OnboardingFlow({
                   </div>
                 </div>
               ) : (
-                /* Final Trust Layer Auth Screen */
                 <div className="space-y-4 w-full">
                   <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-white">
-                    Enter the Trust Layer
+                    Enter the Infrastructure
                   </h2>
 
                   <p className="max-w-sm mx-auto text-sm sm:text-base leading-7 text-white/70">
-                    Connect your Solana wallet to explore peer-to-peer Bitcoin loans, create private deal links, and browse verified marketplace offers.
+                    Connect your Solana wallet to try trust-minimized lending — private deals, marketplace offers, and Bitcoin as the first collateral pilot.
                   </p>
 
                   <div className="pt-6 space-y-3">
                     <Button
+                      type="button"
                       className="w-full py-4 text-xs font-semibold"
-                      onClick={() => setWalletModalVisible(true)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Open adapter modal above onboarding (see globals.css z-index)
+                        setWalletModalVisible(true);
+                      }}
                     >
                       Connect Solana Wallet
                     </Button>
@@ -181,11 +207,11 @@ export function OnboardingFlow({
 
         {/* Bottom Navigation & Controls */}
         <div className="pt-4 space-y-5">
-          {/* Pagination Indicator Dots */}
           <div className="flex justify-center gap-2">
             {[0, 1, 2, 3].map((stepIndex) => (
               <button
                 key={stepIndex}
+                type="button"
                 onClick={() => setCurrentStep(stepIndex)}
                 className={`h-2 rounded-full transition-all ${
                   currentStep === stepIndex ? "w-7 bg-amber" : "w-2 bg-white/20 hover:bg-white/40"
@@ -195,7 +221,6 @@ export function OnboardingFlow({
             ))}
           </div>
 
-          {/* Primary Action Button */}
           {!isFinalStep ? (
             <div className="space-y-3">
               <Button
@@ -234,27 +259,133 @@ export function OnboardingFlow({
   );
 }
 
+export function readOnboardingCompleted(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem(ONBOARDING_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+/** Returning user with API session token still in browser */
+export function readHasPersistedSession(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const token = getStoredAuthToken();
+    const wallet = localStorage.getItem(AUTH_WALLET_KEY);
+    return Boolean(token && token.length > 20 && wallet && wallet.length >= 32);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Gate home (strict):
+ * - NO connected wallet → always full-screen onboarding (never the dashboard)
+ * - Wallet connected → dashboard immediately (session optional for API later)
+ * - After onboarding + wallet, other tabs → home still dashboard while wallet stays connected
+ * - Disconnect → onboarding again
+ *
+ * localStorage "completed" only marks that they finished the slides once (for analytics /
+ * Guide *); it does NOT unlock the dashboard without a wallet.
+ */
 export function useOnboarding() {
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const { publicKey, connecting } = useProtocol();
+  const [mounted, setMounted] = useState(false);
+  const [gateReady, setGateReady] = useState(false);
+  /** true until we know a wallet is present */
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  /** Manual reopen (Guide *) even with wallet connected */
+  const [forceShow, setForceShow] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    // Drop legacy skip flags that used to unlock dashboard without a wallet
     try {
-      const completed = localStorage.getItem(ONBOARDING_KEY);
-      if (!completed) {
-        setShowOnboarding(true);
-      }
+      for (const k of LEGACY_ONBOARDING_KEYS) localStorage.removeItem(k);
     } catch {
       //
     }
+  }, []);
 
-    const handleTrigger = () => setShowOnboarding(true);
+  // Brand splash: always show logo for 2s, then resolve gate from wallet state
+  useEffect(() => {
+    if (!mounted || gateReady) return;
+    const t = window.setTimeout(() => {
+      setGateReady(true);
+      // Still no wallet after wait → onboarding (never dashboard)
+      if (!publicKey) setShowOnboarding(true);
+    }, 2000);
+    return () => window.clearTimeout(t);
+  }, [mounted, gateReady, publicKey]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Keep splash until the 2s timer flips gateReady (do not short-circuit on early connect)
+    if (!gateReady) {
+      // Still track desired onboarding state so the splash hands off cleanly
+      if (publicKey && !forceShow) setShowOnboarding(false);
+      else if (!publicKey) setShowOnboarding(true);
+      return;
+    }
+
+    // Wait briefly for autoConnect so returning Phantom users skip the wall
+    if (connecting && !publicKey) {
+      return;
+    }
+
+    if (publicKey) {
+      // Connected wallet → dashboard (unless user opened Guide *)
+      if (!forceShow) setShowOnboarding(false);
+      return;
+    }
+
+    // No wallet → always onboarding. Never use session/onboarded flag to show dashboard.
+    setShowOnboarding(true);
+  }, [mounted, publicKey, connecting, forceShow, gateReady]);
+
+  useEffect(() => {
+    const handleTrigger = () => {
+      setForceShow(true);
+      setShowOnboarding(true);
+      setGateReady(true);
+    };
     window.addEventListener("persat_show_onboarding", handleTrigger);
     return () => window.removeEventListener("persat_show_onboarding", handleTrigger);
   }, []);
 
+  const mustOnboard = !publicKey || forceShow;
+
   return {
-    showOnboarding,
-    openOnboarding: () => setShowOnboarding(true),
-    closeOnboarding: () => setShowOnboarding(false),
+    /** False until client + wallet autoConnect settled — avoid painting dashboard first */
+    gateReady: mounted && gateReady,
+    /**
+     * Full-screen guide only — home must not render dashboard or mobile tabs.
+     * No wallet ⇒ always true. Wallet ⇒ only if Guide * / force.
+     */
+    showOnboarding: mounted && gateReady && mustOnboard && (forceShow || showOnboarding || !publicKey),
+    openOnboarding: () => {
+      setForceShow(true);
+      setShowOnboarding(true);
+      setGateReady(true);
+    },
+    closeOnboarding: () => {
+      try {
+        localStorage.setItem(ONBOARDING_KEY, "true");
+      } catch {
+        //
+      }
+      setForceShow(false);
+      // Without a wallet, closing slides still keeps onboarding wall — user must connect
+      // to reach dashboard. "Skip" only dismisses the multi-step deck when wallet is live.
+      if (publicKey) {
+        setShowOnboarding(false);
+      } else {
+        // Stay on final connect step feel: keep wall; jump flow still requires connect
+        setShowOnboarding(true);
+      }
+    },
   };
 }

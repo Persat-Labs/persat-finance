@@ -5,7 +5,15 @@
  * Features: retry with exponential backoff, timeout, request-id, fail-closed, localStorage fallback.
  */
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+/**
+ * Prefer same-origin (Next.js rewrites /v1 and /health → API) so the browser
+ * never fights CORS. Absolute NEXT_PUBLIC_BACKEND_URL is only used when set
+ * AND we are not in the browser (SSR) — client always uses relative paths.
+ */
+const BACKEND_URL =
+  typeof window === "undefined" && process.env.NEXT_PUBLIC_BACKEND_URL
+    ? process.env.NEXT_PUBLIC_BACKEND_URL
+    : "";
 const TIMEOUT_MS = 8000;
 const MAX_RETRIES = 2;
 
@@ -75,14 +83,24 @@ export const api = {
   health: () => fetchWithRetry("/health", { method: "GET", retries: 0 }),
   bridgeHealth: () => fetchWithRetry("/v1/bridges/health"),
   btcPrice: () => fetchWithRetry("/v1/oracle/btc-usd"),
-  faucetClaim: (wallet: string, asset?: string) => fetchWithRetry("/v1/faucet/claim", { method: "POST", body: { wallet, asset } }),
+  faucetClaim: (wallet: string, asset?: string) =>
+    fetchWithRetry("/v1/faucet/claim", { method: "POST", body: { wallet, asset } }),
+  /** Server mint path — same body as claim; 503 when deployer key not set */
+  faucetAuto: (wallet: string, asset?: string) =>
+    fetchWithRetry("/v1/faucet/auto", { method: "POST", body: { wallet, asset: asset ?? "ALL" }, retries: 1 }),
   faucetStatus: (wallet: string) => fetchWithRetry(`/v1/faucet/status/${wallet}`),
   marketplaceListings: () => fetchWithRetry("/v1/marketplace/listings"),
   marketplaceProposals: (listingId: string) => fetchWithRetry(`/v1/marketplace/proposals/${listingId}`),
 
-  // Authenticated — requires wallet session
+  // Auth status (public)
+  authStatus: () => fetchWithRetry("/v1/auth/status", { method: "GET", retries: 0 }),
+
+  // Authenticated — requires wallet session (SIWS challenge → Bearer token)
   authChallenge: (wallet: string) => fetchWithRetry("/v1/auth/challenge", { method: "POST", body: { wallet } }),
-  authVerify: (challengeId: string, signature: string) => fetchWithRetry("/v1/auth/verify", { method: "POST", body: { challengeId, signature } }),
+  authVerify: (challengeId: string, signature: string, wallet?: string) =>
+    fetchWithRetry("/v1/auth/verify", { method: "POST", body: { challengeId, signature, wallet } }),
+  authMe: (token: string) => fetchWithRetry("/v1/auth/me", { method: "GET", authToken: token, retries: 0 }),
+  authLogout: (token: string) => fetchWithRetry("/v1/auth/logout", { method: "POST", authToken: token, retries: 0 }),
   createProposal: (data: any, token: string) => fetchWithRetry("/v1/marketplace/proposals", { method: "POST", body: data, authToken: token }),
   createDealLink: (data: any, token: string) => fetchWithRetry("/v1/deal-links", { method: "POST", body: data, authToken: token }),
   claimDealLink: (linkToken: string, wallet: string) => fetchWithRetry(`/v1/deal-links/${linkToken}/claim`, { method: "POST", body: { wallet } }),
