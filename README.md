@@ -1,65 +1,153 @@
 # Persat Finance
 
-Persat Finance is non-custodial Bitcoin-backed lending infrastructure on Solana. It supports two entry paths that converge into one audited loan lifecycle:
+Trust-minimized peer-to-peer Bitcoin-collateralised lending on Arc Testnet. Borrowers lock cirBTC as collateral and borrow USDC at fixed terms. Every deal state transition is governed by math and on-chain events — no operator keys, no god-mode.
 
-1. **Private direct deals** for people who already know one another, using a single-use deal link when a counterparty wallet is not known.
-2. **An open marketplace** for structured lending proposals between people who do not already know one another.
+Built with [Arc Studio](https://studio.arc.io)
 
-> **Current status:** active MVP build for testnet. No Solana program is deployed, no user funds are handled by this repository, and the product must not be represented as ready for mainnet use.
+---
 
-## Start here
+## Tech stack
 
-| If you are… | Read this first |
-| --- | --- |
-| A product or engineering contributor | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
-| Looking for the authoritative product behavior | `docs/Persat_Finance_How_It_Works.docx` and `docs/Persat_Finance_Testnet_Flow.docx` |
-| Working on protocol architecture | `docs/Persat_Finance_Technical_Architecture.docx` and [`docs/technical-architecture.md`](docs/technical-architecture.md) |
-| Setting up local services | [`GO_LIVE_AND_SCALE.md`](GO_LIVE_AND_SCALE.md) |
-| Reviewing existing implementation status | [`WHAT_WE_BUILT.md`](WHAT_WE_BUILT.md) and [`MILESTONES_ACHIEVED.md`](MILESTONES_ACHIEVED.md) |
-| Testnet completion → 3-step mainnet cutover | [`docs/MAINNET_CUTOVER_3_STEP.md`](docs/MAINNET_CUTOVER_3_STEP.md) |
-| A1/A2 live cycle runbook (browser sigs) | [`ops/handoff/A1-A2-live-cycle-runbook.md`](ops/handoff/A1-A2-live-cycle-runbook.md) |
-| A4 hosting (dApp / API / waitlist) | [`docs/HOSTING_A4.md`](docs/HOSTING_A4.md) |
+- **Smart contracts:** Solidity 0.8.24, OpenZeppelin 5.1.0, Foundry — deployed to Arc Testnet (chain ID 5042002)
+- **Frontend:** React 18, Vite, TypeScript, Tailwind CSS, Wagmi v2, Viem, ConnectKit, React Router v7
+- **Chain:** Arc Testnet — USDC is the native gas token
 
-## Repository map
+---
 
-```text
-contracts/  Planned Anchor/Solana workspace and protocol programs
-frontend/   Next.js 14, React, TypeScript, Tailwind product application
-backend/    Fastify/Node.js protocol-adjacent API and services
-waitlist/   Independently deployed public waitlist site and Supabase setup
-security-audits/  Evidence for mandatory four-pass audit process
-docs/       Authoritative product documents and implementation references
-```
+## Deployed contracts
 
-## Local developer commands
+### Arc Mainnet (Chain ID 5042)
 
-Requirements currently used by the repository:
+> ⚠️ **Do not use the deployment below with real funds.** It predates the November 2026 security review: its
+> "cirBTC" (`0x9b6e…54c4`) is a test token that **anyone can mint**, and it runs the old contract code.
+> Redeploy with `scripts/deploy-mainnet.cjs` (see *Deploy contracts* below) and update the frontend addresses.
 
-- Node.js 22+
-- npm 10+
-- Rust, Solana CLI, and Anchor are required before contract compilation/testing
+| Contract | Address | Explorer |
+|---|---|---|
+| PersatDealRegistry | `0x46725a32b46f5388be1237e2847694fdecab3b3c` | [View on Explorer](https://explorer.arc.io/address/0x46725a32b46f5388be1237e2847694fdecab3b3c) |
+| PersatEscrowVault | `0x48396168c79fce1c4b002c1f8f660b0f73dd43f6` | [View on Explorer](https://explorer.arc.io/address/0x48396168c79fce1c4b002c1f8f660b0f73dd43f6) |
+| cirBTC Collateral | `0x9b6ef2eb94fc756d2521ddc42baeb4ec3a3454c4` | [View on Explorer](https://explorer.arc.io/address/0x9b6ef2eb94fc756d2521ddc42baeb4ec3a3454c4) |
+| Chainlink BTC/USD Oracle | `0xa109B535C70C8Be9995be64Bb6751AcDB27e03De` | [View on Explorer](https://explorer.arc.io/address/0xa109B535C70C8Be9995be64Bb6751AcDB27e03De) |
+| Native USDC Gas & ERC-20 | `0x3600000000000000000000000000000000000000` | [View on Explorer](https://explorer.arc.io/address/0x3600000000000000000000000000000000000000) |
+
+- **Live Arc Mainnet Proof Transaction:** [`0xd029dbc35c6a8881eafcdcbe26ef487a8ed1c72b6d1d65514133b4688c6caa8f`](https://explorer.arc.io/tx/0xd029dbc35c6a8881eafcdcbe26ef487a8ed1c72b6d1d65514133b4688c6caa8f)
+
+### Arc Testnet (Chain ID 5042002)
+
+| Contract | Address |
+|---|---|
+| PersatDealRegistry | `0x2ed7e6d7f293299a4f9083b4c49d6d0b53171e70` |
+| PersatEscrowVault | `0x59241023610c71c56154e5c6d56821a750ff2e76` |
+| MockPriceFeed (BTC/USD $60k) | `0xa620864091aa03188e33db8ef938dc7e82e4a463` |
+| MockERC20 (cirBTC testnet) | `0x52c0757272713869f2a34827386c301a5c3af744` |
+| USDC (Arc Testnet) | `0x3600000000000000000000000000000000000000` |
+
+Explorer: `https://explorer.testnet.arc.io`
+
+---
+
+## Development
+
+### Prerequisites
+
+- Node.js 18+ and [Bun](https://bun.sh)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) for contract work
+
+### Install
 
 ```bash
-# Frontend
-npm --prefix frontend ci
-npm run frontend:dev
-
-# Backend
-npm --prefix backend ci
-npm run backend:dev
-
-# Full currently available verification
-npm run verify
+bun install
 ```
 
-The backend starts in a safe mode without database credentials. It exposes health diagnostics but does not enable deal-link or marketplace write paths until persistent storage, wallet authentication, and deployed-program verification are available.
+### Environment variables
 
-## Non-negotiable safety rules
+Create a `.env` file in the project root with the following variables:
 
-- Never commit keys, seed phrases, database passwords, RPC credentials, or deployment tokens.
-- No Persat-controlled process may custody user assets.
-- Collateral acceptance is restricted to **tBTC** and **zBTC**; cbBTC, WBTC, and SolvBTC are excluded.
-- Loans use **USDC** or **USDT** only.
-- Marketplace flows must never accept or persist free-text messages, URLs, social handles, or contact details.
-- Price-dependent actions must fail closed on stale BTC/USD data.
-- Security audit passes are evidence-driven; no pass is marked complete without its report.
+| Variable | Purpose |
+|---|---|
+| `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect Cloud project ID (get free at cloud.walletconnect.com) |
+| `VITE_REGISTRY_ADDRESS` | PersatDealRegistry contract address (defaults to Arc Testnet deploy) |
+| `VITE_VAULT_ADDRESS` | PersatEscrowVault contract address (defaults to Arc Testnet deploy) |
+| `VITE_CIRBTC_ADDRESS` | cirBTC ERC-20 address (defaults to Arc Testnet mock) |
+| `VITE_PRICE_FEED_ADDRESS` | IPriceFeed oracle address (defaults to Arc Testnet mock) |
+
+All `VITE_*_ADDRESS` variables have hardcoded defaults pointing to the Arc Testnet deploys, so the app works without any env configuration for testnet testing. Only `VITE_WALLETCONNECT_PROJECT_ID` is required for WalletConnect (MetaMask injected works without it).
+
+### Run
+
+```bash
+bun run dev
+```
+
+Open `http://localhost:5173`
+
+### Build
+
+```bash
+bun run build
+```
+
+### Test contracts
+
+```bash
+bun run contracts:test          # all unit, fuzz, invariant and security-regression tests
+bun run contracts:build         # compile only
+```
+
+### Lint and typecheck
+
+```bash
+bun run check
+```
+
+---
+
+## Deploy to Vercel
+
+See [VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md) for step-by-step instructions including Arc Testnet RPC configuration, environment variables, and wallet setup.
+
+---
+
+## Screens
+
+| Route | Description |
+|---|---|
+| `/` | Dashboard — protocol overview, your deals |
+| `/deal/new` | Create a private-link or open-marketplace deal |
+| `/deal/claim/:token?salt=...` | Claim a private deal link |
+| `/marketplace` | Browse open lending/borrowing orders, submit counter-offers |
+| `/deal/:id/manage` | Manage a specific deal — approve, activate, repay, liquidate |
+
+---
+
+## Protocol rules (after the November 2026 security review)
+
+| Rule | Value |
+|---|---|
+| Max LTV to activate a loan | 65% — `(principal + interest) / collateral value` |
+| Liquidation threshold | 80% (same formula), permissionless |
+| Overdue loans | liquidatable by anyone 7 days after maturity, whatever the LTV |
+| Late fee | 2% of principal if repaid after maturity |
+| Liquidator bonus | 3% of the lender's share, paid from the borrower's surplus only |
+| Principal | sent directly to the borrower at activation (the vault never holds user USDC) |
+| Open private links | carry an ephemeral key; claims are signed for the claimer's wallet |
+
+Full list of findings and changes: `contracts/PersatFinance-design.md` → *Security review — November 2026*.
+
+## Deploy contracts
+
+```bash
+forge build
+# 1. Safety checks only (no transaction):
+DRY_RUN=1 CIRBTC_ADDRESS=<official cirBTC from Circle> node scripts/deploy-mainnet.cjs
+# 2. Deploy registry + vault and wire them (setVault is called by the script):
+CIRBTC_ADDRESS=<official cirBTC> DEPLOYER_PRIVATE_KEY=<key> node scripts/deploy-mainnet.cjs
+```
+
+The script refuses to deploy if the collateral token can be minted by an arbitrary address, does not have
+8 decimals, or if the oracle is stale. After deploying, update `MAINNET_*` addresses in
+`src/contracts/addresses.ts` and the deployment block in `src/hooks/useUserDeals.ts` / `src/pages/Marketplace.tsx`.
+
+On testnet, deploy `PythPriceFeedAdapter` (Pyth `0x2880aB155794e7179c9eE2e38200202908C17B43`, BTC/USD price id
+`0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43`) and pass it as the vault oracle instead of
+`MockPriceFeed`. Pyth is pull-based: price updates must be pushed for the feed to stay fresh.

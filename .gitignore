@@ -1,30 +1,21 @@
-# Dependencies and generated application output
 node_modules/
-**/node_modules/
-.next/
-**/.next/
 dist/
-**/dist/
-coverage/
-*.log
-
-# Environment and signing material
 .env
 .env.local
-.env.*.local
-*.keypair.json
-*.pem
+.env*.local
+contracts/out/
+contracts/cache/
+contracts/.gitkeep
+.foundry/
+broadcast/
+*.log
+.DS_Store
+.circle/
+recovery_file*
 
-# Rust / Anchor generated artifacts
-target/
-.anchor/
+# Arc Studio dev logs
+console.jsonl
+traces.jsonl
 
-# Persat devnet secrets — never commit
-persat-*.json
-*KEEP-SECRET*.json
-VIRTUAL_ENV_README.md
-frontend/persat-sandbox-bundle.json
-
-# LyteHosting / cPanel local secrets (never commit)
-backend/php-deploy/config/config.local.php
-**/config.local.php
+# Foundry invariant failure cache
+/cache/
