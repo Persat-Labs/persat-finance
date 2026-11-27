@@ -1,0 +1,26 @@
+{
+  "network": "Arc Mainnet",
+  "chainId": 5042,
+  "deployedAt": "2026-10-24T13:56:12.502Z",
+  "deployer": "0x96cb116869808e935b870E94517f6F58CDED5cDE",
+  "registry": "0x46725a32b46f5388be1237e2847694fdecab3b3c",
+  "vault": "0x48396168c79fce1c4b002c1f8f660b0f73dd43f6",
+  "cirBtc": "0x9b6ef2eb94fc756d2521ddc42baeb4ec3a3454c4",
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "priceFeed": "0xa109B535C70C8Be9995be64Bb6751AcDB27e03De",
+  "explorerUrls": {
+    "registry": "https://explorer.arc.io/address/0x46725a32b46f5388be1237e2847694fdecab3b3c",
+    "vault": "https://explorer.arc.io/address/0x48396168c79fce1c4b002c1f8f660b0f73dd43f6",
+    "cirBtc": "https://explorer.arc.io/address/0x9b6ef2eb94fc756d2521ddc42baeb4ec3a3454c4",
+    "usdc": "https://explorer.arc.io/address/0x3600000000000000000000000000000000000000",
+    "priceFeed": "https://explorer.arc.io/address/0xa109B535C70C8Be9995be64Bb6751AcDB27e03De"
+  },
+  "exampleTx": {
+    "type": "proposeDeal",
+    "dealId": "0xc14fe8aa74153c033f27268c76fa14fc",
+    "txHash": "0xd029dbc35c6a8881eafcdcbe26ef487a8ed1c72b6d1d65514133b4688c6caa8f",
+    "blockNumber": "27635662",
+    "explorerUrl": "https://explorer.arc.io/tx/0xd029dbc35c6a8881eafcdcbe26ef487a8ed1c72b6d1d65514133b4688c6caa8f",
+    "timestamp": "2026-10-24T14:06:32.705Z"
+  }
+}

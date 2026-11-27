@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Persat Finance — Amber/Obsidian Dark Theme */
+  --bg: #17120f;
+  --bg-gradient: linear-gradient(180deg, #17120f 0%, #120d0a 100%);
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --surface-muted: #201b17;
+  --ink: #ebe0d9;
+  --ink-2: #ddc1ae;
+  --muted: #ddc1ae;
+  --subtle: #a58c7b;
+  --border: rgba(86, 67, 52, 0.4);
+  --border-strong: rgba(165, 140, 123, 0.6);
+  --accent: #ff8a00;
+  --accent-hover: #ffaa45;
+  --success: #10b981;
+  --danger: #f87171;
+  /* Brand accent — Solar Ember */
+  --brand: #ff8a00;
+  --brand-muted: rgba(255, 138, 0, 0.15);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Geist', 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100svh;
+}
+
+.display {
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: -0.03em;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'Space Grotesk', Menlo, monospace;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(86, 67, 52, 0.6); border-radius: 2px; }
+
+/* Smooth scroll */
+html { scroll-behavior: smooth; }
+
+/* Remove tap highlight on mobile */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Sonner toast dark theme */
+[data-sonner-toaster] {
+  --normal-bg: #241f1a;
+  --normal-border: rgba(86, 67, 52, 0.5);
+  --normal-text: #ebe0d9;
+  --success-bg: rgba(16, 185, 129, 0.15);
+  --success-border: rgba(16, 185, 129, 0.3);
+  --success-text: #10b981;
+  --error-bg: rgba(248, 113, 113, 0.15);
+  --error-border: rgba(248, 113, 113, 0.3);
+  --error-text: #f87171;
+}
+
+/* ConnectKit dark overrides */
+.ck-modal-backdrop {
+  backdrop-filter: blur(8px) !important;
+}

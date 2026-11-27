@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.env
+.env.local
+.env*.local
+contracts/out/
+contracts/cache/
+contracts/.gitkeep
+.foundry/
+broadcast/
+*.log
+.DS_Store
+.circle/
+recovery_file*
+
+# Arc Studio dev logs
+console.jsonl
+traces.jsonl
+
+# Foundry invariant failure cache
+/cache/

@@ -1,0 +1,1121 @@
+{
+  "contractAddress": "0x2ed7e6d7f293299a4f9083b4c49d6d0b53171e70",
+  "network": "ARC-TESTNET",
+  "deployerWalletId": "3c2464b2-8369-52e2-a782-800bbeca5396",
+  "contract_code_path": "/home/user/app/contracts/PersatDealRegistry.sol",
+  "contract_compiled_code_path": "/home/user/app/contracts/out/PersatDealRegistry.sol/PersatDealRegistry.json",
+  "contract_network_and_links": {
+    "Arc Testnet": "https://explorer.testnet.arc.io/address/0x2ed7e6d7f293299a4f9083b4c49d6d0b53171e70"
+  },
+  "contract_deployments": [
+    {
+      "chain": "Arc Testnet",
+      "address": "0x2ed7e6d7f293299a4f9083b4c49d6d0b53171e70",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0x2ed7e6d7f293299a4f9083b4c49d6d0b53171e70",
+      "txHash": "0x502d3980eae9de8d70cf05d0916eacb21b18b8b368ac25ee9a163cc64179ca9e",
+      "deployedAt": "2026-10-23T09:59:01.268Z"
+    },
+    {
+      "chain": "Arc Testnet",
+      "address": "0x277ec42de9cc634fa25c2f308f5e14c71e7a0593",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0x277ec42de9cc634fa25c2f308f5e14c71e7a0593",
+      "txHash": "0xd9ce789306ddd5dc143ec088f273ad93def60c4ce9354536ef9923ed8a55a5bb",
+      "deployedAt": "2026-10-22T20:44:10.738Z"
+    }
+  ],
+  "abi": [
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "usdc_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "cirBtc_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "feeRecipient_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "feeBps_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "initialOwner",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "MAX_COUNTER_OFFERS",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "MAX_FEE_BPS",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "acceptCounterOffer",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        },
+        {
+          "name": "offerId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "acceptOwnership",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "cancelDeal",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "cirBtc",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "claimDeal",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        },
+        {
+          "name": "salt",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "computeTermsHash",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "counterOffers",
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        },
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "offerId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "proposer",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "principal",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "collateral",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "rateBps",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "durationMonths",
+          "type": "uint8",
+          "internalType": "uint8"
+        },
+        {
+          "name": "active",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "deals",
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        },
+        {
+          "name": "borrower",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "lender",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "principal",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "collateral",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "rateBps",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "durationMonths",
+          "type": "uint8",
+          "internalType": "uint8"
+        },
+        {
+          "name": "visibility",
+          "type": "uint8",
+          "internalType": "enum PersatDealRegistry.Visibility"
+        },
+        {
+          "name": "state",
+          "type": "uint8",
+          "internalType": "enum PersatDealRegistry.DealState"
+        },
+        {
+          "name": "termsHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "claimToken",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "reservedFor",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "activatedAt",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "feeBps",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "feeRecipient",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getCounterOffers",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple[]",
+          "internalType": "struct PersatDealRegistry.CounterOffer[]",
+          "components": [
+            {
+              "name": "offerId",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "proposer",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "principal",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "collateral",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "rateBps",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "durationMonths",
+              "type": "uint8",
+              "internalType": "uint8"
+            },
+            {
+              "name": "active",
+              "type": "bool",
+              "internalType": "bool"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getDeal",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct PersatDealRegistry.Deal",
+          "components": [
+            {
+              "name": "dealId",
+              "type": "bytes16",
+              "internalType": "bytes16"
+            },
+            {
+              "name": "borrower",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "lender",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "principal",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "collateral",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "rateBps",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "durationMonths",
+              "type": "uint8",
+              "internalType": "uint8"
+            },
+            {
+              "name": "visibility",
+              "type": "uint8",
+              "internalType": "enum PersatDealRegistry.Visibility"
+            },
+            {
+              "name": "state",
+              "type": "uint8",
+              "internalType": "enum PersatDealRegistry.DealState"
+            },
+            {
+              "name": "termsHash",
+              "type": "bytes32",
+              "internalType": "bytes32"
+            },
+            {
+              "name": "claimToken",
+              "type": "bytes32",
+              "internalType": "bytes32"
+            },
+            {
+              "name": "reservedFor",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "activatedAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "owner",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "pause",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "paused",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "pendingOwner",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "proposeDeal",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        },
+        {
+          "name": "callerIsBorrower",
+          "type": "bool",
+          "internalType": "bool"
+        },
+        {
+          "name": "reservedFor",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "principal",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "collateral",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "rateBps",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "durationMonths",
+          "type": "uint8",
+          "internalType": "uint8"
+        },
+        {
+          "name": "visibility",
+          "type": "uint8",
+          "internalType": "enum PersatDealRegistry.Visibility"
+        },
+        {
+          "name": "salt",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "renounceOwnership",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setDealActive",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        },
+        {
+          "name": "activatedAt",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setDealCompleted",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setDealDefaulted",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setDealLiquidated",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setFeeBps",
+      "inputs": [
+        {
+          "name": "feeBps_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setFeeRecipient",
+      "inputs": [
+        {
+          "name": "recipient",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setVault",
+      "inputs": [
+        {
+          "name": "vault_",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "submitCounterOffer",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "internalType": "bytes16"
+        },
+        {
+          "name": "principal",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "collateral",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "rateBps",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "durationMonths",
+          "type": "uint8",
+          "internalType": "uint8"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "transferOwnership",
+      "inputs": [
+        {
+          "name": "newOwner",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "unpause",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "usdc",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "usedClaimTokens",
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "vault",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "CounterOfferCancelled",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "indexed": true,
+          "internalType": "bytes16"
+        },
+        {
+          "name": "offerId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "CounterOfferSubmitted",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "indexed": true,
+          "internalType": "bytes16"
+        },
+        {
+          "name": "offerId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "proposer",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "DealCancelled",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "indexed": true,
+          "internalType": "bytes16"
+        },
+        {
+          "name": "cancelledBy",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "DealConfirmed",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "indexed": true,
+          "internalType": "bytes16"
+        },
+        {
+          "name": "borrower",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "lender",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "termsHash",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "DealProposed",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "bytes16",
+          "indexed": true,
+          "internalType": "bytes16"
+        },
+        {
+          "name": "proposer",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "visibility",
+          "type": "uint8",
+          "indexed": false,
+          "internalType": "enum PersatDealRegistry.Visibility"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "FeeRecipientUpdated",
+      "inputs": [
+        {
+          "name": "oldRecipient",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "newRecipient",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "FeeUpdated",
+      "inputs": [
+        {
+          "name": "oldFeeBps",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "newFeeBps",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "OwnershipTransferStarted",
+      "inputs": [
+        {
+          "name": "previousOwner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "newOwner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "OwnershipTransferred",
+      "inputs": [
+        {
+          "name": "previousOwner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "newOwner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "Paused",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "Unpaused",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "VaultSet",
+      "inputs": [
+        {
+          "name": "vault",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "ClaimTokenAlreadyUsed",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "DealAlreadyExists",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "DealNotFound",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "EnforcedPause",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "ExpectedPause",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "FeeTooHigh",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidClaimToken",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidState",
+      "inputs": [
+        {
+          "name": "current",
+          "type": "uint8",
+          "internalType": "enum PersatDealRegistry.DealState"
+        },
+        {
+          "name": "required",
+          "type": "uint8",
+          "internalType": "enum PersatDealRegistry.DealState"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "InvalidTerms",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "MaxCounterOffersReached",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "NotVault",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "OfferNotFound",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "OwnableInvalidOwner",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "OwnableUnauthorizedAccount",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ReentrancyGuardReentrantCall",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "Unauthorized",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "VaultAlreadySet",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "ZeroAddress",
+      "inputs": []
+    }
+  ]
+}
